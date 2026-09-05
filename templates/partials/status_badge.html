@@ -1,0 +1,4 @@
+{% macro status_badge(status) -%}
+{% set _labels = {'aberta':'Em analise','respondida':'Respondida','aceita':'Aceita','ajuste_solicitado':'Ajuste solicitado'} %}
+<span class="badge badge--{{ status }}">{{ _labels.get(status, status) }}</span>
+{%- endmacro %}

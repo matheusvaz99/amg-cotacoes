@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "partials/status_badge.html" import status_badge %}
+{% block title %}Cotacoes — Painel AMG{% endblock %}
+
+{% block content %}
+<div class="admin-head">
+  <div>
+    <h1>Cotacoes</h1>
+    <p class="hint">Conectado como {{ admin }} &middot; <a href="/admin/logout">sair</a></p>
+  </div>
+</div>
+
+<div class="tabs">
+  {% for name in ['todas', 'abertas', 'respondidas'] %}
+    <a class="tab {% if tab == name %}is-active{% endif %}" href="/admin?tab={{ name }}{% if search %}&q={{ search }}{% endif %}">
+      {{ name|capitalize }} <span class="tab__count">{{ counts[name] }}</span>
+    </a>
+  {% endfor %}
+</div>
+
+<form method="get" action="/admin" class="search-bar">
+  <input type="hidden" name="tab" value="{{ tab }}">
+  <input type="search" name="q" value="{{ search }}" placeholder="Buscar por codigo, cidade ou cliente">
+  <button type="submit" class="btn btn--ghost">Buscar</button>
+</form>
+
+{% if not quotes %}
+  <p class="notice">Nenhuma cotacao nesta visao.</p>
+{% else %}
+<div class="table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr><th>Codigo</th><th>Data</th><th>Rota</th><th>Cliente</th><th>Status</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for q in quotes %}
+      <tr>
+        <td data-label="Codigo"><strong>{{ q.code }}</strong></td>
+        <td data-label="Data">{{ q.created_at | date_br }}</td>
+        <td data-label="Rota">{{ q.origem_cidade }} &rarr; {{ q.destino_cidade }}</td>
+        <td data-label="Cliente">{{ q.client_name }}</td>
+        <td data-label="Status">{{ status_badge(q.status) }}</td>
+        <td data-label="">
+          <div class="row-actions">
+            <a class="btn btn--sm" href="/admin/cotacao/{{ q.code }}">
+              {% if q.proposal %}Ver / editar{% else %}Responder{% endif %}</a>
+            <a class="btn btn--sm btn--ghost" href="/admin/cotacao/{{ q.code }}/pdf">PDF</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

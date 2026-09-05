@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}AMG Logistica — Cotacao Rapida de Frete{% endblock %}
+{% block body_class %}has-hero{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>Cotacao rapida de frete</h1>
+  <p>Solicite cotacoes de forma rapida, simples e padronizada. Sem cadastro: preencha,
+     envie e acompanhe a proposta pelo codigo.</p>
+  <div class="hero__actions">
+    <a class="btn btn--primary" href="/cotacao">Solicitar cotacao</a>
+    <a class="btn btn--ghost" href="/acompanhar">Acompanhar cotacao</a>
+  </div>
+</section>
+
+<section class="steps">
+  <h2>Como funciona</h2>
+  <ol class="steps__list">
+    <li><strong>Nova cotacao</strong><span>Preencha origem, destino, carga e transporte.</span></li>
+    <li><strong>Enviar solicitacao</strong><span>Seu pedido vai direto para o time comercial da AMG.</span></li>
+    <li><strong>Receber cotacao</strong><span>Voce recebe a proposta por e-mail e por aqui.</span></li>
+    <li><strong>Historico</strong><span>Acompanhe o status de todas as cotacoes pelo codigo.</span></li>
+  </ol>
+</section>
+
+<section class="benefits">
+  <div><strong>Agilidade</strong><span>nas solicitacoes</span></div>
+  <div><strong>Padronizacao</strong><span>das informacoes</span></div>
+  <div><strong>Menos retrabalho</strong><span>e menos erros</span></div>
+  <div><strong>Melhor experiencia</strong><span>para o cliente</span></div>
+</section>
+{% endblock %}

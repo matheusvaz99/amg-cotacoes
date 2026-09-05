@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% from "partials/status_badge.html" import status_badge %}
+{% block title %}Cotacao {{ quote.code }} — AMG Logistica{% endblock %}
+
+{% block content %}
+<div class="detail">
+  <div class="detail__head">
+    <div>
+      <p class="eyebrow">Cotacao</p>
+      <h1>{{ quote.code }}</h1>
+    </div>
+    {{ status_badge(quote.status) }}
+  </div>
+
+  <div class="card">
+    <h2>Resumo</h2>
+    <dl class="kv">
+      <div><dt>Origem</dt><dd>{{ quote.origem_cidade }}</dd></div>
+      <div><dt>Destino</dt><dd>{{ quote.destino_cidade }}</dd></div>
+      <div><dt>Material</dt><dd>{{ quote.tipo_material }}</dd></div>
+      <div><dt>Volumes</dt><dd>{{ quote.qtd_volumes }}</dd></div>
+      <div><dt>Peso total</dt><dd>{{ quote.peso_total_kg | peso }} kg</dd></div>
+      <div><dt>Veiculo</dt><dd>{{ quote.tipo_veiculo }}</dd></div>
+      <div><dt>Carroceria</dt><dd>{{ quote.carroceria or '-' }}</dd></div>
+      <div><dt>Capacidade</dt><dd>{{ quote.capacidade_aprox }}</dd></div>
+      <div><dt>Coleta prevista</dt><dd>{{ quote.data_coleta | date_br }}</dd></div>
+    </dl>
+  </div>
+
+  {% if not respondida %}
+    <div class="card card--muted">
+      <h2>Proposta em analise</h2>
+      <p>Sua solicitacao foi recebida e esta sendo analisada pelo time comercial da AMG.
+         Assim que a proposta estiver pronta, voce sera avisado por e-mail.</p>
+    </div>
+  {% elif proposal %}
+    <div class="card">
+      <h2>Itens da cotacao</h2>
+      <table class="items">
+        <tbody>
+          <tr><td>Frete</td><td>{{ proposal.frete | brl }}</td></tr>
+          <tr><td>Pedagio</td><td>{{ proposal.pedagio | brl }}</td></tr>
+          <tr><td>Seguro (0,2%)</td><td>{{ proposal.seguro | brl }}</td></tr>
+          <tr class="items__total"><td>Total</td><td>{{ proposal.total | brl }}</td></tr>
+        </tbody>
+      </table>
+      <dl class="kv">
+        <div><dt>Prazo de entrega</dt><dd>{{ proposal.prazo_entrega }}</dd></div>
+        <div><dt>Validade da proposta</dt><dd>{{ proposal.validade | date_br }}</dd></div>
+      </dl>
+      {% if proposal.observacoes %}<p class="hint">{{ proposal.observacoes }}</p>{% endif %}
+
+      {% if proposal.expirada %}
+        <p class="notice notice--error">Proposta expirada. Solicite uma nova cotacao.</p>
+      {% endif %}
+    </div>
+
+    {% if quote.status == 'respondida' and not proposal.expirada %}
+      <div class="card actions-card">
+        <form method="post" action="/cotacao/{{ quote.code }}/aceitar">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="t" value="{{ request.query_params.get('t', '') }}">
+          <button type="submit" class="btn btn--primary btn--block">Aceitar cotacao</button>
+        </form>
+
+        <details class="adjust">
+          <summary>Solicitar ajuste</summary>
+          <form method="post" action="/cotacao/{{ quote.code }}/ajuste">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="t" value="{{ request.query_params.get('t', '') }}">
+            <div class="field {% if ajuste_error %}field--error{% endif %}">
+              <label for="f_note">O que gostaria de ajustar?</label>
+              <textarea id="f_note" name="note" rows="3" required></textarea>
+              {% if ajuste_error %}<p class="error-msg">{{ ajuste_error }}</p>{% endif %}
+            </div>
+            <button type="submit" class="btn btn--ghost btn--block">Enviar pedido de ajuste</button>
+          </form>
+        </details>
+      </div>
+    {% elif quote.status == 'aceita' %}
+      <p class="notice notice--ok">Voce aceitou esta cotacao. O time comercial dara sequencia ao processo.</p>
+    {% elif quote.status == 'ajuste_solicitado' %}
+      <p class="notice">Seu pedido de ajuste foi enviado. Em breve enviaremos uma proposta revisada.</p>
+      {% if quote.client_decision_note %}<p class="hint">Ajuste solicitado: {{ quote.client_decision_note }}</p>{% endif %}
+    {% endif %}
+  {% endif %}
+
+  <div class="detail__foot">
+    <a class="btn btn--ghost" href="/cotacao?base={{ quote.code }}">Solicitar nova cotacao com base nesta</a>
+  </div>
+</div>
+{% endblock %}

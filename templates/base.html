@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b2138">
+  <meta name="description" content="Solicite cotacoes de frete da AMG Logistica de forma rapida, simples e padronizada.">
+  <title>{% block title %}AMG Logistica — Cotacao Rapida de Frete{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', path='img/favicon.svg') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/styles.css') }}">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="brand" href="/">
+        <span class="brand__mark">AMG</span>
+        <span class="brand__sub">LOGISTICA</span>
+      </a>
+      <nav class="site-nav">
+        <a href="/cotacao">Nova cotacao</a>
+        <a href="/acompanhar">Acompanhar</a>
+        {% if request.session.get('admin_user') %}
+          <a href="/admin">Painel</a>
+          <a href="/admin/opcoes/carroceria">Carrocerias</a>
+          <a href="/admin/opcoes/tipo_veiculo">Tipos de veiculo</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="container page">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="site-footer__slogan">{{ SLOGAN }}</p>
+      <ul class="disclaimers">
+        {% for item in DISCLAIMERS %}<li>{{ item }}</li>{% endfor %}
+      </ul>
+      <p class="site-footer__copy">AMG Logistica &middot; Cotacoes sao estimativas e nao geram reserva de veiculo.</p>
+    </div>
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

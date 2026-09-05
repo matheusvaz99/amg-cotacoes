@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% from "partials/status_badge.html" import status_badge %}
+{% from "partials/fields.html" import field, textarea %}
+{% block title %}{{ quote.code }} — Painel AMG{% endblock %}
+
+{% block content %}
+<p class="hint"><a href="/admin?tab={{ 'respondidas' if quote.proposal else 'abertas' }}">&larr; Voltar para a fila</a></p>
+
+<div class="detail__head">
+  <div>
+    <p class="eyebrow">Cotacao</p>
+    <h1>{{ quote.code }}</h1>
+  </div>
+  {{ status_badge(quote.status) }}
+</div>
+
+{% if request.query_params.get('ok') == '1' %}
+  <p class="notice notice--ok">Proposta salva e enviada ao cliente.</p>
+{% elif request.query_params.get('ok') == 'pdf' %}
+  <p class="notice notice--ok">Cotacao em PDF enviada ao cliente por e-mail ({{ quote.client_email }}).</p>
+{% endif %}
+{% if quote.status == 'ajuste_solicitado' and quote.client_decision_note %}
+  <p class="notice">Cliente pediu ajuste: {{ quote.client_decision_note }}</p>
+{% endif %}
+
+<div class="doc-actions">
+  <a class="btn btn--sm btn--ghost" href="/admin/cotacao/{{ quote.code }}/pdf">Baixar PDF</a>
+  <a class="btn btn--sm btn--ghost" href="/admin/cotacao/{{ quote.code }}/pdf?inline=1" target="_blank" rel="noopener">Visualizar PDF</a>
+  <form method="post" action="/admin/cotacao/{{ quote.code }}/enviar-pdf"
+        onsubmit="return confirm('Enviar a cotacao em PDF para {{ quote.client_email }}?');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit" class="btn btn--sm">Enviar PDF ao cliente</button>
+  </form>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <h2>Dados da solicitacao</h2>
+    <dl class="kv">
+      <div><dt>Cliente</dt><dd>{{ quote.client_name }}</dd></div>
+      <div><dt>E-mail</dt><dd>{{ quote.client_email }}</dd></div>
+      <div><dt>Telefone</dt><dd>{{ quote.client_phone or '-' }}</dd></div>
+      <div><dt>Solicitada em</dt><dd>{{ quote.created_at | date_br }}</dd></div>
+    </dl>
+    <h3>Origem</h3>
+    <p>{{ quote.origem_cidade }}<br>
+       CEP {{ quote.origem_cep or '-' }} &middot; {{ quote.origem_endereco or '-' }} &middot; {{ quote.origem_bairro or '-' }}</p>
+    <h3>Destino</h3>
+    <p>{{ quote.destino_cidade }}<br>
+       CEP {{ quote.destino_cep or '-' }} &middot; {{ quote.destino_endereco or '-' }} &middot; {{ quote.destino_bairro or '-' }}</p>
+    <h3>Carga</h3>
+    <dl class="kv">
+      <div><dt>Tipo de material</dt><dd>{{ quote.tipo_material }}</dd></div>
+      <div><dt>Descricao</dt><dd>{{ quote.descricao_material or '-' }}</dd></div>
+      <div><dt>Volumes</dt><dd>{{ quote.qtd_volumes }}</dd></div>
+      <div><dt>Peso total (kg)</dt><dd>{{ quote.peso_total_kg | peso }}</dd></div>
+      <div><dt>Valor da NF</dt><dd>{{ quote.valor_nf | brl }}</dd></div>
+      <div><dt>Servico de carga</dt><dd>{{ 'Sim' if quote.servico_carga else 'Nao' }}</dd></div>
+      <div><dt>Servico de descarga</dt><dd>{{ 'Sim' if quote.servico_descarga else 'Nao' }}</dd></div>
+    </dl>
+    <h3>Transporte</h3>
+    <dl class="kv">
+      <div><dt>Veiculo desejado</dt><dd>{{ quote.tipo_veiculo }}</dd></div>
+      <div><dt>Carroceria</dt><dd>{{ quote.carroceria or '-' }}</dd></div>
+      <div><dt>Capacidade aprox.</dt><dd>{{ quote.capacidade_aprox }}</dd></div>
+      <div><dt>Coleta prevista</dt><dd>{{ quote.data_coleta | date_br }}</dd></div>
+      <div><dt>Observacoes</dt><dd>{{ quote.observacoes or '-' }}</dd></div>
+    </dl>
+  </div>
+
+  <div class="card">
+    <h2>Proposta</h2>
+    <form method="post" action="/admin/cotacao/{{ quote.code }}" id="proposta-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      {{ field('frete', 'Frete (R$)', values, errors, required=True, inputmode='decimal', placeholder='0,00') }}
+      {{ field('pedagio', 'Pedagio (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
+      {{ field('seguro', 'Seguro (R$)', values, errors, inputmode='decimal', hint='Sugestao: 0,2% do valor da NF (' ~ (quote.valor_nf | brl) ~ ').') }}
+      <p class="total-preview">Total: <strong data-total>{{ '-' }}</strong></p>
+      {{ field('prazo_entrega', 'Prazo de entrega', values, errors, required=True, placeholder='Ex.: 1 dia util') }}
+      {{ field('validade', 'Validade da proposta', values, errors, type='date', required=True) }}
+      {{ textarea('observacoes', 'Observacoes', values, errors, hint='Padrao: valores sujeitos a confirmacao na contratacao.') }}
+      <button type="submit" class="btn btn--primary btn--block">Salvar e enviar ao cliente</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/masks.js') }}" defer></script>
+<script src="{{ url_for('static', path='js/admin.js') }}" defer></script>
+{% endblock %}

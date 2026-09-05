@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% from "partials/fields.html" import field, select, textarea, yesno %}
+{% block title %}Nova cotacao — AMG Logistica{% endblock %}
+
+{% block content %}
+<div class="form-shell">
+  <h1>Nova cotacao</h1>
+  <p class="lead">Campos marcados com <span class="req">*</span> sao obrigatorios. Os demais sao opcionais e servem para agilizar a analise.</p>
+
+  {% if base_code %}
+    <p class="notice">Baseado na cotacao <strong>{{ base_code }}</strong>. Revise os dados antes de enviar.</p>
+  {% endif %}
+  {% if errors.get('__all__') %}
+    <p class="notice notice--error">{{ errors.get('__all__') }}</p>
+  {% endif %}
+
+  <div id="draft-banner" class="notice" hidden>
+    Encontramos um rascunho salvo neste navegador.
+    <button type="button" class="linkbtn" data-draft="restore">Retomar rascunho</button> ou
+    <button type="button" class="linkbtn" data-draft="discard">comecar novo</button>.
+  </div>
+
+  <ol class="stepper" aria-hidden="true">
+    <li data-step="1" class="is-active">Origem e destino</li>
+    <li data-step="2">Dados da carga</li>
+    <li data-step="3">Transporte</li>
+  </ol>
+
+  <form method="post" action="/cotacao" id="cotacao-form" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="base_code" value="{{ base_code or '' }}">
+
+    <fieldset class="step" data-step="1">
+      <legend>1. Contato</legend>
+      {{ field('client_name', 'Nome / empresa', values, errors, required=True, autocomplete='organization') }}
+      <div class="grid-2">
+        {{ field('client_email', 'E-mail', values, errors, type='email', required=True, autocomplete='email') }}
+        {{ field('client_phone', 'Telefone / WhatsApp', values, errors, hint='Opcional', inputmode='tel', autocomplete='tel') }}
+      </div>
+
+      <h2 class="section-title">Origem (coleta)</h2>
+      <div class="grid-2">
+        {{ field('origem_cidade', 'Cidade', values, errors, required=True, placeholder='Ex.: Curitiba - PR') }}
+        {{ field('origem_cep', 'CEP', values, errors, hint='Opcional', inputmode='numeric', placeholder='00000-000') }}
+      </div>
+      <div class="grid-2">
+        {{ field('origem_endereco', 'Endereco', values, errors, hint='Opcional') }}
+        {{ field('origem_bairro', 'Bairro', values, errors, hint='Opcional') }}
+      </div>
+
+      <h2 class="section-title">Destino (entrega)</h2>
+      <div class="grid-2">
+        {{ field('destino_cidade', 'Cidade', values, errors, required=True, placeholder='Ex.: Londrina - PR') }}
+        {{ field('destino_cep', 'CEP', values, errors, hint='Opcional', inputmode='numeric', placeholder='00000-000') }}
+      </div>
+      <div class="grid-2">
+        {{ field('destino_endereco', 'Endereco', values, errors, hint='Opcional') }}
+        {{ field('destino_bairro', 'Bairro', values, errors, hint='Opcional') }}
+      </div>
+
+      <div class="step-actions">
+        <span></span>
+        <button type="button" class="btn btn--primary" data-nav="next">Continuar</button>
+      </div>
+    </fieldset>
+
+    <fieldset class="step" data-step="2" hidden>
+      <legend>2. Dados da carga</legend>
+      {{ select('tipo_material', 'Tipo de material', tipos_material, values, errors, required=True) }}
+      {{ textarea('descricao_material', 'Descricao do material', values, errors, hint='Opcional. Ex.: Tubos e acessorios de andaime') }}
+      <div class="grid-2">
+        {{ field('qtd_volumes', 'Quantidade de volumes', values, errors, required=True, inputmode='numeric') }}
+        {{ field('peso_total_kg', 'Peso total aproximado (kg)', values, errors, required=True, inputmode='numeric', placeholder='Ex.: 5.000', hint='Somente o peso em quilos.') }}
+      </div>
+      {{ field('valor_nf', 'Valor aproximado da NF (R$)', values, errors, required=True, inputmode='decimal', placeholder='Ex.: 25.000,00') }}
+      <div class="grid-2">
+        {{ yesno('servico_carga', 'Necessita servico de carga?', values, errors) }}
+        {{ yesno('servico_descarga', 'Necessita servico de descarga?', values, errors) }}
+      </div>
+
+      <div class="step-actions">
+        <button type="button" class="btn btn--ghost" data-nav="prev">Voltar</button>
+        <button type="button" class="btn btn--primary" data-nav="next">Continuar</button>
+      </div>
+    </fieldset>
+
+    <fieldset class="step" data-step="3" hidden>
+      <legend>3. Dados do transporte</legend>
+      <div class="grid-2">
+        {{ select('tipo_veiculo', 'Tipo de veiculo desejado', tipos_veiculo, values, errors, required=True) }}
+        {{ select('carroceria', 'Carroceria', carrocerias, values, errors, required=True, hint='Tipos disponiveis conforme cadastro da AMG.') }}
+      </div>
+      <div class="grid-2">
+        {{ field('capacidade_aprox', 'Capacidade aproximada', values, errors, required=True, placeholder='Ex.: 28 toneladas') }}
+        {{ field('data_coleta', 'Data prevista para coleta', values, errors, type='date', required=True) }}
+      </div>
+      {{ textarea('observacoes', 'Observacoes', values, errors, hint='Opcional. Ex.: Acesso facil para carga e descarga.') }}
+
+      <div class="step-actions">
+        <button type="button" class="btn btn--ghost" data-nav="prev">Voltar</button>
+        <button type="submit" class="btn btn--primary" data-submit>Enviar cotacao</button>
+      </div>
+    </fieldset>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/masks.js') }}" defer></script>
+<script src="{{ url_for('static', path='js/wizard.js') }}" defer></script>
+{% endblock %}

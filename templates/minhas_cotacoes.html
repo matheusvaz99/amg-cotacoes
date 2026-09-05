@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "partials/status_badge.html" import status_badge %}
+{% block title %}Minhas cotacoes — AMG Logistica{% endblock %}
+
+{% block content %}
+<h1>Minhas cotacoes</h1>
+<p class="lead">Cotacoes vinculadas a este navegador.</p>
+
+{% if not quotes %}
+  <p class="notice">Nenhuma cotacao por aqui ainda. <a href="/cotacao">Solicitar cotacao</a>.</p>
+{% else %}
+<ul class="quote-list">
+  {% for q in quotes %}
+  <li class="quote-list__item">
+    <a href="/cotacao/{{ q.code }}">
+      <div class="quote-list__top">
+        <strong>{{ q.code }}</strong>
+        {{ status_badge(q.status) }}
+      </div>
+      <div class="quote-list__route">{{ q.origem_cidade }} &rarr; {{ q.destino_cidade }}</div>
+      <div class="quote-list__meta">
+        Solicitada em {{ q.created_at | date_br }}
+        {% if q.proposal %} &middot; Total {{ q.proposal.total | brl }}{% endif %}
+      </div>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<p><a class="btn btn--ghost" href="/cotacao">Nova cotacao</a></p>
+{% endblock %}

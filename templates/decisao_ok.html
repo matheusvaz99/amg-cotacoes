@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Cotacao {{ quote.code }} — AMG Logistica{% endblock %}
+
+{% block content %}
+<div class="card card--center">
+  <div class="check-mark" aria-hidden="true">&#10003;</div>
+  {% if aceita %}
+    <h1>Cotacao aceita!</h1>
+    <p>Registramos o aceite da cotacao <strong>{{ quote.code }}</strong>. O time comercial da AMG
+       dara sequencia e podera entrar em contato para confirmar os detalhes.</p>
+  {% else %}
+    <h1>Pedido de ajuste enviado</h1>
+    <p>Recebemos sua solicitacao de ajuste para a cotacao <strong>{{ quote.code }}</strong>.
+       Vamos revisar e enviar uma nova proposta em breve.</p>
+  {% endif %}
+  <div class="stack">
+    <a class="btn btn--primary" href="/cotacao/{{ quote.code }}">Ver cotacao</a>
+    <a class="btn btn--ghost" href="/cotacao">Nova cotacao</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% macro field(name, label, values, errors, type="text", required=False, hint="", placeholder="", inputmode="", autocomplete="") -%}
+<div class="field {% if errors.get(name) %}field--error{% endif %}">
+  <label for="f_{{ name }}">{{ label }}{% if required %} <span class="req" aria-hidden="true">*</span>{% endif %}</label>
+  <input
+    id="f_{{ name }}" name="{{ name }}" type="{{ type }}"
+    value="{{ values.get(name) if values.get(name) is not none else '' }}"
+    {% if required %}required aria-required="true"{% endif %}
+    {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+    {% if inputmode %}inputmode="{{ inputmode }}"{% endif %}
+    {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %}
+    {% if errors.get(name) %}aria-invalid="true" aria-describedby="e_{{ name }}"{% endif %}>
+  {% if hint %}<p class="hint">{{ hint }}</p>{% endif %}
+  {% if errors.get(name) %}<p class="error-msg" id="e_{{ name }}">{{ errors.get(name) }}</p>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro select(name, label, options, values, errors, required=False, hint="") -%}
+<div class="field {% if errors.get(name) %}field--error{% endif %}">
+  <label for="f_{{ name }}">{{ label }}{% if required %} <span class="req" aria-hidden="true">*</span>{% endif %}</label>
+  <select id="f_{{ name }}" name="{{ name }}" {% if required %}required aria-required="true"{% endif %}
+    {% if errors.get(name) %}aria-invalid="true" aria-describedby="e_{{ name }}"{% endif %}>
+    <option value="">Selecione...</option>
+    {% for opt in options %}
+      <option value="{{ opt }}" {% if values.get(name)|string == opt %}selected{% endif %}>{{ opt }}</option>
+    {% endfor %}
+  </select>
+  {% if hint %}<p class="hint">{{ hint }}</p>{% endif %}
+  {% if errors.get(name) %}<p class="error-msg" id="e_{{ name }}">{{ errors.get(name) }}</p>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro textarea(name, label, values, errors, required=False, hint="", rows=3) -%}
+<div class="field {% if errors.get(name) %}field--error{% endif %}">
+  <label for="f_{{ name }}">{{ label }}{% if required %} <span class="req" aria-hidden="true">*</span>{% endif %}</label>
+  <textarea id="f_{{ name }}" name="{{ name }}" rows="{{ rows }}" {% if required %}required{% endif %}
+    {% if errors.get(name) %}aria-invalid="true" aria-describedby="e_{{ name }}"{% endif %}>{{ values.get(name) if values.get(name) is not none else '' }}</textarea>
+  {% if hint %}<p class="hint">{{ hint }}</p>{% endif %}
+  {% if errors.get(name) %}<p class="error-msg" id="e_{{ name }}">{{ errors.get(name) }}</p>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro yesno(name, label, values, errors) -%}
+{% set current = values.get(name) %}
+{% set is_yes = current in [True, 'sim', 'Sim', 'on', '1', 1] %}
+<div class="field field--yesno {% if errors.get(name) %}field--error{% endif %}">
+  <span class="field__legend">{{ label }} <span class="req" aria-hidden="true">*</span></span>
+  <div class="segmented" role="radiogroup" aria-label="{{ label }}">
+    <label class="segmented__opt">
+      <input type="radio" name="{{ name }}" value="nao" {% if not is_yes %}checked{% endif %}>
+      <span>Nao</span>
+    </label>
+    <label class="segmented__opt">
+      <input type="radio" name="{{ name }}" value="sim" {% if is_yes %}checked{% endif %}>
+      <span>Sim</span>
+    </label>
+  </div>
+  {% if errors.get(name) %}<p class="error-msg">{{ errors.get(name) }}</p>{% endif %}
+</div>
+{%- endmacro %}
