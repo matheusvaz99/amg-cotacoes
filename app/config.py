@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,6 +23,15 @@ class Settings(BaseSettings):
     base_url: str = "http://localhost:8000"
     database_url: str = "sqlite:///./amg.db"
     env: str = "dev"
+
+    @field_validator("database_url")
+    @classmethod
+    def _normalize_database_url(cls, v: str) -> str:
+        # Render (e outros PaaS) fornecem "postgres://", mas o SQLAlchemy 2.x
+        # exige o esquema "postgresql://" para o dialeto psycopg2.
+        if v.startswith("postgres://"):
+            v = "postgresql://" + v[len("postgres://"):]
+        return v
 
     @property
     def is_dev(self) -> bool:
