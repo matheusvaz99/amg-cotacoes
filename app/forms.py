@@ -121,7 +121,7 @@ class QuoteForm:
         elif v["valor_nf"] < 0:
             self.errors["valor_nf"] = "Valor invalido."
 
-        # Data de coleta
+        # Data de coleta (obrigatoria)
         raw_date = _clean(d.get("data_coleta"))
         v["data_coleta"] = None
         if not raw_date:
@@ -135,6 +135,21 @@ class QuoteForm:
                     v["data_coleta"] = parsed
             except ValueError:
                 self.errors["data_coleta"] = "Data invalida."
+
+        # Data de entrega (opcional)
+        raw_entrega = _clean(d.get("data_entrega"))
+        v["data_entrega"] = None
+        if raw_entrega:
+            try:
+                entrega = datetime.strptime(raw_entrega, "%Y-%m-%d").date()
+                if v["data_coleta"] and entrega < v["data_coleta"]:
+                    self.errors["data_entrega"] = (
+                        "A data de entrega nao pode ser antes da coleta."
+                    )
+                else:
+                    v["data_entrega"] = entrega
+            except ValueError:
+                self.errors["data_entrega"] = "Data invalida."
 
         # Sim/Nao obrigatorios (default Nao)
         v["servico_carga"] = _yesno(d.get("servico_carga"))
@@ -236,5 +251,6 @@ def prefill_from_quote(quote) -> dict[str, Any]:
         "tipo_veiculo": quote.tipo_veiculo,
         "carroceria": quote.carroceria,
         "capacidade_aprox": quote.capacidade_aprox,
+        "data_entrega": quote.data_entrega.isoformat() if quote.data_entrega else None,
         "observacoes": quote.observacoes,
     }

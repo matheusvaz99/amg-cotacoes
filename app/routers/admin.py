@@ -158,8 +158,7 @@ async def quote_respond(
             csrf_token=get_csrf_token(request),
         )
 
-    proposal = crud.add_proposal(db, quote, pf.values, created_by=admin)
-    emails.send_proposal_ready(quote, proposal)
+    crud.add_proposal(db, quote, pf.values, created_by=admin)
     return RedirectResponse(f"/admin/cotacao/{code}?ok=1", status_code=303)
 
 
@@ -222,24 +221,6 @@ def quote_pdf(
             "Content-Disposition": f'{disposition}; filename="cotacao-{quote.code}.pdf"'
         },
     )
-
-
-@router.post("/cotacao/{code}/enviar-pdf")
-async def quote_send_pdf(
-    request: Request,
-    code: str,
-    admin: str = Depends(require_admin),
-    db: Session = Depends(get_db),
-):
-    quote = crud.get_quote_by_code(db, code)
-    if not quote:
-        return RedirectResponse("/admin", status_code=303)
-    form = dict((await request.form()))
-    if not validate_csrf(request, form.get("csrf_token")):
-        return RedirectResponse(f"/admin/cotacao/{code}", status_code=303)
-    pdf_bytes = build_quote_pdf(quote)
-    emails.send_quote_pdf_to_client(quote, pdf_bytes)
-    return RedirectResponse(f"/admin/cotacao/{code}?ok=pdf", status_code=303)
 
 
 # ----- Opcoes de cadastro (carrocerias, tipos de veiculo, ...) -----------

@@ -101,6 +101,7 @@
         {{ field('capacidade_aprox', 'Capacidade aproximada', values, errors, required=True, placeholder='Ex.: 28 toneladas') }}
         {{ field('data_coleta', 'Data prevista para coleta', values, errors, type='date', required=True) }}
       </div>
+      {{ field('data_entrega', 'Data desejada de entrega', values, errors, type='date', hint='Opcional.') }}
       {{ textarea('observacoes', 'Observacoes', values, errors, hint='Opcional. Ex.: Acesso facil para carga e descarga.') }}
 
       <div class="step-actions">

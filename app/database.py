@@ -38,6 +38,7 @@ _ADDED_COLUMNS = {
         "servico_diaria": "BOOLEAN",
         "servico_guincho": "BOOLEAN",
         "decision_note": "TEXT",
+        "data_entrega": "DATE",
     },
     "proposals": {
         "custos_adicionais": "NUMERIC(14,2)",

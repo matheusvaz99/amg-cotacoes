@@ -321,18 +321,52 @@ def test_admin_can_download_quote_pdf(client):
     assert resp.content[:5] == b"%PDF-"
 
 
-def test_admin_can_send_quote_pdf_to_client(client):
+def test_enviar_pdf_route_removida(client):
     code = _submit_quote(client)
     _admin_login(client)
-    page = client.get(f"/admin/cotacao/{code}")
-    token = csrf_from(page.text)
     resp = client.post(
-        f"/admin/cotacao/{code}/enviar-pdf",
-        data={"csrf_token": token},
-        follow_redirects=False,
+        f"/admin/cotacao/{code}/enviar-pdf", data={}, follow_redirects=False
     )
+    assert resp.status_code in (404, 405)
+
+
+def test_responder_page_sem_botao_enviar_ao_cliente(client):
+    code = _submit_quote(client)
+    _admin_login(client)
+    page = client.get(f"/admin/cotacao/{code}").text
+    assert "Enviar PDF ao cliente" not in page
+    assert "Salvar cotacao" in page
+    assert "enviar ao cliente" not in page.lower()
+
+
+def test_data_entrega_opcional_e_persistida(client):
+    page = client.get("/cotacao")
+    assert 'name="data_entrega"' in page.text
+    payload = dict(VALID)
+    payload["csrf_token"] = csrf_from(page.text)
+    payload["data_coleta"] = (date.today() + timedelta(days=5)).isoformat()
+    payload["data_entrega"] = (date.today() + timedelta(days=9)).isoformat()
+    resp = client.post("/cotacao", data=payload, follow_redirects=False)
     assert resp.status_code == 303
-    assert resp.headers["location"].endswith("?ok=pdf")
+    code = resp.headers["location"].split("/cotacao/")[1].split("/")[0]
+
+    from app.database import SessionLocal
+    from app.models import Quote
+
+    with SessionLocal() as db:
+        q = db.query(Quote).filter_by(code=code).one()
+        assert q.data_entrega == date.today() + timedelta(days=9)
+
+
+def test_data_entrega_antes_da_coleta_e_rejeitada(client):
+    page = client.get("/cotacao")
+    payload = dict(VALID)
+    payload["csrf_token"] = csrf_from(page.text)
+    payload["data_coleta"] = (date.today() + timedelta(days=10)).isoformat()
+    payload["data_entrega"] = (date.today() + timedelta(days=3)).isoformat()
+    resp = client.post("/cotacao", data=payload, follow_redirects=False)
+    assert resp.status_code == 200
+    assert "nao pode ser antes da coleta" in resp.text
 
 
 def test_client_without_access_is_redirected(client):

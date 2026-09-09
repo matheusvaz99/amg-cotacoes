@@ -20,7 +20,7 @@ EXEMPLOS = [
         qtd_volumes=10, peso_total_kg=Decimal("5000.00"), valor_nf=Decimal("25000.00"),
         servico_carga=False, servico_descarga=True, servico_diaria=False, servico_guincho=False,
         tipo_veiculo="Carreta Sider", carroceria="Sider", capacidade_aprox="28 toneladas",
-        data_coleta=date.today() + timedelta(days=5),
+        data_coleta=date.today() + timedelta(days=5), data_entrega=date.today() + timedelta(days=8),
         observacoes="Acesso facil para carga e descarga.",
     ),
     dict(
@@ -32,7 +32,7 @@ EXEMPLOS = [
         servico_carga=True, servico_descarga=True, servico_diaria=True, servico_guincho=False,
         tipo_veiculo="Carreta Grade Baixa", carroceria="Grade baixa",
         capacidade_aprox="30 toneladas",
-        data_coleta=date.today() + timedelta(days=8), observacoes=None,
+        data_coleta=date.today() + timedelta(days=8), data_entrega=None, observacoes=None,
     ),
     dict(
         client_name="Carlos Lima", client_company="Obras Gamma",
@@ -42,7 +42,7 @@ EXEMPLOS = [
         qtd_volumes=30, peso_total_kg=Decimal("18000.00"), valor_nf=Decimal("42000.00"),
         servico_carga=False, servico_descarga=False, servico_diaria=False, servico_guincho=True,
         tipo_veiculo="Truck", carroceria="Bau", capacidade_aprox="14 toneladas",
-        data_coleta=date.today() + timedelta(days=3), observacoes="Entrega em horario comercial.",
+        data_coleta=date.today() + timedelta(days=3), data_entrega=date.today() + timedelta(days=6), observacoes="Entrega em horario comercial.",
     ),
 ]
 
@@ -66,7 +66,7 @@ def run() -> None:
                 qtd_volumes=6, peso_total_kg=Decimal("4200.00"), valor_nf=Decimal("14000.00"),
                 servico_carga=True, servico_descarga=False, servico_diaria=False, servico_guincho=True,
                 tipo_veiculo="Toco", carroceria="Graneleiro", capacidade_aprox="6 toneladas",
-                data_coleta=date.today() + timedelta(days=4), observacoes=None,
+                data_coleta=date.today() + timedelta(days=4), data_entrega=date.today() + timedelta(days=7), observacoes=None,
             ),
         )
         seguro = calc_seguro(first.valor_nf)

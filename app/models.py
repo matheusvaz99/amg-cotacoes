@@ -67,6 +67,7 @@ class Quote(Base):
     carroceria: Mapped[str | None] = mapped_column(String(120), nullable=True)
     capacidade_aprox: Mapped[str] = mapped_column(String(80))
     data_coleta: Mapped[date] = mapped_column(Date)
+    data_entrega: Mapped[date | None] = mapped_column(Date, nullable=True)
     observacoes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Motivo informado pelo admin ao reprovar a cotacao

@@ -6,7 +6,7 @@ import logging
 
 from app.config import settings
 from app.constants import STATUS_LABELS
-from app.models import Proposal, Quote
+from app.models import Quote
 from app.security import sign_quote_token
 from app.utils import format_brl, format_peso
 
@@ -97,6 +97,7 @@ def send_quote_to_comercial(quote: Quote) -> None:
       {_row("Carroceria", quote.carroceria or "-")}
       {_row("Capacidade aprox.", quote.capacidade_aprox)}
       {_row("Data prevista de coleta", quote.data_coleta.strftime("%d/%m/%Y"))}
+      {_row("Data desejada de entrega", quote.data_entrega.strftime("%d/%m/%Y") if quote.data_entrega else "-")}
       {_row("Observacoes", quote.observacoes or "-")}
     </table>
     <p><a href="{_admin_link(quote)}">Abrir no painel comercial</a></p>
@@ -114,59 +115,6 @@ def send_confirmation_to_client(quote: Quote) -> None:
     <p><a href="{_quote_link(quote)}">Acompanhar a cotacao</a></p>
     """
     _send(quote.client_email, f"Cotacao {quote.code} recebida — AMG Logistica", html)
-
-
-def _proposta_rows(proposal: Proposal) -> str:
-    linhas = [_row("Valor total do frete", format_brl(proposal.total))]
-    if proposal.custos_adicionais and proposal.custos_adicionais > 0:
-        desc = proposal.custos_adicionais_desc or "custos adicionais"
-        linhas.append(
-            _row(f"Outros custos adicionais ({desc})", format_brl(proposal.custos_adicionais))
-        )
-    linhas.append(_row("Valor final da proposta", format_brl(proposal.valor_final)))
-    linhas.append(_row("Prazo de entrega", proposal.prazo_entrega))
-    linhas.append(_row("Validade da proposta", proposal.validade.strftime("%d/%m/%Y")))
-    return "".join(linhas)
-
-
-def send_proposal_ready(quote: Quote, proposal: Proposal) -> None:
-    html = f"""
-    <h2>Sua cotacao {quote.code} foi respondida</h2>
-    <p>Ola, {quote.client_name}! Preparamos a proposta para a rota
-    <strong>{quote.origem_cidade} &rarr; {quote.destino_cidade}</strong>.</p>
-    <table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px">
-      {_proposta_rows(proposal)}
-    </table>
-    <p><a href="{_quote_link(quote)}">Ver a proposta completa</a></p>
-    """
-    _send(quote.client_email, f"Proposta pronta — cotacao {quote.code}", html)
-
-
-def send_quote_pdf_to_client(quote: Quote, pdf_bytes: bytes) -> None:
-    """Envia ao cliente a cotacao em PDF (anexo), disparado pelo painel comercial."""
-    proposal = quote.proposal
-    resumo = ""
-    if proposal is not None:
-        resumo = (
-            '<table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px">'
-            f"{_proposta_rows(proposal)}"
-            "</table>"
-        )
-    html = f"""
-    <h2>Cotacao {quote.code} — AMG Logistica</h2>
-    <p>Ola, {quote.client_name}! Segue em anexo a cotacao de frete para a rota
-    <strong>{quote.origem_cidade} &rarr; {quote.destino_cidade}</strong>.</p>
-    {resumo}
-    <p><a href="{_quote_link(quote)}">Ver a cotacao no site</a></p>
-    <p style="color:#5b6472;font-size:12px">As cotacoes sao estimativas e nao geram reserva de veiculo.
-    Valores validos conforme o prazo informado na proposta.</p>
-    """
-    _send(
-        quote.client_email,
-        f"Cotacao {quote.code} — AMG Logistica",
-        html,
-        attachments=[(f"cotacao-{quote.code}.pdf", pdf_bytes)],
-    )
 
 
 def send_decision_to_client(quote: Quote) -> None:

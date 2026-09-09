@@ -47,7 +47,7 @@
   document.querySelectorAll('input[name="qtd_volumes"]').forEach(maskInteger);
 
   // data minima = hoje para campos de coleta
-  document.querySelectorAll('input[name="data_coleta"]').forEach(function (el) {
+  document.querySelectorAll('input[name="data_coleta"], input[name="data_entrega"]').forEach(function (el) {
     if (!el.min) {
       var t = new Date();
       el.min = t.toISOString().slice(0, 10);

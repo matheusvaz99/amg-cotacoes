@@ -24,6 +24,7 @@
       <div><dt>Carroceria</dt><dd>{{ quote.carroceria or '-' }}</dd></div>
       <div><dt>Capacidade</dt><dd>{{ quote.capacidade_aprox }}</dd></div>
       <div><dt>Coleta prevista</dt><dd>{{ quote.data_coleta | date_br }}</dd></div>
+      {% if quote.data_entrega %}<div><dt>Entrega desejada</dt><dd>{{ quote.data_entrega | date_br }}</dd></div>{% endif %}
     </dl>
   </div>
 

@@ -202,6 +202,10 @@ def build_quote_pdf(quote: Quote) -> bytes:
     pdf.row("Carroceria", quote.carroceria or "-")
     pdf.row("Capacidade aproximada", quote.capacidade_aprox)
     pdf.row("Data prevista para coleta", quote.data_coleta.strftime("%d/%m/%Y"))
+    pdf.row(
+        "Data desejada de entrega",
+        quote.data_entrega.strftime("%d/%m/%Y") if quote.data_entrega else "-",
+    )
     if quote.observacoes:
         pdf.row("Observacoes", quote.observacoes)
 
