@@ -32,7 +32,10 @@
 
     <fieldset class="step" data-step="1">
       <legend>1. Contato</legend>
-      {{ field('client_name', 'Nome / empresa', values, errors, required=True, autocomplete='organization') }}
+      <div class="grid-2">
+        {{ field('client_name', 'Nome do comprador', values, errors, required=True, autocomplete='name') }}
+        {{ field('client_company', 'Empresa que representa', values, errors, required=True, autocomplete='organization') }}
+      </div>
       <div class="grid-2">
         {{ field('client_email', 'E-mail', values, errors, type='email', required=True, autocomplete='email') }}
         {{ field('client_phone', 'Telefone / WhatsApp', values, errors, hint='Opcional', inputmode='tel', autocomplete='tel') }}
@@ -76,6 +79,10 @@
       <div class="grid-2">
         {{ yesno('servico_carga', 'Necessita servico de carga?', values, errors) }}
         {{ yesno('servico_descarga', 'Necessita servico de descarga?', values, errors) }}
+      </div>
+      <div class="grid-2">
+        {{ yesno('servico_diaria', 'Necessita de diaria?', values, errors) }}
+        {{ yesno('servico_guincho', 'Necessita de guincho?', values, errors) }}
       </div>
 
       <div class="step-actions">

@@ -3,7 +3,8 @@ from datetime import date, timedelta
 from conftest import csrf_from
 
 VALID = {
-    "client_name": "Construtora Alfa",
+    "client_name": "Joao Alves",
+    "client_company": "Construtora Alfa",
     "client_email": "compras@alfa.com.br",
     "origem_cidade": "Curitiba - PR",
     "destino_cidade": "Londrina - PR",
@@ -16,6 +17,15 @@ VALID = {
     "capacidade_aprox": "28 toneladas",
     "servico_carga": "nao",
     "servico_descarga": "sim",
+    "servico_diaria": "sim",
+    "servico_guincho": "nao",
+}
+
+
+PROPOSTA = {
+    "frete": "2.900,00", "pedagio": "50,00", "seguro": "50,00",
+    "custos_adicionais": "0,00", "custos_adicionais_desc": "",
+    "prazo_entrega": "1 dia util", "observacoes": "",
 }
 
 
@@ -64,38 +74,117 @@ def _admin_login(client):
     assert resp.status_code == 303
 
 
-def test_admin_can_respond_and_client_accepts(client):
-    code = _submit_quote(client)
-    _admin_login(client)
-
+def _respond(client, code, **overrides):
     page = client.get(f"/admin/cotacao/{code}")
     assert page.status_code == 200
-    token = csrf_from(page.text)
+    data = dict(PROPOSTA)
+    data["csrf_token"] = csrf_from(page.text)
+    data["validade"] = (date.today() + timedelta(days=7)).isoformat()
+    data.update(overrides)
+    resp = client.post(f"/admin/cotacao/{code}", data=data, follow_redirects=False)
+    assert resp.status_code == 303, resp.text
+    return resp
 
+
+def test_admin_responds_and_client_sees_consolidated_values(client):
+    code = _submit_quote(client)
+    _admin_login(client)
+    _respond(client, code)
+
+    detail = client.get(f"/cotacao/{code}")
+    assert "Valor total do frete" in detail.text
+    assert "Valor final da proposta" in detail.text
+    # frete consolidado = 2900 + 50 + 50 ; sem custos adicionais -> final igual
+    assert detail.text.count("R$ 3.000,00") >= 2
+    # cliente NAO tem mais botoes de decisao
+    assert "Aprovar" not in detail.text
+    assert "aceitar" not in detail.text.lower()
+
+
+def test_custos_adicionais_somam_no_valor_final(client):
+    code = _submit_quote(client)
+    _admin_login(client)
+    _respond(
+        client, code,
+        custos_adicionais="350,00",
+        custos_adicionais_desc="Guincho no destino",
+    )
+    detail = client.get(f"/cotacao/{code}")
+    assert "Outros custos adicionais" in detail.text
+    assert "Guincho no destino" in detail.text
+    assert "R$ 3.000,00" in detail.text  # valor total do frete
+    assert "R$ 3.350,00" in detail.text  # valor final = 3000 + 350
+
+
+def test_admin_aprova_cotacao(client):
+    code = _submit_quote(client)
+    _admin_login(client)
+    _respond(client, code)
+
+    page = client.get(f"/admin/cotacao/{code}")
+    token = csrf_from(page.text)
     resp = client.post(
-        f"/admin/cotacao/{code}",
-        data={
-            "frete": "2.900,00", "pedagio": "50,00", "seguro": "50,00",
-            "prazo_entrega": "1 dia util",
-            "validade": (date.today() + timedelta(days=7)).isoformat(),
-            "observacoes": "", "csrf_token": token,
-        },
+        f"/admin/cotacao/{code}/aprovar",
+        data={"csrf_token": token}, follow_redirects=False,
+    )
+    assert resp.status_code == 303
+
+    from app.database import SessionLocal
+    from app.models import Quote
+
+    with SessionLocal() as db:
+        assert db.query(Quote).filter_by(code=code).one().status == "aprovada"
+
+    detail = client.get(f"/cotacao/{code}")
+    assert "aprovada pela AMG" in detail.text
+
+
+def test_admin_reprova_cotacao_com_motivo(client):
+    code = _submit_quote(client)
+    _admin_login(client)
+    _respond(client, code)
+
+    page = client.get(f"/admin/cotacao/{code}")
+    token = csrf_from(page.text)
+    resp = client.post(
+        f"/admin/cotacao/{code}/reprovar",
+        data={"csrf_token": token, "motivo": "Sem veiculo disponivel"},
         follow_redirects=False,
     )
     assert resp.status_code == 303
 
     detail = client.get(f"/cotacao/{code}")
-    assert "Itens da cotacao" in detail.text
-    assert "R$ 3.000,00" in detail.text  # total = 2900 + 50 + 50
-    dtoken = csrf_from(detail.text)
+    assert "reprovada" in detail.text.lower()
+    assert "Sem veiculo disponivel" in detail.text
 
-    accept = client.post(
-        f"/cotacao/{code}/aceitar",
-        data={"csrf_token": dtoken, "t": ""},
+
+def test_acompanhar_por_email_apenas(client):
+    code = _submit_quote(client)
+    client.cookies.clear()
+
+    page = client.get("/acompanhar")
+    assert 'name="code"' not in page.text  # campo de numero removido
+    token = csrf_from(page.text)
+
+    resp = client.post(
+        "/acompanhar",
+        data={"csrf_token": token, "email": VALID["client_email"]},
         follow_redirects=False,
     )
-    assert accept.status_code == 200
-    assert "aceita" in accept.text.lower()
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/minhas-cotacoes"
+
+    lista = client.get("/minhas-cotacoes")
+    assert code in lista.text
+
+
+def test_acompanhar_email_sem_cotacoes(client):
+    resp = client.post(
+        "/acompanhar",
+        data={"csrf_token": csrf_from(client.get("/acompanhar").text),
+              "email": "ninguem@exemplo.com"},
+    )
+    assert "Nao encontramos" in resp.text
 
 
 def test_client_form_lists_carrocerias_e_tipos_veiculo(client):

@@ -8,7 +8,8 @@ from app.pdf import build_quote_pdf
 
 def _make_quote(db, **over):
     data = dict(
-        client_name="Construtora São José",
+        client_name="José da Silva",
+        client_company="Construtora São José",
         client_email="compras@saojose.com.br",
         client_phone="(41) 99999-0000",
         origem_cidade="São Paulo - SP",
@@ -26,6 +27,8 @@ def _make_quote(db, **over):
         valor_nf=Decimal("25000.00"),
         servico_carga=True,
         servico_descarga=False,
+        servico_diaria=False,
+        servico_guincho=True,
         tipo_veiculo="Carreta Sider",
         carroceria="Sider",
         capacidade_aprox="28 toneladas",
@@ -56,6 +59,8 @@ def test_pdf_with_proposal_and_accents():
                 pedagio=Decimal("50.00"),
                 seguro=Decimal("50.00"),
                 total=Decimal("3000.00"),
+                custos_adicionais=Decimal("350.00"),
+                custos_adicionais_desc="Guincho no destino",
                 prazo_entrega="1 dia útil",
                 validade=date.today() + timedelta(days=7),
                 observacoes="Valores sujeitos à confirmação na contratação.",
@@ -63,6 +68,7 @@ def test_pdf_with_proposal_and_accents():
             created_by="tester",
         )
         db.refresh(quote)
+        assert quote.proposal.valor_final == Decimal("3350.00")
         pdf = build_quote_pdf(quote)
     assert pdf[:5] == b"%PDF-"
     assert len(pdf) > 1800

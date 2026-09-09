@@ -126,25 +126,33 @@ class QuotePDF(FPDF):
 
 
 def _items(pdf: QuotePDF, proposal) -> None:
+    """Valores para o cliente: frete consolidado, custos adicionais e valor final."""
     pdf.set_draw_color(*LINE)
     pdf.set_line_width(0.3)
-    for label, valor in (
-        ("Frete", proposal.frete),
-        ("Pedagio", proposal.pedagio),
-        ("Seguro (0,2%)", proposal.seguro),
-    ):
+
+    linhas = [("Valor total do frete", proposal.total)]
+    if proposal.custos_adicionais and proposal.custos_adicionais > 0:
+        linhas.append(("Outros custos adicionais", proposal.custos_adicionais))
+
+    for label, valor in linhas:
         pdf.set_font("Helvetica", "", 9.5)
         pdf.set_text_color(*INK)
         pdf.cell(120, 7, _s(label), border="B")
         pdf.cell(0, 7, _s(format_brl(valor)), border="B", align="R",
                  new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
+    if proposal.custos_adicionais and proposal.custos_adicionais > 0 and proposal.custos_adicionais_desc:
+        pdf.set_font("Helvetica", "I", 8)
+        pdf.set_text_color(*MUTED)
+        pdf.multi_cell(0, 4.5, _s(f"Referente a: {proposal.custos_adicionais_desc}"),
+                       new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
     pdf.ln(1)
     pdf.set_fill_color(*LIGHT)
     pdf.set_font("Helvetica", "B", 11)
     pdf.set_text_color(*NAVY)
-    pdf.cell(120, 9, "  TOTAL", fill=True)
-    pdf.cell(0, 9, _s(format_brl(proposal.total)) + "  ", align="R", fill=True,
+    pdf.cell(120, 9, "  VALOR FINAL DA PROPOSTA", fill=True)
+    pdf.cell(0, 9, _s(format_brl(proposal.valor_final)) + "  ", align="R", fill=True,
              new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
 
@@ -166,7 +174,8 @@ def build_quote_pdf(quote: Quote) -> bytes:
     )
 
     pdf.section("Cliente")
-    pdf.row("Nome / empresa", quote.client_name)
+    pdf.row("Comprador", quote.client_name)
+    pdf.row("Empresa", quote.client_company or "-")
     pdf.row("E-mail", quote.client_email)
     pdf.row("Telefone", quote.client_phone or "-")
 
@@ -185,6 +194,8 @@ def build_quote_pdf(quote: Quote) -> bytes:
     pdf.row("Valor aproximado da NF", format_brl(quote.valor_nf))
     pdf.row("Servico de carga", "Sim" if quote.servico_carga else "Nao")
     pdf.row("Servico de descarga", "Sim" if quote.servico_descarga else "Nao")
+    pdf.row("Necessita diaria", "Sim" if quote.servico_diaria else "Nao")
+    pdf.row("Necessita guincho", "Sim" if quote.servico_guincho else "Nao")
 
     pdf.section("Transporte")
     pdf.row("Tipo de veiculo desejado", quote.tipo_veiculo)

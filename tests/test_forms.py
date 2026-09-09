@@ -1,12 +1,13 @@
 from datetime import date, timedelta
+from decimal import Decimal
 
 from app.forms import ProposalForm, QuoteForm
-from decimal import Decimal
 
 
 def _valid_payload():
     return {
-        "client_name": "Construtora Alfa",
+        "client_name": "Joao Alves",
+        "client_company": "Construtora Alfa",
         "client_email": "compras@alfa.com.br",
         "origem_cidade": "Curitiba - PR",
         "destino_cidade": "Londrina - PR",
@@ -20,6 +21,8 @@ def _valid_payload():
         "data_coleta": (date.today() + timedelta(days=5)).isoformat(),
         "servico_carga": "sim",
         "servico_descarga": "nao",
+        "servico_diaria": "sim",
+        "servico_guincho": "nao",
     }
 
 
@@ -29,9 +32,20 @@ def test_quote_form_ok_without_optionals():
     assert form.values["valor_nf"] == Decimal("25000.00")
     assert form.values["peso_total_kg"] == Decimal("5000.00")
     assert form.values["carroceria"] == "Sider"
+    assert form.values["client_company"] == "Construtora Alfa"
     assert form.values["servico_carga"] is True
     assert form.values["servico_descarga"] is False
+    assert form.values["servico_diaria"] is True
+    assert form.values["servico_guincho"] is False
     assert form.values["origem_cep"] is None
+
+
+def test_quote_form_requires_company():
+    payload = _valid_payload()
+    payload["client_company"] = ""
+    form = QuoteForm(payload)
+    assert not form.validate()
+    assert "client_company" in form.errors
 
 
 def test_quote_form_rejects_carroceria_outside_list():
@@ -84,6 +98,33 @@ def test_proposal_form_totals_on_server():
     )
     assert form.validate(), form.errors
     assert form.values["total"] == Decimal("2978.00")
+    assert form.values["custos_adicionais"] == Decimal("0.00")
+    assert form.values["valor_final"] == Decimal("2978.00")
+
+
+def test_proposal_form_with_custos_adicionais():
+    form = ProposalForm(
+        {"frete": "1.000,00", "pedagio": "0,00", "seguro": "0,00",
+         "custos_adicionais": "350,00",
+         "custos_adicionais_desc": "Guincho no destino",
+         "prazo_entrega": "2 dias",
+         "validade": (date.today() + timedelta(days=7)).isoformat()},
+        valor_nf=Decimal("10000.00"),
+    )
+    assert form.validate(), form.errors
+    assert form.values["total"] == Decimal("1000.00")
+    assert form.values["valor_final"] == Decimal("1350.00")
+
+
+def test_proposal_form_custos_require_description():
+    form = ProposalForm(
+        {"frete": "1000,00", "custos_adicionais": "200,00",
+         "prazo_entrega": "2 dias",
+         "validade": (date.today() + timedelta(days=7)).isoformat()},
+        valor_nf=Decimal("10000.00"),
+    )
+    assert not form.validate()
+    assert "custos_adicionais_desc" in form.errors
 
 
 def test_proposal_form_defaults_seguro_from_nf():

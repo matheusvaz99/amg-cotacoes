@@ -7,7 +7,13 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app import crud, emails
-from app.constants import ADMIN_TABS, OPCOES_CATEGORIAS
+from app.constants import (
+    ADMIN_TABS,
+    OPCOES_CATEGORIAS,
+    STATUS_APROVADA,
+    STATUS_REPROVADA,
+    STATUS_RESPONDIDA,
+)
 from app.database import get_db
 from app.forms import ProposalForm
 from app.pdf import build_quote_pdf
@@ -106,6 +112,8 @@ def quote_view(
         "frete": p.frete if p else "",
         "pedagio": p.pedagio if p else "",
         "seguro": p.seguro if p else calc_seguro(quote.valor_nf),
+        "custos_adicionais": p.custos_adicionais if p else "",
+        "custos_adicionais_desc": p.custos_adicionais_desc if p else "",
         "prazo_entrega": p.prazo_entrega if p else "",
         "validade": p.validade.isoformat() if p else "",
         "observacoes": p.observacoes if p else "",
@@ -153,6 +161,45 @@ async def quote_respond(
     proposal = crud.add_proposal(db, quote, pf.values, created_by=admin)
     emails.send_proposal_ready(quote, proposal)
     return RedirectResponse(f"/admin/cotacao/{code}?ok=1", status_code=303)
+
+
+@router.post("/cotacao/{code}/aprovar")
+async def quote_aprovar(
+    request: Request,
+    code: str,
+    admin: str = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    quote = crud.get_quote_by_code(db, code)
+    if not quote:
+        return RedirectResponse("/admin", status_code=303)
+    form = dict((await request.form()))
+    if not validate_csrf(request, form.get("csrf_token")):
+        return RedirectResponse(f"/admin/cotacao/{code}", status_code=303)
+    if quote.status in (STATUS_RESPONDIDA, STATUS_REPROVADA):
+        crud.set_status(db, quote, STATUS_APROVADA, decision_note="")
+        emails.send_decision_to_client(quote)
+    return RedirectResponse(f"/admin/cotacao/{code}?ok=aprovada", status_code=303)
+
+
+@router.post("/cotacao/{code}/reprovar")
+async def quote_reprovar(
+    request: Request,
+    code: str,
+    admin: str = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    quote = crud.get_quote_by_code(db, code)
+    if not quote:
+        return RedirectResponse("/admin", status_code=303)
+    form = dict((await request.form()))
+    if not validate_csrf(request, form.get("csrf_token")):
+        return RedirectResponse(f"/admin/cotacao/{code}", status_code=303)
+    motivo = (form.get("motivo") or "").strip()
+    if quote.status in (STATUS_RESPONDIDA, STATUS_APROVADA):
+        crud.set_status(db, quote, STATUS_REPROVADA, decision_note=motivo)
+        emails.send_decision_to_client(quote)
+    return RedirectResponse(f"/admin/cotacao/{code}?ok=reprovada", status_code=303)
 
 
 @router.get("/cotacao/{code}/pdf")

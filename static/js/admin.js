@@ -1,11 +1,12 @@
-/* Painel: total da proposta ao vivo (frete + pedagio + seguro). */
+/* Painel: previews ao vivo do valor total do frete e do valor final da proposta. */
 (function () {
   "use strict";
 
   var form = document.getElementById("proposta-form");
   if (!form) return;
 
-  var out = form.querySelector("[data-total]");
+  var outFrete = form.querySelector("[data-total-frete]");
+  var outFinal = form.querySelector("[data-total-final]");
 
   function toNumber(v) {
     if (!v) return 0;
@@ -19,14 +20,16 @@
   }
 
   function recalc() {
-    var total =
+    var frete =
       toNumber(form.frete.value) +
       toNumber(form.pedagio.value) +
       toNumber(form.seguro.value);
-    if (out) out.textContent = fmt(total);
+    var adicionais = form.custos_adicionais ? toNumber(form.custos_adicionais.value) : 0;
+    if (outFrete) outFrete.textContent = fmt(frete);
+    if (outFinal) outFinal.textContent = fmt(frete + adicionais);
   }
 
-  ["frete", "pedagio", "seguro"].forEach(function (name) {
+  ["frete", "pedagio", "seguro", "custos_adicionais"].forEach(function (name) {
     if (form[name]) form[name].addEventListener("input", recalc);
   });
   recalc();

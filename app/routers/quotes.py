@@ -1,4 +1,4 @@
-"""Rotas do cliente: solicitar cotacao, acompanhar, aceitar / solicitar ajuste."""
+"""Rotas do cliente: solicitar cotacao e acompanhar pelas cotacoes do e-mail."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from app import crud, emails
 from app.constants import (
     OPCAO_CARROCERIA,
     OPCAO_TIPO_VEICULO,
-    STATUS_ACEITA,
-    STATUS_AJUSTE,
+    STATUS_APROVADA,
+    STATUS_REPROVADA,
     STATUS_RESPONDIDA,
     TIPOS_MATERIAL,
 )
@@ -126,24 +126,30 @@ def track_form(request: Request):
 @router.post("/acompanhar")
 async def track_lookup(request: Request, db: Session = Depends(get_db)):
     form = dict((await request.form()))
-    code = (form.get("code") or "").strip().upper()
     email = (form.get("email") or "").strip().lower()
-    quote = crud.get_quote_by_code(db, code) if code else None
 
-    if not quote or quote.client_email != email:
+    if not email or "@" not in email:
         return render(
             request,
             "acompanhar.html",
             csrf_token=get_csrf_token(request),
-            error="Nao encontramos uma cotacao com esse codigo e e-mail.",
-            code=code,
+            error="Informe um e-mail valido.",
             email=email,
         )
 
-    # Libera todas as cotacoes daquele e-mail para exibir a lista.
-    for q in crud.list_quotes_by_email(db, email):
+    quotes = crud.list_quotes_by_email(db, email)
+    if not quotes:
+        return render(
+            request,
+            "acompanhar.html",
+            csrf_token=get_csrf_token(request),
+            error="Nao encontramos cotacoes para esse e-mail.",
+            email=email,
+        )
+
+    for q in quotes:
         grant_client_access(request, q.code)
-    return RedirectResponse(f"/cotacao/{quote.code}", status_code=303)
+    return RedirectResponse("/minhas-cotacoes", status_code=303)
 
 
 @router.get("/minhas-cotacoes")
@@ -167,7 +173,7 @@ def quote_detail(
     if not quote:
         return render(request, "nao_encontrada.html", code=code)
     if not client_can_view(request, code, t):
-        return RedirectResponse(f"/acompanhar?code={code}", status_code=303)
+        return RedirectResponse("/acompanhar", status_code=303)
 
     grant_client_access(request, code)
     return render(
@@ -175,45 +181,6 @@ def quote_detail(
         "proposta.html",
         quote=quote,
         proposal=quote.proposal,
-        respondida=quote.status in (STATUS_RESPONDIDA, STATUS_ACEITA, STATUS_AJUSTE),
-        csrf_token=get_csrf_token(request),
+        respondida=quote.status
+        in (STATUS_RESPONDIDA, STATUS_APROVADA, STATUS_REPROVADA),
     )
-
-
-@router.post("/cotacao/{code}/aceitar")
-async def accept_quote(request: Request, code: str, db: Session = Depends(get_db)):
-    form = dict((await request.form()))
-    quote = crud.get_quote_by_code(db, code)
-    if not quote or not client_can_view(request, code, form.get("t")):
-        return RedirectResponse(f"/acompanhar?code={code}", status_code=303)
-    if not validate_csrf(request, form.get("csrf_token")):
-        return RedirectResponse(f"/cotacao/{code}", status_code=303)
-    if quote.status == STATUS_RESPONDIDA and quote.proposal and not quote.proposal.expirada:
-        crud.set_status(db, quote, STATUS_ACEITA)
-        emails.send_client_decision(quote)
-    return render(request, "decisao_ok.html", quote=quote, aceita=True)
-
-
-@router.post("/cotacao/{code}/ajuste")
-async def request_adjustment(request: Request, code: str, db: Session = Depends(get_db)):
-    form = dict((await request.form()))
-    quote = crud.get_quote_by_code(db, code)
-    if not quote or not client_can_view(request, code, form.get("t")):
-        return RedirectResponse(f"/acompanhar?code={code}", status_code=303)
-    if not validate_csrf(request, form.get("csrf_token")):
-        return RedirectResponse(f"/cotacao/{code}", status_code=303)
-
-    note = (form.get("note") or "").strip()
-    if not note:
-        return render(
-            request,
-            "proposta.html",
-            quote=quote,
-            proposal=quote.proposal,
-            respondida=True,
-            csrf_token=get_csrf_token(request),
-            ajuste_error="Descreva o ajuste desejado.",
-        )
-    crud.set_status(db, quote, STATUS_AJUSTE, decision_note=note)
-    emails.send_client_decision(quote)
-    return render(request, "decisao_ok.html", quote=quote, aceita=False)

@@ -37,7 +37,8 @@ class QuoteForm:
     values: dict[str, Any] = field(default_factory=dict)
 
     REQUIRED_LABELS = {
-        "client_name": "Nome / empresa",
+        "client_name": "Nome do comprador",
+        "client_company": "Empresa que representa",
         "client_email": "E-mail",
         "origem_cidade": "Cidade de origem",
         "destino_cidade": "Cidade de destino",
@@ -58,6 +59,7 @@ class QuoteForm:
         # Texto simples obrigatorio
         for key in (
             "client_name",
+            "client_company",
             "origem_cidade",
             "destino_cidade",
             "capacidade_aprox",
@@ -137,6 +139,8 @@ class QuoteForm:
         # Sim/Nao obrigatorios (default Nao)
         v["servico_carga"] = _yesno(d.get("servico_carga"))
         v["servico_descarga"] = _yesno(d.get("servico_descarga"))
+        v["servico_diaria"] = _yesno(d.get("servico_diaria"))
+        v["servico_guincho"] = _yesno(d.get("servico_guincho"))
 
         # Opcionais
         v["origem_cep"] = normalize_cep(d.get("origem_cep"))
@@ -177,6 +181,15 @@ class ProposalForm:
         if v["seguro"] < 0:
             self.errors["seguro"] = "Valor invalido."
 
+        v["custos_adicionais"] = parse_brl(d.get("custos_adicionais")) or Decimal("0.00")
+        if v["custos_adicionais"] < 0:
+            self.errors["custos_adicionais"] = "Valor invalido."
+        v["custos_adicionais_desc"] = _clean(d.get("custos_adicionais_desc")) or None
+        if v["custos_adicionais"] > 0 and not v["custos_adicionais_desc"]:
+            self.errors["custos_adicionais_desc"] = (
+                "Descreva o que esta sendo cobrado nos custos adicionais."
+            )
+
         v["prazo_entrega"] = _clean(d.get("prazo_entrega"))
         if not v["prazo_entrega"]:
             self.errors["prazo_entrega"] = "Informe o prazo de entrega."
@@ -195,6 +208,7 @@ class ProposalForm:
 
         if not self.errors:
             v["total"] = v["frete"] + v["pedagio"] + v["seguro"]
+            v["valor_final"] = v["total"] + v["custos_adicionais"]
 
         return not self.errors
 
@@ -217,6 +231,8 @@ def prefill_from_quote(quote) -> dict[str, Any]:
         "valor_nf": quote.valor_nf,
         "servico_carga": quote.servico_carga,
         "servico_descarga": quote.servico_descarga,
+        "servico_diaria": quote.servico_diaria,
+        "servico_guincho": quote.servico_guincho,
         "tipo_veiculo": quote.tipo_veiculo,
         "carroceria": quote.carroceria,
         "capacidade_aprox": quote.capacidade_aprox,

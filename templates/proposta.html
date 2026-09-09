@@ -35,13 +35,19 @@
     </div>
   {% elif proposal %}
     <div class="card">
-      <h2>Itens da cotacao</h2>
+      <h2>Proposta</h2>
       <table class="items">
         <tbody>
-          <tr><td>Frete</td><td>{{ proposal.frete | brl }}</td></tr>
-          <tr><td>Pedagio</td><td>{{ proposal.pedagio | brl }}</td></tr>
-          <tr><td>Seguro (0,2%)</td><td>{{ proposal.seguro | brl }}</td></tr>
-          <tr class="items__total"><td>Total</td><td>{{ proposal.total | brl }}</td></tr>
+          <tr><td>Valor total do frete</td><td>{{ proposal.total | brl }}</td></tr>
+          {% if proposal.custos_adicionais and proposal.custos_adicionais > 0 %}
+          <tr>
+            <td>Outros custos adicionais
+              {% if proposal.custos_adicionais_desc %}<span class="hint">({{ proposal.custos_adicionais_desc }})</span>{% endif %}
+            </td>
+            <td>{{ proposal.custos_adicionais | brl }}</td>
+          </tr>
+          {% endif %}
+          <tr class="items__total"><td>Valor final da proposta</td><td>{{ proposal.valor_final | brl }}</td></tr>
         </tbody>
       </table>
       <dl class="kv">
@@ -55,33 +61,14 @@
       {% endif %}
     </div>
 
-    {% if quote.status == 'respondida' and not proposal.expirada %}
-      <div class="card actions-card">
-        <form method="post" action="/cotacao/{{ quote.code }}/aceitar">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-          <input type="hidden" name="t" value="{{ request.query_params.get('t', '') }}">
-          <button type="submit" class="btn btn--primary btn--block">Aceitar cotacao</button>
-        </form>
-
-        <details class="adjust">
-          <summary>Solicitar ajuste</summary>
-          <form method="post" action="/cotacao/{{ quote.code }}/ajuste">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <input type="hidden" name="t" value="{{ request.query_params.get('t', '') }}">
-            <div class="field {% if ajuste_error %}field--error{% endif %}">
-              <label for="f_note">O que gostaria de ajustar?</label>
-              <textarea id="f_note" name="note" rows="3" required></textarea>
-              {% if ajuste_error %}<p class="error-msg">{{ ajuste_error }}</p>{% endif %}
-            </div>
-            <button type="submit" class="btn btn--ghost btn--block">Enviar pedido de ajuste</button>
-          </form>
-        </details>
-      </div>
-    {% elif quote.status == 'aceita' %}
-      <p class="notice notice--ok">Voce aceitou esta cotacao. O time comercial dara sequencia ao processo.</p>
-    {% elif quote.status == 'ajuste_solicitado' %}
-      <p class="notice">Seu pedido de ajuste foi enviado. Em breve enviaremos uma proposta revisada.</p>
-      {% if quote.client_decision_note %}<p class="hint">Ajuste solicitado: {{ quote.client_decision_note }}</p>{% endif %}
+    {% if quote.status == 'aprovada' %}
+      <p class="notice notice--ok">Proposta aprovada pela AMG. O time comercial dara sequencia ao processo.</p>
+    {% elif quote.status == 'reprovada' %}
+      <p class="notice notice--error">Proposta reprovada.
+        {% if quote.decision_note %}<br>Motivo: {{ quote.decision_note }}{% endif %}
+      </p>
+    {% else %}
+      <p class="notice">Proposta enviada. Aguarde o contato do time comercial da AMG.</p>
     {% endif %}
   {% endif %}
 

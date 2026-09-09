@@ -74,11 +74,12 @@ def _row(label: str, value: str) -> str:
 
 
 def send_quote_to_comercial(quote: Quote) -> None:
-    sim_nao = {True: "Sim", False: "Nao"}
+    sn = {True: "Sim", False: "Nao"}
     html = f"""
     <h2>Nova solicitacao de cotacao — {quote.code}</h2>
     <table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px">
-      {_row("Cliente", quote.client_name)}
+      {_row("Comprador", quote.client_name)}
+      {_row("Empresa", quote.client_company or "-")}
       {_row("E-mail", quote.client_email)}
       {_row("Telefone", quote.client_phone or "-")}
       {_row("Origem", f"{quote.origem_cidade} — CEP {quote.origem_cep or '-'} — {quote.origem_endereco or '-'} — {quote.origem_bairro or '-'}")}
@@ -88,8 +89,10 @@ def send_quote_to_comercial(quote: Quote) -> None:
       {_row("Volumes", str(quote.qtd_volumes))}
       {_row("Peso total (kg)", format_peso(quote.peso_total_kg))}
       {_row("Valor da NF", format_brl(quote.valor_nf))}
-      {_row("Servico de carga", sim_nao[quote.servico_carga])}
-      {_row("Servico de descarga", sim_nao[quote.servico_descarga])}
+      {_row("Servico de carga", sn[quote.servico_carga])}
+      {_row("Servico de descarga", sn[quote.servico_descarga])}
+      {_row("Necessita diaria", sn[bool(quote.servico_diaria)])}
+      {_row("Necessita guincho", sn[bool(quote.servico_guincho)])}
       {_row("Veiculo desejado", quote.tipo_veiculo)}
       {_row("Carroceria", quote.carroceria or "-")}
       {_row("Capacidade aprox.", quote.capacidade_aprox)}
@@ -113,20 +116,28 @@ def send_confirmation_to_client(quote: Quote) -> None:
     _send(quote.client_email, f"Cotacao {quote.code} recebida — AMG Logistica", html)
 
 
+def _proposta_rows(proposal: Proposal) -> str:
+    linhas = [_row("Valor total do frete", format_brl(proposal.total))]
+    if proposal.custos_adicionais and proposal.custos_adicionais > 0:
+        desc = proposal.custos_adicionais_desc or "custos adicionais"
+        linhas.append(
+            _row(f"Outros custos adicionais ({desc})", format_brl(proposal.custos_adicionais))
+        )
+    linhas.append(_row("Valor final da proposta", format_brl(proposal.valor_final)))
+    linhas.append(_row("Prazo de entrega", proposal.prazo_entrega))
+    linhas.append(_row("Validade da proposta", proposal.validade.strftime("%d/%m/%Y")))
+    return "".join(linhas)
+
+
 def send_proposal_ready(quote: Quote, proposal: Proposal) -> None:
     html = f"""
     <h2>Sua cotacao {quote.code} foi respondida</h2>
     <p>Ola, {quote.client_name}! Preparamos a proposta para a rota
     <strong>{quote.origem_cidade} &rarr; {quote.destino_cidade}</strong>.</p>
     <table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px">
-      {_row("Frete", format_brl(proposal.frete))}
-      {_row("Pedagio", format_brl(proposal.pedagio))}
-      {_row("Seguro (0,2%)", format_brl(proposal.seguro))}
-      {_row("Total", format_brl(proposal.total))}
-      {_row("Prazo de entrega", proposal.prazo_entrega)}
-      {_row("Validade da proposta", proposal.validade.strftime("%d/%m/%Y"))}
+      {_proposta_rows(proposal)}
     </table>
-    <p><a href="{_quote_link(quote)}">Ver proposta completa e responder</a></p>
+    <p><a href="{_quote_link(quote)}">Ver a proposta completa</a></p>
     """
     _send(quote.client_email, f"Proposta pronta — cotacao {quote.code}", html)
 
@@ -138,9 +149,7 @@ def send_quote_pdf_to_client(quote: Quote, pdf_bytes: bytes) -> None:
     if proposal is not None:
         resumo = (
             '<table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px">'
-            f'{_row("Total", format_brl(proposal.total))}'
-            f'{_row("Prazo de entrega", proposal.prazo_entrega)}'
-            f'{_row("Validade da proposta", proposal.validade.strftime("%d/%m/%Y"))}'
+            f"{_proposta_rows(proposal)}"
             "</table>"
         )
     html = f"""
@@ -160,16 +169,29 @@ def send_quote_pdf_to_client(quote: Quote, pdf_bytes: bytes) -> None:
     )
 
 
-def send_client_decision(quote: Quote) -> None:
+def send_decision_to_client(quote: Quote) -> None:
+    """Avisa o cliente que a AMG aprovou ou reprovou a cotacao."""
     label = STATUS_LABELS.get(quote.status, quote.status)
-    extra = ""
-    if quote.client_decision_note:
-        extra = f"<p><strong>Observacao do cliente:</strong><br>{quote.client_decision_note}</p>"
+    if quote.status == "aprovada":
+        corpo = (
+            "<p>Boa noticia! Sua cotacao foi <strong>aprovada</strong> pela AMG. "
+            "Nosso time comercial dara sequencia ao processo e podera entrar em contato.</p>"
+        )
+    else:
+        motivo = (
+            f"<p><strong>Motivo:</strong> {quote.decision_note}</p>"
+            if quote.decision_note
+            else ""
+        )
+        corpo = (
+            f"<p>Sua cotacao foi <strong>reprovada</strong>.</p>{motivo}"
+            "<p>Se quiser, solicite uma nova cotacao pelo site.</p>"
+        )
     html = f"""
     <h2>Cotacao {quote.code}: {label}</h2>
-    <p>Cliente: {quote.client_name} ({quote.client_email})</p>
-    <p>Rota: {quote.origem_cidade} &rarr; {quote.destino_cidade}</p>
-    {extra}
-    <p><a href="{_admin_link(quote)}">Abrir no painel comercial</a></p>
+    <p>Ola, {quote.client_name}!</p>
+    <p>Rota: <strong>{quote.origem_cidade} &rarr; {quote.destino_cidade}</strong></p>
+    {corpo}
+    <p><a href="{_quote_link(quote)}">Ver a cotacao no site</a></p>
     """
-    _send(settings.email_comercial, f"Cotacao {quote.code}: {label}", html)
+    _send(quote.client_email, f"Cotacao {quote.code}: {label}", html)

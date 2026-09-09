@@ -29,8 +29,20 @@ def get_db() -> Iterator[Session]:
 
 # Colunas adicionadas depois da primeira versao. create_all() nao altera
 # tabelas existentes, entao garantimos as novas colunas manualmente.
+# Sem DEFAULT para nao esbarrar em diferencas de sintaxe entre SQLite e
+# Postgres; linhas antigas ficam NULL e o app trata NULL como falso/zero.
 _ADDED_COLUMNS = {
-    "quotes": {"carroceria": "VARCHAR(120)"},
+    "quotes": {
+        "carroceria": "VARCHAR(120)",
+        "client_company": "VARCHAR(160)",
+        "servico_diaria": "BOOLEAN",
+        "servico_guincho": "BOOLEAN",
+        "decision_note": "TEXT",
+    },
+    "proposals": {
+        "custos_adicionais": "NUMERIC(14,2)",
+        "custos_adicionais_desc": "TEXT",
+    },
 }
 
 
@@ -45,6 +57,21 @@ def _ensure_columns() -> None:
             for name, ddl in columns.items():
                 if name not in have:
                     conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {name} {ddl}'))
+
+
+def _migrate_statuses() -> None:
+    """Converte os status antigos (aceita / ajuste_solicitado) para os novos."""
+    from app.constants import STATUS_LEGADO
+
+    inspector = inspect(engine)
+    if "quotes" not in set(inspector.get_table_names()):
+        return
+    with engine.begin() as conn:
+        for antigo, novo in STATUS_LEGADO.items():
+            conn.execute(
+                text("UPDATE quotes SET status = :novo WHERE status = :antigo"),
+                {"novo": novo, "antigo": antigo},
+            )
 
 
 def _seed_opcoes() -> None:
@@ -67,4 +94,5 @@ def init_db() -> None:
 
     Base.metadata.create_all(bind=engine)
     _ensure_columns()
+    _migrate_statuses()
     _seed_opcoes()

@@ -34,7 +34,8 @@ class Quote(Base):
     status: Mapped[str] = mapped_column(String(30), default=STATUS_ABERTA, index=True)
 
     # Contato
-    client_name: Mapped[str] = mapped_column(String(120))
+    client_name: Mapped[str] = mapped_column(String(120))  # nome do comprador
+    client_company: Mapped[str] = mapped_column(String(160), default="")  # empresa
     client_email: Mapped[str] = mapped_column(String(180), index=True)
     client_phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
@@ -58,6 +59,8 @@ class Quote(Base):
     valor_nf: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     servico_carga: Mapped[bool] = mapped_column(Boolean, default=False)
     servico_descarga: Mapped[bool] = mapped_column(Boolean, default=False)
+    servico_diaria: Mapped[bool] = mapped_column(Boolean, default=False)
+    servico_guincho: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Transporte
     tipo_veiculo: Mapped[str] = mapped_column(String(120))
@@ -66,8 +69,8 @@ class Quote(Base):
     data_coleta: Mapped[date] = mapped_column(Date)
     observacoes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # Decisao do cliente
-    client_decision_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Motivo informado pelo admin ao reprovar a cotacao
+    decision_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     proposal: Mapped[Proposal | None] = relationship(
         back_populates="quote", uselist=False, cascade="all, delete-orphan"
@@ -89,13 +92,29 @@ class Proposal(Base):
     frete: Mapped[Decimal] = mapped_column(Numeric(14, 2))
     pedagio: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
     seguro: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
+    # total = frete + pedagio + seguro  ("valor total do frete" para o cliente)
     total: Mapped[Decimal] = mapped_column(Numeric(14, 2))
+    # custo extra lancado pelo admin (guincho, armazenagem, etc.)
+    custos_adicionais: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2), default=Decimal("0.00")
+    )
+    custos_adicionais_desc: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     prazo_entrega: Mapped[str] = mapped_column(String(80))
     validade: Mapped[date] = mapped_column(Date)
     observacoes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     quote: Mapped[Quote] = relationship(back_populates="proposal")
+
+    @property
+    def valor_total_frete(self) -> Decimal:
+        """Frete + pedagio + seguro consolidados."""
+        return self.total
+
+    @property
+    def valor_final(self) -> Decimal:
+        """Valor total do frete + outros custos adicionais."""
+        return self.total + (self.custos_adicionais or Decimal("0.00"))
 
     @property
     def expirada(self) -> bool:

@@ -42,7 +42,7 @@
   }
 
   document.querySelectorAll('input[name$="_cep"]').forEach(maskCEP);
-  document.querySelectorAll('input[name="valor_nf"], input[name="frete"], input[name="pedagio"], input[name="seguro"]').forEach(maskCurrency);
+  document.querySelectorAll('input[name="valor_nf"], input[name="frete"], input[name="pedagio"], input[name="seguro"], input[name="custos_adicionais"]').forEach(maskCurrency);
   document.querySelectorAll('input[name="peso_total_kg"]').forEach(maskWeight);
   document.querySelectorAll('input[name="qtd_volumes"]').forEach(maskInteger);
 

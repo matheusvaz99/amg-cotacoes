@@ -11,9 +11,10 @@
 </div>
 
 <div class="tabs">
-  {% for name in ['todas', 'abertas', 'respondidas'] %}
+  {% set _tab_labels = {'todas':'Todas','em_analise':'Em analise','respondidas':'Respondidas','finalizadas':'Finalizadas'} %}
+  {% for name in ['todas', 'em_analise', 'respondidas', 'finalizadas'] %}
     <a class="tab {% if tab == name %}is-active{% endif %}" href="/admin?tab={{ name }}{% if search %}&q={{ search }}{% endif %}">
-      {{ name|capitalize }} <span class="tab__count">{{ counts[name] }}</span>
+      {{ _tab_labels[name] }} <span class="tab__count">{{ counts[name] }}</span>
     </a>
   {% endfor %}
 </div>
@@ -30,7 +31,7 @@
 <div class="table-wrap">
   <table class="admin-table">
     <thead>
-      <tr><th>Codigo</th><th>Data</th><th>Rota</th><th>Cliente</th><th>Status</th><th></th></tr>
+      <tr><th>Codigo</th><th>Data</th><th>Rota</th><th>Comprador / empresa</th><th>Status</th><th></th></tr>
     </thead>
     <tbody>
       {% for q in quotes %}
@@ -38,7 +39,10 @@
         <td data-label="Codigo"><strong>{{ q.code }}</strong></td>
         <td data-label="Data">{{ q.created_at | date_br }}</td>
         <td data-label="Rota">{{ q.origem_cidade }} &rarr; {{ q.destino_cidade }}</td>
-        <td data-label="Cliente">{{ q.client_name }}</td>
+        <td data-label="Comprador / empresa">
+          <strong>{{ q.client_name }}</strong>
+          {% if q.client_company %}<br><span class="hint">{{ q.client_company }}</span>{% endif %}
+        </td>
         <td data-label="Status">{{ status_badge(q.status) }}</td>
         <td data-label="">
           <div class="row-actions">

@@ -3,21 +3,32 @@
 # Status de uma cotacao.
 STATUS_ABERTA = "aberta"
 STATUS_RESPONDIDA = "respondida"
-STATUS_ACEITA = "aceita"
-STATUS_AJUSTE = "ajuste_solicitado"
+STATUS_APROVADA = "aprovada"
+STATUS_REPROVADA = "reprovada"
 
 STATUS_LABELS = {
     STATUS_ABERTA: "Em analise",
     STATUS_RESPONDIDA: "Respondida",
-    STATUS_ACEITA: "Aceita",
-    STATUS_AJUSTE: "Ajuste solicitado",
+    STATUS_APROVADA: "Aprovada",
+    STATUS_REPROVADA: "Reprovada",
 }
 
-# Abas do painel comercial -> filtro de status.
+# status antigos -> novos, aplicado uma vez na migracao de dados
+STATUS_LEGADO = {"aceita": STATUS_APROVADA, "ajuste_solicitado": STATUS_REPROVADA}
+
+# Abas do painel comercial -> filtro de status (None = todas).
 ADMIN_TABS = {
     "todas": None,
-    "abertas": (STATUS_ABERTA, STATUS_AJUSTE),
-    "respondidas": (STATUS_RESPONDIDA, STATUS_ACEITA),
+    "em_analise": (STATUS_ABERTA,),
+    "respondidas": (STATUS_RESPONDIDA,),
+    "finalizadas": (STATUS_APROVADA, STATUS_REPROVADA),
+}
+
+ADMIN_TAB_LABELS = {
+    "todas": "Todas",
+    "em_analise": "Em analise",
+    "respondidas": "Respondidas",
+    "finalizadas": "Finalizadas",
 }
 
 TIPOS_MATERIAL = [

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import func, or_, select
@@ -55,6 +56,7 @@ def list_quotes(db: Session, *, tab: str = "todas", search: str = "") -> list[Qu
                 Quote.origem_cidade.ilike(like),
                 Quote.destino_cidade.ilike(like),
                 Quote.client_name.ilike(like),
+                Quote.client_company.ilike(like),
                 Quote.client_email.ilike(like),
             )
         )
@@ -77,6 +79,8 @@ def add_proposal(
         pedagio=values["pedagio"],
         seguro=values["seguro"],
         total=values["total"],
+        custos_adicionais=values.get("custos_adicionais") or Decimal("0.00"),
+        custos_adicionais_desc=values.get("custos_adicionais_desc"),
         prazo_entrega=values["prazo_entrega"],
         validade=values["validade"],
         observacoes=values["observacoes"],
@@ -93,7 +97,7 @@ def set_status(
 ) -> Quote:
     quote.status = status
     if decision_note is not None:
-        quote.client_decision_note = decision_note
+        quote.decision_note = decision_note
     db.commit()
     db.refresh(quote)
     return quote
