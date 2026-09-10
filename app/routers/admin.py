@@ -27,7 +27,7 @@ from app.security import (
     validate_csrf,
 )
 from app.templating import render
-from app.utils import calc_seguro, utcnow
+from app.utils import calc_seguro, format_valor, utcnow
 
 router = APIRouter(prefix="/admin")
 
@@ -109,10 +109,10 @@ def quote_view(
         return RedirectResponse("/admin", status_code=303)
     p = quote.proposal
     values = {
-        "frete": p.frete if p else "",
-        "pedagio": p.pedagio if p else "",
-        "seguro": p.seguro if p else calc_seguro(quote.valor_nf),
-        "custos_adicionais": p.custos_adicionais if p else "",
+        "frete": format_valor(p.frete) if p else "",
+        "pedagio": format_valor(p.pedagio) if p else "",
+        "seguro": format_valor(p.seguro if p else calc_seguro(quote.valor_nf)),
+        "custos_adicionais": format_valor(p.custos_adicionais) if p else "",
         "custos_adicionais_desc": p.custos_adicionais_desc if p else "",
         "prazo_entrega": p.prazo_entrega if p else "",
         "validade": p.validade.isoformat() if p else "",
@@ -152,7 +152,7 @@ async def quote_respond(
             "admin/responder.html",
             admin=admin,
             quote=quote,
-            values={**form, **pf.values},
+            values={**form},  # devolve o que o admin digitou, sem reformatar
             errors=pf.errors,
             today=utcnow().date().isoformat(),
             csrf_token=get_csrf_token(request),

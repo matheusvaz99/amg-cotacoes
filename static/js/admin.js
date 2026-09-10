@@ -10,8 +10,18 @@
 
   function toNumber(v) {
     if (!v) return 0;
-    v = String(v).replace(/\./g, "").replace(",", ".").replace(/[^0-9.]/g, "");
-    var n = parseFloat(v);
+    v = String(v).replace(/R\$|\s/g, "");
+    if (v.indexOf(",") !== -1) {
+      // formato BR: ponto = milhar, virgula = decimal
+      v = v.replace(/\./g, "").replace(",", ".");
+    } else if ((v.match(/\./g) || []).length === 1) {
+      var p = v.split(".");
+      // "2.000" (3 casas) = milhar; "2000.00" / "2.5" = decimal
+      if (p[1].length === 3 && p[0].length <= 3) v = p[0] + p[1];
+    } else {
+      v = v.replace(/\./g, "");
+    }
+    var n = parseFloat(v.replace(/[^0-9.]/g, ""));
     return isNaN(n) ? 0 : n;
   }
 

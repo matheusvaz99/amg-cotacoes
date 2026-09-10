@@ -31,19 +31,38 @@ def gen_quote_code(db: Session, *, year: int | None = None) -> str:
 
 
 def parse_brl(value: str | None) -> Decimal | None:
-    """Converte '25.000,00', 'R$ 1.234,56', '1234.56' ou '1234' em Decimal."""
+    """Converte valores em dinheiro digitados de varias formas em Decimal:
+
+    '25.000,00', 'R$ 1.234,56', '2000.00', '1234'  -> ok
+    '2.000'      -> 2000  (ponto isolado com 3 casas = separador de milhar)
+    '2.5' / '2000.50'     -> tratado como decimal
+    '2.000.000'  -> 2000000
+    """
     if value is None:
         return None
     raw = str(value).strip()
     if not raw:
         return None
     raw = raw.replace("R$", "").replace(" ", "").replace(" ", "")
+    neg = raw.startswith("-")
+    raw = raw.lstrip("-")
+
     if "," in raw:
-        # Formato pt-BR: ponto e separador de milhar, virgula e decimal.
+        # virgula = separador decimal; pontos = milhar
         raw = raw.replace(".", "").replace(",", ".")
-    # Caso contrario assume ponto decimal (ou inteiro).
+    elif raw.count(".") > 1:
+        # varios pontos so fazem sentido como separador de milhar
+        raw = raw.replace(".", "")
+    elif raw.count(".") == 1:
+        inteiro, dec = raw.split(".")
+        # "2.000" (3 casas apos o ponto e parte inteira curta) = milhar
+        if len(dec) == 3 and 1 <= len(inteiro) <= 3:
+            raw = inteiro + dec
+        # senao mantem como decimal ("2000.00", "2.5", "1234.56")
+
     try:
-        return Decimal(raw).quantize(TWO_PLACES, rounding=ROUND_HALF_UP)
+        d = Decimal(raw).quantize(TWO_PLACES, rounding=ROUND_HALF_UP)
+        return -d if neg else d
     except (InvalidOperation, ValueError):
         return None
 
@@ -65,6 +84,13 @@ def format_brl(value: Decimal | float | int | None) -> str:
     inteiro, _, centavos = f"{abs(dec):.2f}".partition(".")
     sinal = "-" if dec < 0 else ""
     return f"{sinal}R$ {_group_thousands(inteiro)},{centavos}"
+
+
+def format_valor(value: Decimal | float | int | str | None) -> str:
+    """Formato BR para preencher inputs de moeda: '2.000,00' (sem 'R$', vazio se nulo)."""
+    if value is None or value == "":
+        return ""
+    return format_brl(value).replace("R$", "").strip()
 
 
 def parse_peso(value: str | None) -> Decimal | None:

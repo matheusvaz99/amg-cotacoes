@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from decimal import Decimal
 
 from conftest import csrf_from
 
@@ -114,6 +115,36 @@ def test_custos_adicionais_somam_no_valor_final(client):
     assert "Guincho no destino" in detail.text
     assert "R$ 3.000,00" in detail.text  # valor total do frete
     assert "R$ 3.350,00" in detail.text  # valor final = 3000 + 350
+
+
+def test_painel_prefill_moeda_em_formato_br(client):
+    code = _submit_quote(client)
+    _admin_login(client)
+    _respond(client, code, frete="2.000,00")
+    page = client.get(f"/admin/cotacao/{code}").text
+    # campo pre-preenchido no formato BR (nao "2000.00"), pra nao inflar no preview
+    assert 'name="frete" type="text"\n    value="2.000,00"' in page or 'value="2.000,00"' in page
+    assert 'value="2000.00"' not in page
+
+    from app.database import SessionLocal
+    from app.models import Quote
+
+    with SessionLocal() as db:
+        assert db.query(Quote).filter_by(code=code).one().proposal.frete == Decimal("2000.00")
+
+
+def test_frete_com_ponto_milhar_nao_infla(client):
+    code = _submit_quote(client)
+    _admin_login(client)
+    _respond(client, code, frete="2.000", pedagio="0,00", seguro="0,00")
+
+    from app.database import SessionLocal
+    from app.models import Quote
+
+    with SessionLocal() as db:
+        p = db.query(Quote).filter_by(code=code).one().proposal
+        assert p.frete == Decimal("2000.00")
+        assert p.total == Decimal("2000.00")
 
 
 def test_admin_aprova_cotacao(client):

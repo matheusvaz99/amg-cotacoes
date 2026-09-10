@@ -98,7 +98,7 @@ async def submit_quote(request: Request, db: Session = Depends(get_db)):
             "cotacao_form.html",
             base_code=form.get("base_code") or None,
             **_form_context(
-                request, {**form, **qf.values}, qf.errors,
+                request, {**form}, qf.errors,  # devolve o que o cliente digitou
                 carrocerias=carrocerias, tipos_veiculo=tipos_veiculo,
             ),
         )

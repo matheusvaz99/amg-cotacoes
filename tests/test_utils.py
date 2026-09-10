@@ -22,6 +22,18 @@ def test_parse_brl_ptbr():
     assert parse_brl("abc") is None
 
 
+def test_parse_brl_ponto_como_milhar():
+    # "dois mil" digitado a brasileira nao pode virar R$ 2 nem R$ 200.000
+    assert parse_brl("2.000") == Decimal("2000.00")
+    assert parse_brl("12.500") == Decimal("12500.00")
+    assert parse_brl("2.000.000") == Decimal("2000000.00")
+    # valor cru vindo de Decimal continua sendo lido certo
+    assert parse_brl("2000.00") == Decimal("2000.00")
+    assert parse_brl("200000.00") == Decimal("200000.00")
+    # ponto decimal legitimo preservado
+    assert parse_brl("2.5") == Decimal("2.50")
+
+
 def test_format_brl():
     assert format_brl(Decimal("25000")) == "R$ 25.000,00"
     assert format_brl(Decimal("1234.5")) == "R$ 1.234,50"
