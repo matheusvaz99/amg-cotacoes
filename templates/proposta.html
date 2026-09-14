@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% from "partials/status_badge.html" import status_badge %}
-{% block title %}Cotacao {{ quote.code }} — AMG Logistica{% endblock %}
+{% block title %}Cotação {{ quote.code }} — AMG Logística{% endblock %}
 
 {% block content %}
 <div class="detail">
   <div class="detail__head">
     <div>
-      <p class="eyebrow">Cotacao</p>
+      <p class="eyebrow">Cotação {{ 'Rápida' if quote.is_rapida else 'Completa' }}</p>
       <h1>{{ quote.code }}</h1>
     </div>
     {{ status_badge(quote.status) }}
@@ -18,11 +18,9 @@
       <div><dt>Origem</dt><dd>{{ quote.origem_cidade }}</dd></div>
       <div><dt>Destino</dt><dd>{{ quote.destino_cidade }}</dd></div>
       <div><dt>Material</dt><dd>{{ quote.tipo_material }}</dd></div>
-      <div><dt>Volumes</dt><dd>{{ quote.qtd_volumes }}</dd></div>
       <div><dt>Peso total</dt><dd>{{ quote.peso_total_kg | peso }} kg</dd></div>
-      <div><dt>Veiculo</dt><dd>{{ quote.tipo_veiculo }}</dd></div>
-      <div><dt>Carroceria</dt><dd>{{ quote.carroceria or '-' }}</dd></div>
-      <div><dt>Capacidade</dt><dd>{{ quote.capacidade_aprox }}</dd></div>
+      {% if quote.tipo_veiculo %}<div><dt>Veículo</dt><dd>{{ quote.tipo_veiculo }}</dd></div>{% endif %}
+      {% if quote.carroceria %}<div><dt>Carroceria</dt><dd>{{ quote.carroceria }}</dd></div>{% endif %}
       <div><dt>Coleta prevista</dt><dd>{{ quote.data_coleta | date_br }}</dd></div>
       {% if quote.data_entrega %}<div><dt>Entrega desejada</dt><dd>{{ quote.data_entrega | date_br }}</dd></div>{% endif %}
     </dl>
@@ -30,25 +28,20 @@
 
   {% if not respondida %}
     <div class="card card--muted">
-      <h2>Proposta em analise</h2>
-      <p>Sua solicitacao foi recebida e esta sendo analisada pelo time comercial da AMG.
-         Assim que a proposta estiver pronta, voce sera avisado por e-mail.</p>
+      <h2>Proposta em análise</h2>
+      <p>Sua solicitação foi recebida e está sendo analisada pelo time comercial da AMG.
+         Assim que a proposta estiver pronta, você será avisado por e-mail.</p>
     </div>
   {% elif proposal %}
     <div class="card">
       <h2>Proposta</h2>
       <table class="items">
         <tbody>
-          <tr><td>Valor total do frete</td><td>{{ proposal.total | brl }}</td></tr>
-          {% if proposal.custos_adicionais and proposal.custos_adicionais > 0 %}
-          <tr>
-            <td>Outros custos adicionais
-              {% if proposal.custos_adicionais_desc %}<span class="hint">({{ proposal.custos_adicionais_desc }})</span>{% endif %}
-            </td>
-            <td>{{ proposal.custos_adicionais | brl }}</td>
-          </tr>
-          {% endif %}
-          <tr class="items__total"><td>Valor final da proposta</td><td>{{ proposal.valor_final | brl }}</td></tr>
+          <tr><td>Valor do frete</td><td>{{ proposal.fe | brl }}</td></tr>
+          {% for label, valor in proposal.adicionais_itens() %}
+          <tr><td>{{ label }}</td><td>{{ valor | brl }}</td></tr>
+          {% endfor %}
+          <tr class="items__total"><td>Valor total da cotação</td><td>{{ proposal.valor_final | brl }}</td></tr>
         </tbody>
       </table>
       <dl class="kv">
@@ -56,25 +49,64 @@
         <div><dt>Validade da proposta</dt><dd>{{ proposal.validade | date_br }}</dd></div>
       </dl>
       {% if proposal.observacoes %}<p class="hint">{{ proposal.observacoes }}</p>{% endif %}
-
-      {% if proposal.expirada %}
-        <p class="notice notice--error">Proposta expirada. Solicite uma nova cotacao.</p>
+      {% if proposal.expirada and quote.status == 'respondida' %}
+        <p class="notice notice--error">Proposta expirada. Solicite uma nova cotação.</p>
       {% endif %}
     </div>
 
-    {% if quote.status == 'aprovada' %}
-      <p class="notice notice--ok">Proposta aprovada pela AMG. O time comercial dara sequencia ao processo.</p>
+    {% if quote.status == 'respondida' and not proposal.expirada %}
+      <div class="card actions-card">
+        <form method="post" action="/cotacao/{{ quote.code }}/aprovar">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="t" value="{{ t }}">
+          <button type="submit" class="btn btn--primary btn--block">Aprovar cotação</button>
+        </form>
+
+        <details class="adjust">
+          <summary>Solicitar negociação</summary>
+          <form method="post" action="/cotacao/{{ quote.code }}/negociar">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="t" value="{{ t }}">
+            <div class="field {% if negociar_error %}field--error{% endif %}">
+              <label for="f_motivo">O que gostaria de negociar?</label>
+              <textarea id="f_motivo" name="motivo" rows="3" required></textarea>
+              {% if negociar_error %}<p class="error-msg">{{ negociar_error }}</p>{% endif %}
+            </div>
+            <button type="submit" class="btn btn--ghost btn--block">Enviar pedido de negociação</button>
+          </form>
+        </details>
+      </div>
+    {% elif quote.status == 'negociacao' %}
+      <p class="notice">Seu pedido de negociação foi enviado. Em breve enviaremos uma proposta revisada.</p>
+      {% if quote.decision_note %}<p class="hint">Você pediu: {{ quote.decision_note }}</p>{% endif %}
+    {% elif quote.status == 'aprovada' %}
+      <p class="notice notice--ok">Cotação aprovada! Para darmos sequência, preencha a Solicitação de Frete.</p>
+      {% if quote.decision_note %}
+        <p class="notice notice--error">A solicitação de frete enviada precisa de ajuste.<br>Motivo: {{ quote.decision_note }}</p>
+      {% endif %}
+      <a class="btn btn--primary btn--block" href="/cotacao/{{ quote.code }}/solicitacao{% if t %}?t={{ t }}{% endif %}">
+        {{ 'Corrigir Solicitação de Frete' if quote.solicitacao else 'Preencher Solicitação de Frete' }}
+      </a>
     {% elif quote.status == 'reprovada' %}
-      <p class="notice notice--error">Proposta reprovada.
+      <p class="notice notice--error">Cotação reprovada.
         {% if quote.decision_note %}<br>Motivo: {{ quote.decision_note }}{% endif %}
       </p>
-    {% else %}
-      <p class="notice">Proposta enviada. Aguarde o contato do time comercial da AMG.</p>
+      <a class="btn btn--ghost" href="/cotacao?base={{ quote.code }}">Solicitar nova cotação com base nesta</a>
+    {% elif quote.status in ('frete_solicitado', 'em_validacao') %}
+      <p class="notice">Solicitação de frete enviada. Nosso time está validando os dados para emitir a Ordem de Coleta.</p>
+    {% elif quote.status == 'oc_emitida' %}
+      <p class="notice notice--ok">Ordem de Coleta <strong>{{ quote.ordem_coleta.numero }}</strong> emitida. Em breve
+         enviaremos os dados para a Logística.</p>
+    {% elif quote.status == 'enviada_logistica' %}
+      <p class="notice notice--ok">Ordem de Coleta <strong>{{ quote.ordem_coleta.numero }}</strong> enviada à Logística.
+         Seu carregamento já está na nossa agenda de acompanhamento.</p>
     {% endif %}
   {% endif %}
 
+  {% if quote.status not in ('aprovada', 'frete_solicitado', 'em_validacao', 'oc_emitida', 'enviada_logistica') %}
   <div class="detail__foot">
-    <a class="btn btn--ghost" href="/cotacao?base={{ quote.code }}">Solicitar nova cotacao com base nesta</a>
+    <a class="btn btn--ghost" href="/cotacao?base={{ quote.code }}">Solicitar nova cotação com base nesta</a>
   </div>
+  {% endif %}
 </div>
 {% endblock %}

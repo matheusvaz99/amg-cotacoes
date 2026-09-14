@@ -1,53 +1,60 @@
-# AMG Logística — Cotação Rápida de Frete
+# AMG Logística — Cotação de Frete (v2)
 
-Site responsivo para o cliente solicitar cotações de frete de forma rápida, simples e
-padronizada, e para o time comercial responder com uma proposta.
+Aplicação completa do pipeline comercial da AMG: da cotação (rápida ou completa) até a
+Ordem de Coleta enviada à Logística, com Agenda de Carregamentos para acompanhamento.
 
-Baseado no briefing `plano-amg-app.jpeg`.
+Baseado no briefing `plano-amg-app.jpeg` (v1) e no escopo final
+`AMG_Aplicativo_Frete_Escopo_Final_com_Agenda.xlsx` / `aplicativo-amg-130926.jpg` (v2).
 
 ## Stack
 
 - **FastAPI** + **Jinja2** + HTML/CSS/JS puro (sem build step)
-- **SQLAlchemy** + **SQLite** (`amg.db`)
+- **SQLAlchemy** + **SQLite** (dev) / **Postgres** (produção)
 - **Resend** para e-mail (opcional — sem chave, os e-mails vão para o console)
+- **fpdf2** para o PDF da cotação (Python puro, sem dependência de sistema)
 
 ## Como rodar (local)
 
 ```bash
-python3.11 -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
 cp .env.example .env        # ajuste SECRET_KEY, ADMIN_USER, ADMIN_PASS...
-python seed.py              # opcional: cotações de exemplo
+python seed.py              # cotações de exemplo em cada etapa do pipeline
 
 uvicorn app.main:app --reload
 ```
 
 Abra http://localhost:8000
 
-- **Cliente:** `/` → `/cotacao` (formulário em 3 etapas) → confirmação → `/acompanhar`
-- **Comercial:** `/admin/login` (credenciais do `.env`) → fila → responder proposta
+## O pipeline
+
+1. **Cotação Rápida** (mínimo de campos, uso em campo) ou **Cotação Completa**
+   (comprador no escritório) — `/cotacao` deixa escolher.
+2. Comercial forma o preço internamente: **FC** (motorista + pedágio + impostos + seguro
+   + outros custos) → **margem (%)** → **FE** (preço de venda). O cliente nunca vê FC nem
+   a margem — só o FE, os adicionais efetivamente cobrados (diária, ajudante,
+   empilhadeira, guincho/Munck, carga, descarga, outros) e o valor total.
+3. Cliente decide pelo site: **Aprovar**, **Solicitar negociação** (com motivo — o
+   comercial reprecifica e a versão anterior fica registrada no histórico) ou o comercial
+   registra a decisão manualmente.
+4. Aprovada, o cliente preenche a **Solicitação de Frete** (dados fiscais/operacionais).
+5. Comercial valida e gera a **Ordem de Coleta**, depois **envia à Logística** — isso cria
+   automaticamente um item na **Agenda de Carregamentos** (`/admin/agenda`, lista e
+   calendário), com alertas HOJE/AMANHÃ/PRÓXIMO/ATRASADO.
+
+Sem login/cadastro: o cliente é identificado pelo nome/empresa digitados em cada
+cotação, e acompanha tudo pelo e-mail (`/acompanhar`) ou pelo link assinado enviado por
+e-mail.
+
+- **Comercial:** `/admin/login` → fila (`/admin`, com filtros por empresa/tipo/status) →
+  formação de preço → decisão → solicitação de frete → Ordem de Coleta → Logística →
+  agenda.
 - **Opções do formulário:** `/admin/opcoes/carroceria` e `/admin/opcoes/tipo_veiculo` —
-  o time cria, edita (renomeia), ativa/inativa e remove as opções de carroceria e de
-  tipo de veículo que o cliente escolhe na cotação (lista inicial criada automaticamente
-  para cada categoria; guardadas na tabela genérica `opcoes`)
-- **PDF da cotação:** na tela da cotação no painel, "Baixar PDF" / "Visualizar PDF" e
-  "Enviar PDF ao cliente" (anexa o documento e dispara o e-mail via Resend). O PDF
-  segue a identidade visual da AMG (gerado com `fpdf2`, sem dependências de sistema)
-
-## Fluxo
-
-1. Cliente preenche origem/destino, dados da carga e do transporte e envia.
-2. A cotação é salva, o time comercial recebe um e-mail e o cliente recebe a confirmação
-   com o código (`COT-2025-000001`) e um link de acompanhamento.
-3. No painel, o comercial abre a cotação e lança a proposta (frete, pedágio, seguro 0,2%,
-   prazo, validade). O cliente é avisado por e-mail.
-4. O cliente abre a proposta e **Aceita** ou **Solicita ajuste**.
-
-O cliente acompanha a cotação sem cadastro: pelo link do e-mail (token assinado) ou
-informando código + e-mail em `/acompanhar`. O rascunho do formulário é salvo no
-`localStorage` do navegador.
+  o time cria, edita, ativa/inativa e remove as opções que o cliente escolhe na cotação.
+- **PDF da cotação:** "Baixar PDF" / "Visualizar PDF" no painel — mostra só o valor do
+  frete (FE), os adicionais cobrados e o valor total (nunca a formação de preço interna).
 
 ## Variáveis de ambiente
 

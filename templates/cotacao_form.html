@@ -1,14 +1,22 @@
 {% extends "base.html" %}
 {% from "partials/fields.html" import field, select, textarea, yesno %}
-{% block title %}Nova cotacao — AMG Logistica{% endblock %}
+{% set completa = tipo_cotacao != 'rapida' %}
+{% block title %}{{ 'Cotação Completa' if completa else 'Cotação Rápida' }} — AMG Logística{% endblock %}
 
 {% block content %}
 <div class="form-shell">
-  <h1>Nova cotacao</h1>
-  <p class="lead">Campos marcados com <span class="req">*</span> sao obrigatorios. Os demais sao opcionais e servem para agilizar a analise.</p>
+  <h1>{{ 'Cotação Completa' if completa else 'Cotação Rápida' }}</h1>
+  <p class="lead">
+    {% if completa %}
+      Campos marcados com <span class="req">*</span> são obrigatórios. Os demais são opcionais e servem para agilizar a análise.
+    {% else %}
+      Preencha o mínimo para uma estimativa rápida. Campos marcados com <span class="req">*</span> são obrigatórios.
+    {% endif %}
+    <a href="/cotacao">Trocar tipo de cotação</a>.
+  </p>
 
   {% if base_code %}
-    <p class="notice">Baseado na cotacao <strong>{{ base_code }}</strong>. Revise os dados antes de enviar.</p>
+    <p class="notice">Baseado na cotação <strong>{{ base_code }}</strong>. Revise os dados antes de enviar.</p>
   {% endif %}
   {% if errors.get('__all__') %}
     <p class="notice notice--error">{{ errors.get('__all__') }}</p>
@@ -26,9 +34,10 @@
     <li data-step="3">Transporte</li>
   </ol>
 
-  <form method="post" action="/cotacao" id="cotacao-form" novalidate>
+  <form method="post" action="/cotacao/nova" id="cotacao-form" novalidate>
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <input type="hidden" name="base_code" value="{{ base_code or '' }}">
+    <input type="hidden" name="tipo_cotacao" value="{{ tipo_cotacao }}">
 
     <fieldset class="step" data-step="1">
       <legend>1. Contato</legend>
@@ -46,20 +55,24 @@
         {{ field('origem_cidade', 'Cidade', values, errors, required=True, placeholder='Ex.: Curitiba - PR') }}
         {{ field('origem_cep', 'CEP', values, errors, hint='Opcional', inputmode='numeric', placeholder='00000-000') }}
       </div>
+      {% if completa %}
       <div class="grid-2">
         {{ field('origem_endereco', 'Endereco', values, errors, hint='Opcional') }}
         {{ field('origem_bairro', 'Bairro', values, errors, hint='Opcional') }}
       </div>
+      {% endif %}
 
       <h2 class="section-title">Destino (entrega)</h2>
       <div class="grid-2">
         {{ field('destino_cidade', 'Cidade', values, errors, required=True, placeholder='Ex.: Londrina - PR') }}
         {{ field('destino_cep', 'CEP', values, errors, hint='Opcional', inputmode='numeric', placeholder='00000-000') }}
       </div>
+      {% if completa %}
       <div class="grid-2">
         {{ field('destino_endereco', 'Endereco', values, errors, hint='Opcional') }}
         {{ field('destino_bairro', 'Bairro', values, errors, hint='Opcional') }}
       </div>
+      {% endif %}
 
       <div class="step-actions">
         <span></span>
@@ -72,18 +85,26 @@
       {{ select('tipo_material', 'Tipo de material', tipos_material, values, errors, required=True) }}
       {{ textarea('descricao_material', 'Descricao do material', values, errors, hint='Opcional. Ex.: Tubos e acessorios de andaime') }}
       <div class="grid-2">
-        {{ field('qtd_volumes', 'Quantidade de volumes', values, errors, required=True, inputmode='numeric') }}
+        {{ field('qtd_volumes', 'Quantidade de volumes', values, errors, required=completa, inputmode='numeric', hint=None if completa else 'Opcional') }}
         {{ field('peso_total_kg', 'Peso total aproximado (kg)', values, errors, required=True, inputmode='numeric', placeholder='Ex.: 5.000', hint='Somente o peso em quilos.') }}
       </div>
-      {{ field('valor_nf', 'Valor aproximado da NF (R$)', values, errors, required=True, inputmode='decimal', placeholder='Ex.: 25.000,00') }}
+      {% if completa %}
+      {{ field('dimensoes', 'Dimensões (C x L x A ou m³)', values, errors, hint='Opcional', placeholder='Ex.: 6 x 2,4 x 2,6 m') }}
+      {% endif %}
+      {{ field('valor_nf', 'Valor aproximado da NF (R$)', values, errors, required=completa, inputmode='decimal', placeholder='Ex.: 25.000,00', hint=None if completa else 'Opcional') }}
       <div class="grid-2">
         {{ yesno('servico_carga', 'Necessita servico de carga?', values, errors) }}
         {{ yesno('servico_descarga', 'Necessita servico de descarga?', values, errors) }}
       </div>
       <div class="grid-2">
         {{ yesno('servico_diaria', 'Necessita de diaria?', values, errors) }}
-        {{ yesno('servico_guincho', 'Necessita de guincho?', values, errors) }}
+        {{ yesno('servico_guincho', 'Necessita de guincho / Munck?', values, errors) }}
       </div>
+      <div class="grid-2">
+        {{ yesno('servico_ajudante', 'Necessita de ajudante?', values, errors) }}
+        {{ yesno('servico_empilhadeira', 'Necessita de empilhadeira?', values, errors) }}
+      </div>
+      {{ field('ajudante_qtd', 'Quantidade de ajudantes', values, errors, inputmode='numeric', hint='Opcional. Preencha se marcou "Sim" acima.') }}
 
       <div class="step-actions">
         <button type="button" class="btn btn--ghost" data-nav="prev">Voltar</button>
@@ -94,11 +115,11 @@
     <fieldset class="step" data-step="3" hidden>
       <legend>3. Dados do transporte</legend>
       <div class="grid-2">
-        {{ select('tipo_veiculo', 'Tipo de veiculo desejado', tipos_veiculo, values, errors, required=True) }}
-        {{ select('carroceria', 'Carroceria', carrocerias, values, errors, required=True, hint='Tipos disponiveis conforme cadastro da AMG.') }}
+        {{ select('tipo_veiculo', 'Tipo de veiculo desejado', tipos_veiculo, values, errors, required=completa, hint=None if completa else 'Opcional — marque se souber.') }}
+        {{ select('carroceria', 'Carroceria', carrocerias, values, errors, required=completa, hint='Tipos disponiveis conforme cadastro da AMG.' if completa else 'Opcional.') }}
       </div>
       <div class="grid-2">
-        {{ field('capacidade_aprox', 'Capacidade aproximada', values, errors, required=True, placeholder='Ex.: 28 toneladas') }}
+        {{ field('capacidade_aprox', 'Capacidade aproximada', values, errors, required=completa, placeholder='Ex.: 28 toneladas', hint=None if completa else 'Opcional') }}
         {{ field('data_coleta', 'Data prevista para coleta', values, errors, type='date', required=True) }}
       </div>
       {{ field('data_entrega', 'Data desejada de entrega', values, errors, type='date', hint='Opcional.') }}

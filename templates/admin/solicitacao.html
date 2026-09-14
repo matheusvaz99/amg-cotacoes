@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% from "partials/status_badge.html" import status_badge %}
+{% block title %}Solicitação de Frete — {{ quote.code }}{% endblock %}
+
+{% block content %}
+<p class="hint"><a href="/admin/cotacao/{{ quote.code }}">&larr; Voltar para a cotação</a></p>
+
+<div class="detail__head">
+  <div>
+    <p class="eyebrow">Solicitação de Frete</p>
+    <h1>{{ quote.code }}</h1>
+  </div>
+  {{ status_badge(quote.status) }}
+</div>
+
+{% if request.query_params.get('ok') == 'oc' %}
+  <p class="notice notice--ok">Ordem de Coleta emitida.</p>
+{% elif request.query_params.get('ok') == 'logistica' %}
+  <p class="notice notice--ok">Enviada à Logística e adicionada à Agenda de Carregamentos.</p>
+{% endif %}
+
+<div class="two-col">
+  <div class="card">
+    <h2>Dados da solicitação</h2>
+    <dl class="kv">
+      <div><dt>Pagador</dt><dd>{{ solicitacao.pagador }}</dd></div>
+      <div><dt>CNPJ/CPF do pagador</dt><dd>{{ solicitacao.pagador_documento }}</dd></div>
+      <div><dt>Fornecedor/remetente</dt><dd>{{ solicitacao.fornecedor_nome }}</dd></div>
+      <div><dt>Contato do fornecedor</dt><dd>{{ solicitacao.fornecedor_contato or '-' }}</dd></div>
+      <div><dt>Destinatário</dt><dd>{{ solicitacao.destinatario_nome }}</dd></div>
+      <div><dt>Contato do destinatário</dt><dd>{{ solicitacao.destinatario_contato or '-' }}</dd></div>
+      <div><dt>Valor da NF</dt><dd>{{ solicitacao.valor_nf | brl }}</dd></div>
+      <div><dt>Enviada em</dt><dd>{{ solicitacao.created_at | date_br }}</dd></div>
+    </dl>
+    {% if solicitacao.observacoes_operacionais %}
+      <h3>Observações operacionais</h3>
+      <p>{{ solicitacao.observacoes_operacionais }}</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    {% if not quote.ordem_coleta %}
+      <h2>Validar solicitação</h2>
+      <p class="hint">Confira os dados ao lado. Validar gera a Ordem de Coleta automaticamente.</p>
+      <form method="post" action="/admin/cotacao/{{ quote.code }}/solicitacao/validar">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn--primary btn--block">Validar e gerar Ordem de Coleta</button>
+      </form>
+
+      <div class="decision-box">
+        <h3>Devolver para correção</h3>
+        <form method="post" action="/admin/cotacao/{{ quote.code }}/solicitacao/devolver">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <div class="field">
+            <label for="f_motivo">Motivo</label>
+            <textarea id="f_motivo" name="motivo" rows="3" required></textarea>
+          </div>
+          <button type="submit" class="btn btn--danger btn--block">Devolver ao cliente</button>
+        </form>
+      </div>
+    {% else %}
+      <h2>Ordem de Coleta</h2>
+      <dl class="kv">
+        <div><dt>Número</dt><dd>{{ quote.ordem_coleta.numero }}</dd></div>
+        <div><dt>Gerada em</dt><dd>{{ quote.ordem_coleta.gerado_em | date_br }}</dd></div>
+        <div><dt>Gerada por</dt><dd>{{ quote.ordem_coleta.gerado_por or '-' }}</dd></div>
+      </dl>
+
+      {% if not quote.ordem_coleta.enviado_logistica_em %}
+        <form method="post" action="/admin/cotacao/{{ quote.code }}/enviar-logistica">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" class="btn btn--primary btn--block">Enviar à Logística</button>
+        </form>
+      {% else %}
+        <p class="notice notice--ok">
+          Enviada à Logística em {{ quote.ordem_coleta.enviado_logistica_em | date_br }}.
+        </p>
+        {% if quote.ordem_coleta.agenda %}
+          <a class="btn btn--ghost btn--block" href="/admin/agenda/{{ quote.ordem_coleta.agenda.id }}">Ver na Agenda de Carregamentos</a>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

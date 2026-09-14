@@ -20,7 +20,7 @@
       <div class="quote-list__route">{{ q.origem_cidade }} &rarr; {{ q.destino_cidade }}</div>
       <div class="quote-list__meta">
         Solicitada em {{ q.created_at | date_br }}
-        {% if q.proposal %} &middot; Total {{ q.proposal.total | brl }}{% endif %}
+        {% if q.proposal %} &middot; Total {{ q.proposal.valor_final | brl }}{% endif %}
       </div>
     </a>
   </li>

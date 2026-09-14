@@ -1,12 +1,17 @@
-/* Painel: previews ao vivo do valor total do frete e do valor final da proposta. */
+/* Painel: previews ao vivo de FC, FE e Valor Total da cotacao.
+   O servidor sempre recalcula tudo de novo ao salvar — isto e so uma ajuda visual. */
 (function () {
   "use strict";
 
   var form = document.getElementById("proposta-form");
   if (!form) return;
 
-  var outFrete = form.querySelector("[data-total-frete]");
+  var outFC = form.querySelector("[data-fc]");
+  var outFE = form.querySelector("[data-fe]");
   var outFinal = form.querySelector("[data-total-final]");
+
+  var CUSTO_FIELDS = ["custo_motorista", "custo_pedagio", "custo_impostos", "custo_seguro", "custo_outros_internos"];
+  var ADICIONAL_FIELDS = ["valor_carga", "valor_descarga", "valor_diaria", "valor_ajudante", "valor_empilhadeira", "valor_guincho", "custos_adicionais"];
 
   function toNumber(v) {
     if (!v) return 0;
@@ -29,17 +34,27 @@
     return "R$ " + n.toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   }
 
-  function recalc() {
-    var frete =
-      toNumber(form.frete.value) +
-      toNumber(form.pedagio.value) +
-      toNumber(form.seguro.value);
-    var adicionais = form.custos_adicionais ? toNumber(form.custos_adicionais.value) : 0;
-    if (outFrete) outFrete.textContent = fmt(frete);
-    if (outFinal) outFinal.textContent = fmt(frete + adicionais);
+  function sumFields(names) {
+    var total = 0;
+    names.forEach(function (name) {
+      if (form[name]) total += toNumber(form[name].value);
+    });
+    return total;
   }
 
-  ["frete", "pedagio", "seguro", "custos_adicionais"].forEach(function (name) {
+  function recalc() {
+    var fc = sumFields(CUSTO_FIELDS);
+    var margem = form.margem_pct ? toNumber(form.margem_pct.value) : 0;
+    var fe = fc * (1 + margem / 100);
+    var adicionais = sumFields(ADICIONAL_FIELDS);
+    var final_ = fe + adicionais;
+
+    if (outFC) outFC.textContent = fmt(fc);
+    if (outFE) outFE.textContent = fmt(fe);
+    if (outFinal) outFinal.textContent = fmt(final_);
+  }
+
+  CUSTO_FIELDS.concat(ADICIONAL_FIELDS, ["margem_pct"]).forEach(function (name) {
     if (form[name]) form[name].addEventListener("input", recalc);
   });
   recalc();

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Agenda de Carregamentos — Painel AMG{% endblock %}
+
+{% block content %}
+<div class="admin-head">
+  <div>
+    <h1>Agenda de Carregamentos</h1>
+    <p class="hint">Conectado como {{ admin }} &middot; <a href="/admin/logout">sair</a></p>
+  </div>
+</div>
+
+{% if request.query_params.get('ok') == '1' %}
+  <p class="notice notice--ok">Item da agenda atualizado.</p>
+{% endif %}
+
+<div class="agenda-tabs">
+  <a class="tab {% if view == 'lista' %}is-active{% endif %}" href="/admin/agenda?view=lista">Lista</a>
+  <a class="tab {% if view == 'calendario' %}is-active{% endif %}" href="/admin/agenda?view=calendario">Calendário</a>
+</div>
+
+<form method="get" action="/admin/agenda" class="search-bar">
+  <input type="hidden" name="view" value="{{ view }}">
+  <select name="status">
+    <option value="">Todos os status</option>
+    {% for val, label in agenda_status_labels.items() %}
+      <option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn--ghost">Filtrar</button>
+</form>
+
+{% if view == 'calendario' %}
+  <div class="calendar-nav">
+    <a class="btn btn--sm btn--ghost" href="/admin/agenda?view=calendario&mes={{ prev_mes }}{% if status %}&status={{ status }}{% endif %}">&larr;</a>
+    <h2>{{ mes_atual.strftime('%B de %Y') }}</h2>
+    <a class="btn btn--sm btn--ghost" href="/admin/agenda?view=calendario&mes={{ next_mes }}{% if status %}&status={{ status }}{% endif %}">&rarr;</a>
+  </div>
+  <div class="calendar">
+    {% for dow in ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'] %}
+      <div class="calendar__dow">{{ dow }}</div>
+    {% endfor %}
+    {% for semana in semanas %}
+      {% for dia in semana %}
+        <div class="calendar__day {% if dia.month != mes_atual.month %}calendar__day--outro-mes{% endif %} {% if dia == hoje %}calendar__day--hoje{% endif %}">
+          <div class="calendar__day-num">{{ dia.day }}</div>
+          {% for item in por_dia.get(dia, []) %}
+            <a class="calendar__item" href="/admin/agenda/{{ item.id }}">
+              {{ item.hora_prevista or '' }} {{ item.ordem_coleta.quote.origem_cidade }}→{{ item.ordem_coleta.quote.destino_cidade }}
+            </a>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    {% endfor %}
+  </div>
+{% else %}
+  {% if not itens %}
+    <p class="notice">Nenhum carregamento nesta visão.</p>
+  {% else %}
+  <div class="table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr><th>Data</th><th>Hora</th><th>OC</th><th>Cotação</th><th>Empresa</th><th>Comprador</th><th>Rota</th><th>Status</th><th>Confirmado</th><th>Alerta</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for item, alerta in itens %}
+        {% set quote = item.ordem_coleta.quote %}
+        <tr>
+          <td data-label="Data">{{ item.data_carregamento | date_br }}</td>
+          <td data-label="Hora">{{ item.hora_prevista or '-' }}</td>
+          <td data-label="OC">{{ item.ordem_coleta.numero }}</td>
+          <td data-label="Cotação">{{ quote.code }}</td>
+          <td data-label="Empresa">{{ quote.client_company or '-' }}</td>
+          <td data-label="Comprador">{{ quote.client_name }}</td>
+          <td data-label="Rota">{{ quote.origem_cidade }} &rarr; {{ quote.destino_cidade }}</td>
+          <td data-label="Status">{{ agenda_status_labels.get(item.status_agenda, item.status_agenda) }}</td>
+          <td data-label="Confirmado">{{ 'Sim' if item.confirmado else 'Não' }}</td>
+          <td data-label="Alerta">{% if alerta %}<span class="alerta alerta--{{ alerta }}">{{ alerta }}</span>{% endif %}</td>
+          <td data-label=""><a class="btn btn--sm" href="/admin/agenda/{{ item.id }}">Atualizar</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

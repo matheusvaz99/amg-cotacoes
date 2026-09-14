@@ -42,9 +42,16 @@
   }
 
   document.querySelectorAll('input[name$="_cep"]').forEach(maskCEP);
-  document.querySelectorAll('input[name="valor_nf"], input[name="frete"], input[name="pedagio"], input[name="seguro"], input[name="custos_adicionais"]').forEach(maskCurrency);
+  var CURRENCY_FIELDS = [
+    "valor_nf", "custos_adicionais",
+    "custo_motorista", "custo_pedagio", "custo_impostos", "custo_seguro", "custo_outros_internos",
+    "valor_carga", "valor_descarga", "valor_diaria", "valor_ajudante", "valor_empilhadeira", "valor_guincho",
+  ];
+  document
+    .querySelectorAll(CURRENCY_FIELDS.map(function (n) { return 'input[name="' + n + '"]'; }).join(", "))
+    .forEach(maskCurrency);
   document.querySelectorAll('input[name="peso_total_kg"]').forEach(maskWeight);
-  document.querySelectorAll('input[name="qtd_volumes"]').forEach(maskInteger);
+  document.querySelectorAll('input[name="qtd_volumes"], input[name="ajudante_qtd"]').forEach(maskInteger);
 
   // data minima = hoje para campos de coleta
   document.querySelectorAll('input[name="data_coleta"], input[name="data_entrega"]').forEach(function (el) {

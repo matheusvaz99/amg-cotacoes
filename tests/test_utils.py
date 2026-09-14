@@ -1,10 +1,14 @@
+from datetime import date, timedelta
 from decimal import Decimal
 
+from app.constants import AGENDA_CANCELADO, AGENDA_CARREGADO
 from app.database import SessionLocal
 from app.utils import (
+    alerta_agenda,
     calc_seguro,
     format_brl,
     format_peso,
+    gen_oc_numero,
     gen_quote_code,
     normalize_cep,
     parse_brl,
@@ -79,3 +83,24 @@ def test_gen_quote_code_increments():
         assert gen_quote_code(db, year=2025) == "COT-2025-000001"
     finally:
         db.close()
+
+
+def test_gen_oc_numero_increments():
+    db = SessionLocal()
+    try:
+        assert gen_oc_numero(db, year=2025) == "OC-2025-000001"
+    finally:
+        db.close()
+
+
+def test_alerta_agenda():
+    hoje = date.today()
+    assert alerta_agenda(hoje) == "HOJE"
+    assert alerta_agenda(hoje + timedelta(days=1)) == "AMANHÃ"
+    assert alerta_agenda(hoje + timedelta(days=5)) == "PRÓXIMO"
+    assert alerta_agenda(hoje + timedelta(days=10)) is None
+    assert alerta_agenda(hoje - timedelta(days=1)) == "ATRASADO"
+    # concluido/cancelado nao gera alerta de atraso
+    assert alerta_agenda(hoje - timedelta(days=1), status_agenda=AGENDA_CARREGADO) is None
+    assert alerta_agenda(hoje - timedelta(days=1), status_agenda=AGENDA_CANCELADO) is None
+    assert alerta_agenda(None) is None

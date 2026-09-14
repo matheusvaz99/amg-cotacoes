@@ -6,7 +6,7 @@ import logging
 
 from app.config import settings
 from app.constants import STATUS_LABELS
-from app.models import Quote
+from app.models import AgendaCarregamento, OrdemColeta, Proposal, Quote, SolicitacaoFrete
 from app.security import sign_quote_token
 from app.utils import format_brl, format_peso
 
@@ -73,57 +73,107 @@ def _row(label: str, value: str) -> str:
     )
 
 
+def _table(*rows: str) -> str:
+    return f'<table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px">{"".join(rows)}</table>'
+
+
 def send_quote_to_comercial(quote: Quote) -> None:
-    sn = {True: "Sim", False: "Nao"}
+    sn = {True: "Sim", False: "Não"}
     html = f"""
-    <h2>Nova solicitacao de cotacao — {quote.code}</h2>
-    <table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px">
-      {_row("Comprador", quote.client_name)}
-      {_row("Empresa", quote.client_company or "-")}
-      {_row("E-mail", quote.client_email)}
-      {_row("Telefone", quote.client_phone or "-")}
-      {_row("Origem", f"{quote.origem_cidade} — CEP {quote.origem_cep or '-'} — {quote.origem_endereco or '-'} — {quote.origem_bairro or '-'}")}
-      {_row("Destino", f"{quote.destino_cidade} — CEP {quote.destino_cep or '-'} — {quote.destino_endereco or '-'} — {quote.destino_bairro or '-'}")}
-      {_row("Tipo de material", quote.tipo_material)}
-      {_row("Descricao", quote.descricao_material or "-")}
-      {_row("Volumes", str(quote.qtd_volumes))}
-      {_row("Peso total (kg)", format_peso(quote.peso_total_kg))}
-      {_row("Valor da NF", format_brl(quote.valor_nf))}
-      {_row("Servico de carga", sn[quote.servico_carga])}
-      {_row("Servico de descarga", sn[quote.servico_descarga])}
-      {_row("Necessita diaria", sn[bool(quote.servico_diaria)])}
-      {_row("Necessita guincho", sn[bool(quote.servico_guincho)])}
-      {_row("Veiculo desejado", quote.tipo_veiculo)}
-      {_row("Carroceria", quote.carroceria or "-")}
-      {_row("Capacidade aprox.", quote.capacidade_aprox)}
-      {_row("Data prevista de coleta", quote.data_coleta.strftime("%d/%m/%Y"))}
-      {_row("Data desejada de entrega", quote.data_entrega.strftime("%d/%m/%Y") if quote.data_entrega else "-")}
-      {_row("Observacoes", quote.observacoes or "-")}
-    </table>
+    <h2>Nova solicitação de cotação — {quote.code}</h2>
+    <p>Tipo: <strong>{'Cotação Rápida' if quote.is_rapida else 'Cotação Completa'}</strong></p>
+    {_table(
+        _row("Comprador", quote.client_name),
+        _row("Empresa", quote.client_company or "-"),
+        _row("E-mail", quote.client_email),
+        _row("Telefone", quote.client_phone or "-"),
+        _row("Origem", f"{quote.origem_cidade} — CEP {quote.origem_cep or '-'} — {quote.origem_endereco or '-'} — {quote.origem_bairro or '-'}"),
+        _row("Destino", f"{quote.destino_cidade} — CEP {quote.destino_cep or '-'} — {quote.destino_endereco or '-'} — {quote.destino_bairro or '-'}"),
+        _row("Tipo de material", quote.tipo_material),
+        _row("Descrição", quote.descricao_material or "-"),
+        _row("Volumes", str(quote.qtd_volumes) if quote.qtd_volumes else "-"),
+        _row("Dimensões", quote.dimensoes or "-"),
+        _row("Peso total (kg)", format_peso(quote.peso_total_kg)),
+        _row("Valor da NF", format_brl(quote.valor_nf)),
+        _row("Serviço de carga", sn[quote.servico_carga]),
+        _row("Serviço de descarga", sn[quote.servico_descarga]),
+        _row("Diária", sn[bool(quote.servico_diaria)]),
+        _row("Ajudante", sn[bool(quote.servico_ajudante)] + (f" ({quote.ajudante_qtd})" if quote.ajudante_qtd else "")),
+        _row("Empilhadeira", sn[bool(quote.servico_empilhadeira)]),
+        _row("Guincho/Munck", sn[bool(quote.servico_guincho)]),
+        _row("Veículo desejado", quote.tipo_veiculo or "-"),
+        _row("Carroceria", quote.carroceria or "-"),
+        _row("Capacidade aprox.", quote.capacidade_aprox or "-"),
+        _row("Data prevista de coleta", quote.data_coleta.strftime("%d/%m/%Y")),
+        _row("Data desejada de entrega", quote.data_entrega.strftime("%d/%m/%Y") if quote.data_entrega else "-"),
+        _row("Observações", quote.observacoes or "-"),
+    )}
     <p><a href="{_admin_link(quote)}">Abrir no painel comercial</a></p>
     """
-    _send(settings.email_comercial, f"Nova cotacao {quote.code}", html)
+    _send(settings.email_comercial, f"Nova cotação {quote.code}", html)
 
 
 def send_confirmation_to_client(quote: Quote) -> None:
     html = f"""
-    <h2>Recebemos a sua solicitacao de cotacao</h2>
-    <p>Ola, {quote.client_name}!</p>
-    <p>Sua cotacao <strong>{quote.code}</strong> foi recebida e sera analisada pelo nosso time.
-    Voce recebera o retorno em breve por e-mail e por aqui.</p>
+    <h2>Recebemos a sua solicitação de cotação</h2>
+    <p>Olá, {quote.client_name}!</p>
+    <p>Sua cotação <strong>{quote.code}</strong> foi recebida e será analisada pelo nosso time.
+    Você receberá o retorno em breve por e-mail e por aqui.</p>
     <p>Rota: <strong>{quote.origem_cidade} &rarr; {quote.destino_cidade}</strong></p>
-    <p><a href="{_quote_link(quote)}">Acompanhar a cotacao</a></p>
+    <p><a href="{_quote_link(quote)}">Acompanhar a cotação</a></p>
     """
-    _send(quote.client_email, f"Cotacao {quote.code} recebida — AMG Logistica", html)
+    _send(quote.client_email, f"Cotação {quote.code} recebida — AMG Logística", html)
+
+
+def _proposta_rows(proposal: Proposal) -> list[str]:
+    rows = [_row("Valor do frete", format_brl(proposal.fe))]
+    for label, valor in proposal.adicionais_itens():
+        rows.append(_row(label, format_brl(valor)))
+    rows.append(_row("Valor total da cotação", format_brl(proposal.valor_final)))
+    rows.append(_row("Prazo de entrega", proposal.prazo_entrega))
+    rows.append(_row("Validade da proposta", proposal.validade.strftime("%d/%m/%Y")))
+    return rows
+
+
+def send_proposal_ready_to_client(quote: Quote, proposal: Proposal) -> None:
+    """Avisa o cliente que a cotação foi respondida — nunca mostra FC nem margem."""
+    html = f"""
+    <h2>Sua cotação {quote.code} foi respondida</h2>
+    <p>Olá, {quote.client_name}! Preparamos a proposta para a rota
+    <strong>{quote.origem_cidade} &rarr; {quote.destino_cidade}</strong>.</p>
+    {_table(*_proposta_rows(proposal))}
+    <p><a href="{_quote_link(quote)}">Ver a proposta e decidir</a></p>
+    """
+    _send(quote.client_email, f"Proposta pronta — cotação {quote.code}", html)
+
+
+def notify_comercial_client_decision(quote: Quote) -> None:
+    """Cliente aprovou, pediu negociação ou reprovou pelo site — avisa o comercial."""
+    label = STATUS_LABELS.get(quote.status, quote.status)
+    extra = (
+        f"<p><strong>Observação do cliente:</strong><br>{quote.decision_note}</p>"
+        if quote.decision_note
+        else ""
+    )
+    html = f"""
+    <h2>Cliente respondeu a cotação {quote.code}: {label}</h2>
+    <p>Comprador: {quote.client_name} ({quote.client_company or '-'})</p>
+    <p>E-mail: {quote.client_email}</p>
+    <p>Rota: {quote.origem_cidade} &rarr; {quote.destino_cidade}</p>
+    {extra}
+    <p><a href="{_admin_link(quote)}">Abrir no painel comercial</a></p>
+    """
+    _send(settings.email_comercial, f"Cliente {label.lower()} a cotação {quote.code}", html)
 
 
 def send_decision_to_client(quote: Quote) -> None:
-    """Avisa o cliente que a AMG aprovou ou reprovou a cotacao."""
+    """Avisa o cliente quando o ADMIN registra manualmente aprovação/reprovação
+    (ex.: cliente decidiu por telefone)."""
     label = STATUS_LABELS.get(quote.status, quote.status)
     if quote.status == "aprovada":
         corpo = (
-            "<p>Boa noticia! Sua cotacao foi <strong>aprovada</strong> pela AMG. "
-            "Nosso time comercial dara sequencia ao processo e podera entrar em contato.</p>"
+            "<p>Boa notícia! Sua cotação foi <strong>aprovada</strong> pela AMG. "
+            "Agora é só preencher a Solicitação de Frete para darmos sequência.</p>"
         )
     else:
         motivo = (
@@ -131,15 +181,59 @@ def send_decision_to_client(quote: Quote) -> None:
             if quote.decision_note
             else ""
         )
-        corpo = (
-            f"<p>Sua cotacao foi <strong>reprovada</strong>.</p>{motivo}"
-            "<p>Se quiser, solicite uma nova cotacao pelo site.</p>"
-        )
+        corpo = f"<p>Sua cotação foi <strong>reprovada</strong>.</p>{motivo}"
     html = f"""
-    <h2>Cotacao {quote.code}: {label}</h2>
-    <p>Ola, {quote.client_name}!</p>
+    <h2>Cotação {quote.code}: {label}</h2>
+    <p>Olá, {quote.client_name}!</p>
     <p>Rota: <strong>{quote.origem_cidade} &rarr; {quote.destino_cidade}</strong></p>
     {corpo}
-    <p><a href="{_quote_link(quote)}">Ver a cotacao no site</a></p>
+    <p><a href="{_quote_link(quote)}">Ver a cotação no site</a></p>
     """
-    _send(quote.client_email, f"Cotacao {quote.code}: {label}", html)
+    _send(quote.client_email, f"Cotação {quote.code}: {label}", html)
+
+
+def send_solicitacao_to_comercial(quote: Quote, solicitacao: SolicitacaoFrete) -> None:
+    html = f"""
+    <h2>Solicitação de Frete enviada — cotação {quote.code}</h2>
+    {_table(
+        _row("Comprador", quote.client_name),
+        _row("Empresa", quote.client_company or "-"),
+        _row("Pagador", solicitacao.pagador),
+        _row("CNPJ/CPF do pagador", solicitacao.pagador_documento),
+        _row("Fornecedor/remetente", solicitacao.fornecedor_nome),
+        _row("Destinatário", solicitacao.destinatario_nome),
+        _row("Valor da NF", format_brl(solicitacao.valor_nf)),
+        _row("Observações operacionais", solicitacao.observacoes_operacionais or "-"),
+    )}
+    <p><a href="{_admin_link(quote)}">Validar e gerar Ordem de Coleta</a></p>
+    """
+    _send(settings.email_comercial, f"Solicitação de frete — cotação {quote.code}", html)
+
+
+def send_solicitacao_devolvida_to_client(quote: Quote) -> None:
+    html = f"""
+    <h2>Solicitação de frete devolvida — cotação {quote.code}</h2>
+    <p>Olá, {quote.client_name}! Sua solicitação de frete precisa de um ajuste antes de
+    seguirmos com a Ordem de Coleta.</p>
+    <p><strong>Motivo:</strong> {quote.decision_note or "-"}</p>
+    <p><a href="{_quote_link(quote)}">Reenviar a solicitação</a></p>
+    """
+    _send(quote.client_email, f"Solicitação de frete — ajuste necessário ({quote.code})", html)
+
+
+def send_oc_emitida_interno(quote: Quote, oc: OrdemColeta) -> None:
+    html = f"""
+    <h2>Ordem de Coleta {oc.numero} emitida — cotação {quote.code}</h2>
+    <p>{quote.client_company or quote.client_name} — {quote.origem_cidade} &rarr; {quote.destino_cidade}</p>
+    <p><a href="{_admin_link(quote)}">Ver cotação</a></p>
+    """
+    _send(settings.email_comercial, f"OC {oc.numero} emitida — cotação {quote.code}", html)
+
+
+def send_enviado_logistica_interno(quote: Quote, oc: OrdemColeta, agenda: AgendaCarregamento) -> None:
+    html = f"""
+    <h2>OC {oc.numero} enviada à Logística — cotação {quote.code}</h2>
+    <p>Carregamento previsto: {agenda.data_carregamento.strftime('%d/%m/%Y')}</p>
+    <p>Já consta na Agenda de Carregamentos.</p>
+    """
+    _send(settings.email_comercial, f"OC {oc.numero} enviada à Logística", html)

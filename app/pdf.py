@@ -126,13 +126,13 @@ class QuotePDF(FPDF):
 
 
 def _items(pdf: QuotePDF, proposal) -> None:
-    """Valores para o cliente: frete consolidado, custos adicionais e valor final."""
+    """Valores para o cliente: frete (FE), adicionais cobrados e valor final.
+    Nunca mostra FC, componentes de custo interno ou margem."""
     pdf.set_draw_color(*LINE)
     pdf.set_line_width(0.3)
 
-    linhas = [("Valor total do frete", proposal.total)]
-    if proposal.custos_adicionais and proposal.custos_adicionais > 0:
-        linhas.append(("Outros custos adicionais", proposal.custos_adicionais))
+    linhas = [("Valor do frete", proposal.fe)]
+    linhas += proposal.adicionais_itens()
 
     for label, valor in linhas:
         pdf.set_font("Helvetica", "", 9.5)
@@ -141,17 +141,11 @@ def _items(pdf: QuotePDF, proposal) -> None:
         pdf.cell(0, 7, _s(format_brl(valor)), border="B", align="R",
                  new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
-    if proposal.custos_adicionais and proposal.custos_adicionais > 0 and proposal.custos_adicionais_desc:
-        pdf.set_font("Helvetica", "I", 8)
-        pdf.set_text_color(*MUTED)
-        pdf.multi_cell(0, 4.5, _s(f"Referente a: {proposal.custos_adicionais_desc}"),
-                       new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
     pdf.ln(1)
     pdf.set_fill_color(*LIGHT)
     pdf.set_font("Helvetica", "B", 11)
     pdf.set_text_color(*NAVY)
-    pdf.cell(120, 9, "  VALOR FINAL DA PROPOSTA", fill=True)
+    pdf.cell(120, 9, "  VALOR TOTAL DA COTAÇÃO", fill=True)
     pdf.cell(0, 9, _s(format_brl(proposal.valor_final)) + "  ", align="R", fill=True,
              new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
@@ -189,18 +183,22 @@ def build_quote_pdf(quote: Quote) -> bytes:
     pdf.row("Tipo de material", quote.tipo_material)
     if quote.descricao_material:
         pdf.row("Descricao", quote.descricao_material)
-    pdf.row("Quantidade de volumes", str(quote.qtd_volumes))
+    pdf.row("Quantidade de volumes", str(quote.qtd_volumes) if quote.qtd_volumes else "-")
+    if quote.dimensoes:
+        pdf.row("Dimensões", quote.dimensoes)
     pdf.row("Peso total aproximado", f"{format_peso(quote.peso_total_kg)} kg")
     pdf.row("Valor aproximado da NF", format_brl(quote.valor_nf))
     pdf.row("Servico de carga", "Sim" if quote.servico_carga else "Nao")
     pdf.row("Servico de descarga", "Sim" if quote.servico_descarga else "Nao")
     pdf.row("Necessita diaria", "Sim" if quote.servico_diaria else "Nao")
+    pdf.row("Necessita ajudante", "Sim" if quote.servico_ajudante else "Nao")
+    pdf.row("Necessita empilhadeira", "Sim" if quote.servico_empilhadeira else "Nao")
     pdf.row("Necessita guincho", "Sim" if quote.servico_guincho else "Nao")
 
     pdf.section("Transporte")
-    pdf.row("Tipo de veiculo desejado", quote.tipo_veiculo)
+    pdf.row("Tipo de veiculo desejado", quote.tipo_veiculo or "-")
     pdf.row("Carroceria", quote.carroceria or "-")
-    pdf.row("Capacidade aproximada", quote.capacidade_aprox)
+    pdf.row("Capacidade aproximada", quote.capacidade_aprox or "-")
     pdf.row("Data prevista para coleta", quote.data_coleta.strftime("%d/%m/%Y"))
     pdf.row(
         "Data desejada de entrega",

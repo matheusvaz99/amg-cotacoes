@@ -1,16 +1,42 @@
-"""Operacoes de banco para cotacoes e propostas."""
+"""Operacoes de banco: cotacoes, formacao de preco, solicitacao de frete,
+ordem de coleta e agenda de carregamentos."""
 
 from __future__ import annotations
 
-from decimal import Decimal
+from datetime import date
 from typing import Any
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.constants import ADMIN_TABS, STATUS_RESPONDIDA
-from app.models import Opcao, Proposal, Quote
-from app.utils import gen_quote_code
+from app.constants import (
+    ADMIN_TABS,
+    AGENDA_AGUARDANDO,
+    SOLICITACAO_ENVIADA,
+    SOLICITACAO_PENDENTE,
+    SOLICITACAO_VALIDADA,
+    STATUS_APROVADA,
+    STATUS_ENVIADA_LOGISTICA,
+    STATUS_FRETE_SOLICITADO,
+    STATUS_OC_EMITIDA,
+    STATUS_RESPONDIDA,
+)
+from app.models import (
+    AgendaCarregamento,
+    Opcao,
+    OrdemColeta,
+    Proposal,
+    ProposalVersionLog,
+    Quote,
+    SolicitacaoFrete,
+)
+from app.utils import gen_oc_numero, gen_quote_code, utcnow
+
+_QUOTE_RELATIONS = (
+    selectinload(Quote.proposal),
+    selectinload(Quote.solicitacao),
+    selectinload(Quote.ordem_coleta).selectinload(OrdemColeta.agenda),
+)
 
 
 def create_quote(db: Session, values: dict[str, Any]) -> Quote:
@@ -22,26 +48,24 @@ def create_quote(db: Session, values: dict[str, Any]) -> Quote:
 
 
 def get_quote_by_code(db: Session, code: str) -> Quote | None:
-    stmt = (
-        select(Quote)
-        .options(selectinload(Quote.proposal))
-        .where(Quote.code == code.strip().upper())
-    )
+    stmt = select(Quote).options(*_QUOTE_RELATIONS).where(Quote.code == code.strip().upper())
     return db.scalars(stmt).first()
 
 
 def list_quotes_by_email(db: Session, email: str) -> list[Quote]:
     stmt = (
         select(Quote)
-        .options(selectinload(Quote.proposal))
+        .options(*_QUOTE_RELATIONS)
         .where(Quote.client_email == email.strip().lower())
         .order_by(Quote.created_at.desc())
     )
     return list(db.scalars(stmt))
 
 
-def list_quotes(db: Session, *, tab: str = "todas", search: str = "") -> list[Quote]:
-    stmt = select(Quote).options(selectinload(Quote.proposal))
+def list_quotes(
+    db: Session, *, tab: str = "todas", search: str = "", empresa: str = "", tipo: str = ""
+) -> list[Quote]:
+    stmt = select(Quote).options(*_QUOTE_RELATIONS)
 
     statuses = ADMIN_TABS.get(tab)
     if statuses:
@@ -61,35 +85,74 @@ def list_quotes(db: Session, *, tab: str = "todas", search: str = "") -> list[Qu
             )
         )
 
+    if empresa.strip():
+        stmt = stmt.where(Quote.client_company.ilike(f"%{empresa.strip()}%"))
+    if tipo.strip():
+        stmt = stmt.where(Quote.tipo_cotacao == tipo.strip())
+
     stmt = stmt.order_by(Quote.created_at.desc())
     return list(db.scalars(stmt))
+
+
+# ----- Formacao de preco (Proposal) --------------------------------------
+
+_PROPOSAL_FIELDS = (
+    "custo_motorista", "custo_pedagio", "custo_impostos", "custo_seguro",
+    "custo_outros_internos", "fc", "margem_pct", "fe",
+    "valor_carga", "valor_descarga", "valor_diaria", "valor_ajudante",
+    "valor_empilhadeira", "valor_guincho", "custos_adicionais",
+    "custos_adicionais_desc", "valor_final",
+    "prazo_entrega", "validade", "observacoes",
+)
 
 
 def add_proposal(
     db: Session, quote: Quote, values: dict[str, Any], *, created_by: str | None = None
 ) -> Proposal:
-    if quote.proposal is not None:
-        db.delete(quote.proposal)
+    """Grava a formacao de preco atual da cotacao. Se ja existia uma proposta
+    (reprecificacao apos negociacao), a versao anterior fica registrada em
+    ProposalVersionLog antes de ser sobrescrita — nunca e apagada sem rastro."""
+    versao = 1
+    existing = quote.proposal
+    if existing is not None:
+        versao = existing.versao + 1
+        db.add(
+            ProposalVersionLog(
+                quote_id=quote.id,
+                versao=existing.versao,
+                fc=existing.fc,
+                margem_pct=existing.margem_pct,
+                fe=existing.fe,
+                valor_final=existing.valor_final,
+                motivo_negociacao=quote.decision_note,
+                criado_por=existing.created_by,
+                criado_em=existing.created_at,
+            )
+        )
+        db.delete(existing)
         db.flush()
 
     proposal = Proposal(
         quote_id=quote.id,
         created_by=created_by,
-        frete=values["frete"],
-        pedagio=values["pedagio"],
-        seguro=values["seguro"],
-        total=values["total"],
-        custos_adicionais=values.get("custos_adicionais") or Decimal("0.00"),
-        custos_adicionais_desc=values.get("custos_adicionais_desc"),
-        prazo_entrega=values["prazo_entrega"],
-        validade=values["validade"],
-        observacoes=values["observacoes"],
+        versao=versao,
+        **{k: values[k] for k in _PROPOSAL_FIELDS},
     )
     db.add(proposal)
     quote.status = STATUS_RESPONDIDA
+    quote.decision_note = None  # negociacao (se havia) foi respondida
     db.commit()
     db.refresh(quote)
     return proposal
+
+
+def list_proposal_history(db: Session, quote_id: int) -> list[ProposalVersionLog]:
+    stmt = (
+        select(ProposalVersionLog)
+        .where(ProposalVersionLog.quote_id == quote_id)
+        .order_by(ProposalVersionLog.versao)
+    )
+    return list(db.scalars(stmt))
 
 
 def set_status(
@@ -101,6 +164,106 @@ def set_status(
     db.commit()
     db.refresh(quote)
     return quote
+
+
+# ----- Solicitacao de Frete -> Ordem de Coleta -> Logistica ---------------
+
+def create_or_update_solicitacao(
+    db: Session, quote: Quote, values: dict[str, Any]
+) -> SolicitacaoFrete:
+    solicitacao = quote.solicitacao
+    if solicitacao is None:
+        solicitacao = SolicitacaoFrete(quote_id=quote.id, **values, status=SOLICITACAO_ENVIADA)
+        db.add(solicitacao)
+    else:
+        for key, val in values.items():
+            setattr(solicitacao, key, val)
+        solicitacao.status = SOLICITACAO_ENVIADA
+    quote.status = STATUS_FRETE_SOLICITADO
+    db.commit()
+    db.refresh(quote)
+    return quote.solicitacao
+
+
+def devolver_solicitacao(db: Session, quote: Quote, motivo: str) -> Quote:
+    if quote.solicitacao is not None:
+        quote.solicitacao.status = SOLICITACAO_PENDENTE
+    quote.status = STATUS_APROVADA
+    quote.decision_note = motivo
+    db.commit()
+    db.refresh(quote)
+    return quote
+
+
+def gerar_ordem_coleta(db: Session, quote: Quote, *, gerado_por: str | None = None) -> OrdemColeta:
+    oc = OrdemColeta(
+        numero=gen_oc_numero(db),
+        quote_id=quote.id,
+        solicitacao_id=quote.solicitacao.id,
+        gerado_por=gerado_por,
+    )
+    db.add(oc)
+    quote.solicitacao.status = SOLICITACAO_VALIDADA
+    quote.status = STATUS_OC_EMITIDA
+    db.commit()
+    db.refresh(quote)
+    return oc
+
+
+def enviar_logistica(db: Session, quote: Quote, *, enviado_por: str | None = None) -> AgendaCarregamento:
+    oc = quote.ordem_coleta
+    oc.enviado_logistica_em = utcnow()
+    oc.enviado_por = enviado_por
+
+    agenda = AgendaCarregamento(
+        ordem_coleta_id=oc.id,
+        data_carregamento=quote.data_coleta,
+        status_agenda=AGENDA_AGUARDANDO,
+    )
+    db.add(agenda)
+    quote.status = STATUS_ENVIADA_LOGISTICA
+    db.commit()
+    db.refresh(quote)
+    return agenda
+
+
+# ----- Agenda de Carregamentos --------------------------------------------
+
+def list_agenda(
+    db: Session, *, status: str = "", inicio: date | None = None, fim: date | None = None
+) -> list[AgendaCarregamento]:
+    stmt = select(AgendaCarregamento).options(
+        selectinload(AgendaCarregamento.ordem_coleta).selectinload(OrdemColeta.quote)
+    )
+    if status:
+        stmt = stmt.where(AgendaCarregamento.status_agenda == status)
+    if inicio:
+        stmt = stmt.where(AgendaCarregamento.data_carregamento >= inicio)
+    if fim:
+        stmt = stmt.where(AgendaCarregamento.data_carregamento <= fim)
+    stmt = stmt.order_by(AgendaCarregamento.data_carregamento, AgendaCarregamento.hora_prevista)
+    return list(db.scalars(stmt))
+
+
+def get_agenda_item(db: Session, agenda_id: int) -> AgendaCarregamento | None:
+    stmt = (
+        select(AgendaCarregamento)
+        .options(selectinload(AgendaCarregamento.ordem_coleta).selectinload(OrdemColeta.quote))
+        .where(AgendaCarregamento.id == agenda_id)
+    )
+    return db.scalars(stmt).first()
+
+
+def update_agenda(db: Session, item: AgendaCarregamento, values: dict[str, Any]) -> AgendaCarregamento:
+    item.data_carregamento = values["data_carregamento"]
+    item.hora_prevista = values["hora_prevista"]
+    item.responsavel_logistica = values["responsavel_logistica"]
+    item.status_agenda = values["status_agenda"]
+    item.confirmado = values["confirmado"]
+    item.observacoes = values["observacoes"]
+    db.commit()
+    db.refresh(item)
+    return item
 
 
 # ----- Opcoes de cadastro (carrocerias, tipos de veiculo, ...) -----------

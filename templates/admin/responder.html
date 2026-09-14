@@ -1,38 +1,52 @@
 {% extends "base.html" %}
 {% from "partials/status_badge.html" import status_badge %}
 {% from "partials/fields.html" import field, textarea %}
+{% set _voltar_tab = {
+  'em_analise': 'em_analise', 'respondida': 'respondidas', 'negociacao': 'negociacao',
+  'aprovada': 'finalizadas', 'reprovada': 'finalizadas',
+  'frete_solicitado': 'solicitacao', 'em_validacao': 'solicitacao',
+  'oc_emitida': 'logistica', 'enviada_logistica': 'logistica'
+} %}
 {% block title %}{{ quote.code }} — Painel AMG{% endblock %}
 
 {% block content %}
-<p class="hint"><a href="/admin?tab={{ 'finalizadas' if quote.status in ['aprovada','reprovada'] else ('respondidas' if quote.proposal else 'em_analise') }}">&larr; Voltar para a fila</a></p>
+<p class="hint"><a href="/admin?tab={{ _voltar_tab.get(quote.status, 'todas') }}">&larr; Voltar para a fila</a></p>
 
 <div class="detail__head">
   <div>
-    <p class="eyebrow">Cotacao</p>
+    <p class="eyebrow">Cotação {{ 'Rápida' if quote.is_rapida else 'Completa' }}</p>
     <h1>{{ quote.code }}</h1>
   </div>
   {{ status_badge(quote.status) }}
 </div>
 
 {% if request.query_params.get('ok') == '1' %}
-  <p class="notice notice--ok">Cotacao salva.</p>
+  <p class="notice notice--ok">Precificação salva. O cliente foi avisado por e-mail.</p>
 {% elif request.query_params.get('ok') == 'aprovada' %}
-  <p class="notice notice--ok">Cotacao aprovada. O cliente foi avisado por e-mail.</p>
+  <p class="notice notice--ok">Cotação aprovada. O cliente foi avisado por e-mail.</p>
 {% elif request.query_params.get('ok') == 'reprovada' %}
-  <p class="notice notice--ok">Cotacao reprovada. O cliente foi avisado por e-mail.</p>
+  <p class="notice notice--ok">Cotação reprovada. O cliente foi avisado por e-mail.</p>
+{% elif request.query_params.get('ok') == 'devolvida' %}
+  <p class="notice notice--ok">Solicitação devolvida ao cliente para correção.</p>
+{% endif %}
+{% if quote.status == 'negociacao' and quote.decision_note %}
+  <p class="notice">Cliente pediu negociação: {{ quote.decision_note }}</p>
 {% endif %}
 {% if quote.status == 'reprovada' and quote.decision_note %}
-  <p class="notice">Motivo da reprovacao: {{ quote.decision_note }}</p>
+  <p class="notice">Motivo da reprovação: {{ quote.decision_note }}</p>
 {% endif %}
 
 <div class="doc-actions">
   <a class="btn btn--sm btn--ghost" href="/admin/cotacao/{{ quote.code }}/pdf">Baixar PDF</a>
   <a class="btn btn--sm btn--ghost" href="/admin/cotacao/{{ quote.code }}/pdf?inline=1" target="_blank" rel="noopener">Visualizar PDF</a>
+  {% if quote.solicitacao %}
+  <a class="btn btn--sm" href="/admin/cotacao/{{ quote.code }}/solicitacao">Ver Solicitação de Frete</a>
+  {% endif %}
 </div>
 
 <div class="two-col">
   <div class="card">
-    <h2>Dados da solicitacao</h2>
+    <h2>Dados da solicitação</h2>
     <dl class="kv">
       <div><dt>Comprador</dt><dd>{{ quote.client_name }}</dd></div>
       <div><dt>Empresa</dt><dd>{{ quote.client_company or '-' }}</dd></div>
@@ -49,63 +63,117 @@
     <h3>Carga</h3>
     <dl class="kv">
       <div><dt>Tipo de material</dt><dd>{{ quote.tipo_material }}</dd></div>
-      <div><dt>Descricao</dt><dd>{{ quote.descricao_material or '-' }}</dd></div>
-      <div><dt>Volumes</dt><dd>{{ quote.qtd_volumes }}</dd></div>
+      <div><dt>Descrição</dt><dd>{{ quote.descricao_material or '-' }}</dd></div>
+      <div><dt>Volumes</dt><dd>{{ quote.qtd_volumes or '-' }}</dd></div>
+      <div><dt>Dimensões</dt><dd>{{ quote.dimensoes or '-' }}</dd></div>
       <div><dt>Peso total (kg)</dt><dd>{{ quote.peso_total_kg | peso }}</dd></div>
       <div><dt>Valor da NF</dt><dd>{{ quote.valor_nf | brl }}</dd></div>
-      <div><dt>Servico de carga</dt><dd>{{ 'Sim' if quote.servico_carga else 'Nao' }}</dd></div>
-      <div><dt>Servico de descarga</dt><dd>{{ 'Sim' if quote.servico_descarga else 'Nao' }}</dd></div>
-      <div><dt>Necessita diaria</dt><dd>{{ 'Sim' if quote.servico_diaria else 'Nao' }}</dd></div>
-      <div><dt>Necessita guincho</dt><dd>{{ 'Sim' if quote.servico_guincho else 'Nao' }}</dd></div>
+      <div><dt>Serviço de carga</dt><dd>{{ 'Sim' if quote.servico_carga else 'Não' }}</dd></div>
+      <div><dt>Serviço de descarga</dt><dd>{{ 'Sim' if quote.servico_descarga else 'Não' }}</dd></div>
+      <div><dt>Diária</dt><dd>{{ 'Sim' if quote.servico_diaria else 'Não' }}</dd></div>
+      <div><dt>Ajudante</dt><dd>{{ 'Sim' if quote.servico_ajudante else 'Não' }}{% if quote.ajudante_qtd %} ({{ quote.ajudante_qtd }}){% endif %}</dd></div>
+      <div><dt>Empilhadeira</dt><dd>{{ 'Sim' if quote.servico_empilhadeira else 'Não' }}</dd></div>
+      <div><dt>Guincho/Munck</dt><dd>{{ 'Sim' if quote.servico_guincho else 'Não' }}</dd></div>
     </dl>
     <h3>Transporte</h3>
     <dl class="kv">
-      <div><dt>Veiculo desejado</dt><dd>{{ quote.tipo_veiculo }}</dd></div>
+      <div><dt>Veículo desejado</dt><dd>{{ quote.tipo_veiculo or '-' }}</dd></div>
       <div><dt>Carroceria</dt><dd>{{ quote.carroceria or '-' }}</dd></div>
-      <div><dt>Capacidade aprox.</dt><dd>{{ quote.capacidade_aprox }}</dd></div>
+      <div><dt>Capacidade aprox.</dt><dd>{{ quote.capacidade_aprox or '-' }}</dd></div>
       <div><dt>Coleta prevista</dt><dd>{{ quote.data_coleta | date_br }}</dd></div>
       <div><dt>Entrega prevista</dt><dd>{{ quote.data_entrega | date_br if quote.data_entrega else '-' }}</dd></div>
-      <div><dt>Observacoes</dt><dd>{{ quote.observacoes or '-' }}</dd></div>
+      <div><dt>Observações</dt><dd>{{ quote.observacoes or '-' }}</dd></div>
     </dl>
   </div>
 
   <div class="card">
-    <h2>Proposta</h2>
+    <h2>Formação de preço</h2>
     <form method="post" action="/admin/cotacao/{{ quote.code }}" id="proposta-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      {{ field('frete', 'Frete (R$)', values, errors, required=True, inputmode='decimal', placeholder='0,00') }}
-      {{ field('pedagio', 'Pedagio (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
-      {{ field('seguro', 'Seguro / impostos (R$)', values, errors, inputmode='decimal', hint='Sugestao: 0,2% do valor da NF (' ~ (quote.valor_nf | brl) ~ ').') }}
-      <p class="total-preview">Valor total do frete: <strong data-total-frete>-</strong></p>
 
-      {{ field('custos_adicionais', 'Outros custos adicionais (R$)', values, errors, inputmode='decimal', placeholder='0,00', hint='Guincho, armazenagem, etc. Deixe 0,00 se nao houver.') }}
-      {{ textarea('custos_adicionais_desc', 'Descricao dos custos adicionais', values, errors, hint='Obrigatorio quando houver valor. Ex.: guincho + 2 diarias de espera.', rows=2) }}
-      <p class="total-preview total-preview--final">Valor final da proposta: <strong data-total-final>-</strong></p>
+      <div class="pricing-block">
+        <h3>FC — Frete Custo <span class="hint">(uso interno, o cliente nunca vê)</span></h3>
+        {{ field('custo_motorista', 'Frete motorista (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
+        {{ field('custo_pedagio', 'Pedágio (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
+        {{ field('custo_impostos', 'Impostos (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
+        {{ field('custo_seguro', 'Seguro (R$)', values, errors, inputmode='decimal', hint='Sugestão: 0,2% do valor da NF (' ~ (quote.valor_nf | brl) ~ ').') }}
+        {{ field('custo_outros_internos', 'Outros custos internos (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
+        <div class="pricing-total">FC (custo total) <strong data-fc>-</strong></div>
+      </div>
 
-      {{ field('prazo_entrega', 'Prazo de entrega', values, errors, required=True, placeholder='Ex.: 1 dia util') }}
+      <div class="pricing-block">
+        <h3>Margem e FE — preço de venda</h3>
+        {{ field('margem_pct', 'Margem (%)', values, errors, inputmode='decimal', placeholder='Ex.: 20') }}
+        <div class="pricing-total">FE — valor do frete <strong data-fe>-</strong></div>
+      </div>
+
+      <div class="pricing-block">
+        <h3>Adicionais <span class="hint">(cobrados só os que tiverem valor)</span></h3>
+        {{ field('valor_carga', 'Carga (R$)' , values, errors, inputmode='decimal', placeholder='0,00') }}
+        {% if quote.servico_carga %}<span class="adicional-hint">solicitado pelo cliente</span>{% endif %}
+        {{ field('valor_descarga', 'Descarga (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
+        {% if quote.servico_descarga %}<span class="adicional-hint">solicitado pelo cliente</span>{% endif %}
+        {{ field('valor_diaria', 'Diária (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
+        {% if quote.servico_diaria %}<span class="adicional-hint">solicitado pelo cliente</span>{% endif %}
+        {{ field('valor_ajudante', 'Ajudante (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
+        {% if quote.servico_ajudante %}<span class="adicional-hint">solicitado pelo cliente{% if quote.ajudante_qtd %} — {{ quote.ajudante_qtd }}{% endif %}</span>{% endif %}
+        {{ field('valor_empilhadeira', 'Empilhadeira (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
+        {% if quote.servico_empilhadeira %}<span class="adicional-hint">solicitado pelo cliente</span>{% endif %}
+        {{ field('valor_guincho', 'Guincho / Munck (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
+        {% if quote.servico_guincho %}<span class="adicional-hint">solicitado pelo cliente</span>{% endif %}
+
+        {{ field('custos_adicionais', 'Outros (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
+        {{ textarea('custos_adicionais_desc', 'Descrição de "Outros"', values, errors, hint='Obrigatório quando houver valor em Outros.', rows=2) }}
+      </div>
+
+      <div class="pricing-total pricing-total--final">Valor total da cotação <strong data-total-final>-</strong></div>
+
+      {{ field('prazo_entrega', 'Prazo de entrega', values, errors, required=True, placeholder='Ex.: 1 dia útil') }}
       {{ field('validade', 'Validade da proposta', values, errors, type='date', required=True) }}
-      {{ textarea('observacoes', 'Observacoes', values, errors, hint='Padrao: valores sujeitos a confirmacao na contratacao.') }}
-      <button type="submit" class="btn btn--primary btn--block">Salvar cotacao</button>
+      {{ textarea('observacoes', 'Observações', values, errors, hint='Padrão: valores sujeitos a confirmação na contratação.') }}
+      <button type="submit" class="btn btn--primary btn--block">Salvar precificação e notificar cliente</button>
     </form>
 
-    {% if quote.proposal %}
+    {% if quote.status in ('respondida', 'negociacao', 'aprovada', 'reprovada') %}
     <div class="decision-box">
-      <h3>Decisao</h3>
+      <h3>Decisão manual</h3>
+      <p class="hint">Use quando o cliente decidiu por outro canal (telefone, WhatsApp).</p>
       <div class="row-actions">
         <form method="post" action="/admin/cotacao/{{ quote.code }}/aprovar">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <button type="submit" class="btn btn--sm"
-            {% if quote.status == 'aprovada' %}disabled{% endif %}>Aprovar cotacao</button>
+            {% if quote.status == 'aprovada' %}disabled{% endif %}>Aprovar cotação</button>
         </form>
         <form method="post" action="/admin/cotacao/{{ quote.code }}/reprovar" class="reprova-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <input type="text" name="motivo" class="edit-input" placeholder="Motivo (opcional)"
             value="{{ quote.decision_note or '' }}">
           <button type="submit" class="btn btn--sm btn--danger"
-            {% if quote.status == 'reprovada' %}disabled{% endif %}>Reprovar cotacao</button>
+            {% if quote.status == 'reprovada' %}disabled{% endif %}>Reprovar cotação</button>
         </form>
       </div>
-      <p class="hint">Status atual: <strong>{{ STATUS_LABELS.get(quote.status, quote.status) }}</strong></p>
+    </div>
+    {% endif %}
+
+    {% if historico %}
+    <div class="decision-box">
+      <h3>Histórico de versões</h3>
+      <div class="table-wrap">
+        <table class="admin-table history-table">
+          <thead><tr><th>Versão</th><th>FE</th><th>Valor final</th><th>Motivo negociado</th><th>Data</th></tr></thead>
+          <tbody>
+            {% for v in historico %}
+            <tr>
+              <td data-label="Versão">{{ v.versao }}</td>
+              <td data-label="FE">{{ v.fe | brl }}</td>
+              <td data-label="Valor final">{{ v.valor_final | brl }}</td>
+              <td data-label="Motivo">{{ v.motivo_negociacao or '-' }}</td>
+              <td data-label="Data">{{ v.criado_em | date_br }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
     {% endif %}
   </div>

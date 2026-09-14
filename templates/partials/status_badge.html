@@ -1,4 +1,8 @@
 {% macro status_badge(status) -%}
-{% set _labels = {'aberta':'Em analise','respondida':'Respondida','aprovada':'Aprovada','reprovada':'Reprovada'} %}
+{% set _labels = {
+  'em_analise':'Em análise','respondida':'Respondida','negociacao':'Negociação',
+  'aprovada':'Aprovada','reprovada':'Reprovada','frete_solicitado':'Frete solicitado',
+  'em_validacao':'Em validação','oc_emitida':'OC emitida','enviada_logistica':'Enviada à Logística'
+} %}
 <span class="badge badge--{{ status }}">{{ _labels.get(status, status) }}</span>
 {%- endmacro %}

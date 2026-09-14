@@ -15,19 +15,27 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _gen_sequential_code(db: Session, model, code_attr: str, prefix_base: str, *, year: int | None = None) -> str:
+    """Gera <prefixo>-<ano>-<sequencial de 6 digitos> contando os registros do ano."""
+    year = year or utcnow().year
+    prefix = f"{prefix_base}-{year}-"
+    column = getattr(model, code_attr)
+    count = db.query(func.count(getattr(model, "id"))).filter(column.like(f"{prefix}%")).scalar() or 0
+    return f"{prefix}{count + 1:06d}"
+
+
 def gen_quote_code(db: Session, *, year: int | None = None) -> str:
     """Gera COT-<ano>-<sequencial de 6 digitos> com base na contagem do ano."""
     from app.models import Quote
 
-    year = year or utcnow().year
-    prefix = f"COT-{year}-"
-    count = (
-        db.query(func.count(Quote.id))
-        .filter(Quote.code.like(f"{prefix}%"))
-        .scalar()
-        or 0
-    )
-    return f"{prefix}{count + 1:06d}"
+    return _gen_sequential_code(db, Quote, "code", "COT", year=year)
+
+
+def gen_oc_numero(db: Session, *, year: int | None = None) -> str:
+    """Gera OC-<ano>-<sequencial de 6 digitos> para a Ordem de Coleta."""
+    from app.models import OrdemColeta
+
+    return _gen_sequential_code(db, OrdemColeta, "numero", "OC", year=year)
 
 
 def parse_brl(value: str | None) -> Decimal | None:
@@ -122,6 +130,28 @@ def format_peso(value: Decimal | float | int | None) -> str:
     if centavos != "00":
         texto += "," + centavos.rstrip("0")
     return texto
+
+
+def alerta_agenda(data_carregamento, *, status_agenda: str | None = None) -> str | None:
+    """HOJE / AMANHÃ / PRÓXIMO (ate 7 dias) / ATRASADO, ou None se for mais adiante.
+    Carregamentos ja concluidos/cancelados nao geram alerta de atraso."""
+    from app.constants import AGENDA_CANCELADO, AGENDA_CARREGADO
+    from app.constants import ALERTA_AMANHA, ALERTA_ATRASADO, ALERTA_HOJE, ALERTA_PROXIMO
+
+    if data_carregamento is None:
+        return None
+    dias = (data_carregamento - utcnow().date()).days
+    if status_agenda in (AGENDA_CARREGADO, AGENDA_CANCELADO):
+        return None
+    if dias < 0:
+        return ALERTA_ATRASADO
+    if dias == 0:
+        return ALERTA_HOJE
+    if dias == 1:
+        return ALERTA_AMANHA
+    if dias <= 7:
+        return ALERTA_PROXIMO
+    return None
 
 
 def calc_seguro(valor_nf: Decimal | None) -> Decimal:

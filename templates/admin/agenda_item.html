@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "partials/fields.html" import field, textarea %}
+{% block title %}Agenda — {{ item.ordem_coleta.numero }}{% endblock %}
+
+{% block content %}
+<p class="hint"><a href="/admin/agenda">&larr; Voltar para a agenda</a></p>
+
+<div class="detail__head">
+  <div>
+    <p class="eyebrow">Agenda de Carregamentos</p>
+    <h1>{{ item.ordem_coleta.numero }}</h1>
+  </div>
+  {% if alerta %}<span class="alerta alerta--{{ alerta }}">{{ alerta }}</span>{% endif %}
+</div>
+
+{% set quote = item.ordem_coleta.quote %}
+<div class="card card--muted">
+  <dl class="kv">
+    <div><dt>Cotação</dt><dd>{{ quote.code }}</dd></div>
+    <div><dt>Empresa</dt><dd>{{ quote.client_company or '-' }}</dd></div>
+    <div><dt>Comprador</dt><dd>{{ quote.client_name }}</dd></div>
+    <div><dt>Rota</dt><dd>{{ quote.origem_cidade }} &rarr; {{ quote.destino_cidade }}</dd></div>
+    <div><dt>Material</dt><dd>{{ quote.tipo_material }}</dd></div>
+    <div><dt>Veículo</dt><dd>{{ quote.tipo_veiculo or '-' }}</dd></div>
+  </dl>
+</div>
+
+<div class="card">
+  <h2>Atualizar carregamento</h2>
+  <form method="post" action="/admin/agenda/{{ item.id }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="grid-2">
+      {{ field('data_carregamento', 'Data do carregamento', values, errors, type='date', required=True) }}
+      {{ field('hora_prevista', 'Hora prevista', values, errors, placeholder='Ex.: 14:00', hint='Opcional') }}
+    </div>
+    {{ field('responsavel_logistica', 'Responsável da Logística', values, errors, hint='Opcional') }}
+
+    <div class="field">
+      <label for="f_status">Status</label>
+      <select id="f_status" name="status_agenda">
+        {% for val, label in agenda_status_labels.items() %}
+          <option value="{{ val }}" {% if values.get('status_agenda') == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field field--yesno">
+      <span class="field__legend">Confirmado pela Logística?</span>
+      <div class="segmented" role="radiogroup" aria-label="Confirmado">
+        <label class="segmented__opt">
+          <input type="radio" name="confirmado" value="nao" {% if values.get('confirmado') != 'sim' %}checked{% endif %}>
+          <span>Não</span>
+        </label>
+        <label class="segmented__opt">
+          <input type="radio" name="confirmado" value="sim" {% if values.get('confirmado') == 'sim' %}checked{% endif %}>
+          <span>Sim</span>
+        </label>
+      </div>
+    </div>
+
+    {{ textarea('observacoes', 'Observações de programação', values, errors, hint='Ex.: alteração de horário, restrição, contato, pendência.') }}
+    <button type="submit" class="btn btn--primary btn--block">Salvar</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/masks.js') }}" defer></script>
+{% endblock %}

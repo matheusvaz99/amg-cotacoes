@@ -39,12 +39,39 @@ _ADDED_COLUMNS = {
         "servico_guincho": "BOOLEAN",
         "decision_note": "TEXT",
         "data_entrega": "DATE",
+        "tipo_cotacao": "VARCHAR(20)",
+        "dimensoes": "VARCHAR(120)",
+        "servico_ajudante": "BOOLEAN",
+        "servico_empilhadeira": "BOOLEAN",
+        "ajudante_qtd": "INTEGER",
     },
     "proposals": {
         "custos_adicionais": "NUMERIC(14,2)",
         "custos_adicionais_desc": "TEXT",
+        "versao": "INTEGER",
+        "custo_motorista": "NUMERIC(14,2)",
+        "custo_pedagio": "NUMERIC(14,2)",
+        "custo_impostos": "NUMERIC(14,2)",
+        "custo_seguro": "NUMERIC(14,2)",
+        "custo_outros_internos": "NUMERIC(14,2)",
+        "fc": "NUMERIC(14,2)",
+        "margem_pct": "NUMERIC(6,2)",
+        "fe": "NUMERIC(14,2)",
+        "valor_carga": "NUMERIC(14,2)",
+        "valor_descarga": "NUMERIC(14,2)",
+        "valor_diaria": "NUMERIC(14,2)",
+        "valor_ajudante": "NUMERIC(14,2)",
+        "valor_empilhadeira": "NUMERIC(14,2)",
+        "valor_guincho": "NUMERIC(14,2)",
+        "valor_final": "NUMERIC(14,2)",
     },
 }
+
+# Colunas que existiam como NOT NULL na primeira versao e agora precisam
+# aceitar NULL (cotacao rapida nao preenche todos os campos da completa).
+# SQLite nao suporta ALTER COLUMN ... DROP NOT NULL (exigiria reconstruir a
+# tabela); em dev, apague amg.db e rode seed.py de novo apos essa mudanca.
+_RELAX_NOT_NULL = {"quotes": ["qtd_volumes", "valor_nf", "tipo_veiculo", "capacidade_aprox"]}
 
 
 def _ensure_columns() -> None:
@@ -58,6 +85,21 @@ def _ensure_columns() -> None:
             for name, ddl in columns.items():
                 if name not in have:
                     conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {name} {ddl}'))
+
+
+def _relax_not_null() -> None:
+    """Remove NOT NULL de colunas que a cotacao rapida pode deixar em branco.
+    So roda em Postgres (idempotente); SQLite e recriado do zero em dev."""
+    if engine.dialect.name != "postgresql":
+        return
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+    with engine.begin() as conn:
+        for table, columns in _RELAX_NOT_NULL.items():
+            if table not in existing_tables:
+                continue
+            for name in columns:
+                conn.execute(text(f'ALTER TABLE {table} ALTER COLUMN {name} DROP NOT NULL'))
 
 
 def _migrate_statuses() -> None:
@@ -95,5 +137,6 @@ def init_db() -> None:
 
     Base.metadata.create_all(bind=engine)
     _ensure_columns()
+    _relax_not_null()
     _migrate_statuses()
     _seed_opcoes()

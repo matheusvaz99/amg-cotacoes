@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Nova cotação — AMG Logística{% endblock %}
+
+{% block content %}
+<div class="form-shell form-shell--narrow">
+  <h1>Nova cotação</h1>
+  <p class="lead">Escolha o tipo de cotação de acordo com o que você tem em mãos agora.</p>
+
+  <div class="stack">
+    <a class="card choice-card" href="/cotacao/nova?tipo=rapida">
+      <h2>Cotação Rápida</h2>
+      <p class="hint">Para quem está em campo e precisa de uma estimativa com o mínimo de
+         informação — origem, destino, material e peso.</p>
+      <span class="btn btn--primary">Solicitar cotação rápida</span>
+    </a>
+    <a class="card choice-card" href="/cotacao/nova?tipo=completa">
+      <h2>Cotação Completa</h2>
+      <p class="hint">Para o comprador no escritório, com todos os dados da carga,
+         veículo e observações — gera uma proposta mais precisa.</p>
+      <span class="btn btn--ghost">Solicitar cotação completa</span>
+    </a>
+  </div>
+</div>
+{% endblock %}
