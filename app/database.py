@@ -71,7 +71,12 @@ _ADDED_COLUMNS = {
 # aceitar NULL (cotacao rapida nao preenche todos os campos da completa).
 # SQLite nao suporta ALTER COLUMN ... DROP NOT NULL (exigiria reconstruir a
 # tabela); em dev, apague amg.db e rode seed.py de novo apos essa mudanca.
-_RELAX_NOT_NULL = {"quotes": ["qtd_volumes", "valor_nf", "tipo_veiculo", "capacidade_aprox"]}
+_RELAX_NOT_NULL = {
+    "quotes": ["qtd_volumes", "valor_nf", "tipo_veiculo", "capacidade_aprox"],
+    # frete/pedagio/seguro/total sao as colunas legadas da 1a versao da formacao
+    # de preco; o codigo novo nao grava mais nelas (usa fc/fe/adicionais).
+    "proposals": ["frete", "pedagio", "seguro", "total"],
+}
 
 
 def _ensure_columns() -> None:
