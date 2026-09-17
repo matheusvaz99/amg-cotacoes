@@ -4,9 +4,11 @@ usado para emitir a Ordem de Coleta com a filial correta."""
 from app.filiais import (
     EMPRESA_TEMPLATE,
     FILIAIS_CNPJ,
+    empresas_elegiveis,
     extrair_uf,
     opcoes_empresa_cnpj,
     parse_empresa_cnpj,
+    proxima_empresa_da_fila,
     sugestao_empresa_cnpj,
 )
 
@@ -24,7 +26,7 @@ def test_extrair_uf_invalido_devolve_none():
 
 
 def test_sugestao_empresa_cnpj_uf_com_filial():
-    # PR tem filial em 3 das 4 empresas -- prioridade e a ordem do dict
+    # PR tem filial nas 4 empresas -- prioridade e a ordem do dict
     assert sugestao_empresa_cnpj("PR") == "AMG Logistica Ltda|53.805.774/0001-56"
 
 
@@ -66,3 +68,41 @@ def test_toda_empresa_tem_modelo_docx_mapeado():
     for empresa in FILIAIS_CNPJ:
         assert empresa in EMPRESA_TEMPLATE
         assert EMPRESA_TEMPLATE[empresa].endswith(".docx")
+
+
+def test_empresas_elegiveis_uf_com_varias():
+    # PR tem filial nas 4, na ordem de prioridade do dict
+    assert empresas_elegiveis("PR") == [
+        "AMG Logistica Ltda",
+        "AMG Logistica e Transportes Eireli",
+        "JVA Logistica e Transportes Ltda",
+        "AMG Expresso Ltda",
+    ]
+
+
+def test_empresas_elegiveis_uf_com_uma_so():
+    assert empresas_elegiveis("BA") == ["JVA Logistica e Transportes Ltda"]
+
+
+def test_empresas_elegiveis_uf_sem_nenhuma():
+    assert empresas_elegiveis("AM") == []
+    assert empresas_elegiveis(None) == []
+
+
+def test_proxima_empresa_da_fila_roda_e_volta_ao_inicio():
+    fila = empresas_elegiveis("PR")
+    assert proxima_empresa_da_fila(fila, None) == fila[0]
+    assert proxima_empresa_da_fila(fila, fila[0]) == fila[1]
+    assert proxima_empresa_da_fila(fila, fila[1]) == fila[2]
+    assert proxima_empresa_da_fila(fila, fila[2]) == fila[3]
+    assert proxima_empresa_da_fila(fila, fila[3]) == fila[0]  # volta ao inicio
+
+
+def test_proxima_empresa_da_fila_ultima_fora_da_lista_comeca_do_topo():
+    fila = empresas_elegiveis("PR")
+    assert proxima_empresa_da_fila(fila, "Empresa que nao atende mais essa UF") == fila[0]
+
+
+def test_proxima_empresa_da_fila_vazia():
+    assert proxima_empresa_da_fila([], None) is None
+    assert proxima_empresa_da_fila([], "qualquer") is None

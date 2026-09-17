@@ -21,6 +21,7 @@ from app.constants import (
     STATUS_OC_EMITIDA,
     STATUS_RESPONDIDA,
 )
+from app.filiais import FILIAIS_CNPJ, empresas_elegiveis, proxima_empresa_da_fila
 from app.models import (
     AgendaCarregamento,
     Opcao,
@@ -193,6 +194,24 @@ def devolver_solicitacao(db: Session, quote: Quote, motivo: str) -> Quote:
     db.commit()
     db.refresh(quote)
     return quote
+
+
+def sugestao_empresa_cnpj_fila(db: Session, uf: str | None) -> str | None:
+    """Sugestao de empresa/CNPJ para a UF informada, em rodizio quando mais
+    de uma empresa tem filial ali: olha a ultima OC realmente gerada para
+    essa UF (qualquer que tenha sido a escolha do admin, sugerida ou nao) e
+    sugere a proxima da fila. Sem historico, comeca do topo da prioridade."""
+    elegiveis = empresas_elegiveis(uf)
+    if not elegiveis:
+        return None
+    ultima_empresa = db.scalars(
+        select(OrdemColeta.empresa)
+        .where(OrdemColeta.uf_referencia == uf)
+        .order_by(OrdemColeta.gerado_em.desc())
+        .limit(1)
+    ).first()
+    proxima = proxima_empresa_da_fila(elegiveis, ultima_empresa)
+    return f"{proxima}|{FILIAIS_CNPJ[proxima][uf]}"
 
 
 def gerar_ordem_coleta(

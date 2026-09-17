@@ -27,7 +27,7 @@ from app.constants import (
     TIPOS_COTACAO_LABELS,
 )
 from app.database import get_db
-from app.filiais import extrair_uf, opcoes_empresa_cnpj, parse_empresa_cnpj, sugestao_empresa_cnpj
+from app.filiais import extrair_uf, opcoes_empresa_cnpj, parse_empresa_cnpj
 from app.forms import AgendaForm, ProposalForm, SolicitacaoFreteForm
 from app.ordem_coleta_docx import build_ordem_coleta_docx
 from app.pdf import build_quote_pdf
@@ -282,7 +282,7 @@ def solicitacao_view(
         quote=quote,
         solicitacao=quote.solicitacao,
         empresa_opcoes=opcoes_empresa_cnpj(),
-        empresa_sugerida=sugestao_empresa_cnpj(uf),
+        empresa_sugerida=crud.sugestao_empresa_cnpj_fila(db, uf),
         uf_origem=uf,
         csrf_token=get_csrf_token(request),
     )
@@ -338,7 +338,7 @@ def gerar_oc_form(
     return render(
         request, "admin/gerar_oc.html", admin=admin, quote=quote, values=values, errors={},
         pagador_opcoes=PAGADOR_OPCOES, empresa_opcoes=opcoes_empresa_cnpj(),
-        empresa_sugerida=sugestao_empresa_cnpj(uf), uf_origem=uf,
+        empresa_sugerida=crud.sugestao_empresa_cnpj_fila(db, uf), uf_origem=uf,
         csrf_token=get_csrf_token(request),
     )
 

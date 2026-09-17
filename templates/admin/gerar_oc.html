@@ -22,7 +22,11 @@
         <option value="{{ value }}" {% if value == empresa_sugerida %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
-    {% if not empresa_sugerida %}<p class="hint">Nenhuma filial encontrada para {{ uf_origem or 'essa UF' }} — escolha manualmente.</p>{% endif %}
+    {% if not empresa_sugerida %}
+      <p class="hint">Nenhuma filial encontrada para {{ uf_origem or 'essa UF' }} — escolha manualmente.</p>
+    {% else %}
+      <p class="hint">Sugestão em rodízio entre as empresas com filial em {{ uf_origem }}; troque se precisar.</p>
+    {% endif %}
     {% if errors.get('empresa_cnpj') %}<p class="error-msg">{{ errors.get('empresa_cnpj') }}</p>{% endif %}
   </div>
 

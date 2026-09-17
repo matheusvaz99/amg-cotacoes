@@ -48,7 +48,9 @@ def _submit_quote(client, **overrides):
 
 
 def _admin_login(client):
-    page = client.get("/admin/login")
+    page = client.get("/admin/login", follow_redirects=False)
+    if page.status_code == 303:
+        return  # ja logado nesta sessao (chamada repetida no mesmo teste)
     token = csrf_from(page.text)
     resp = client.post(
         "/admin/login",
@@ -420,6 +422,75 @@ def test_gerar_oc_sem_empresa_e_rejeitado(client):
         q = db.query(Quote).filter_by(code=code).one()
         assert q.status == "aprovada"  # nao avancou
         assert q.ordem_coleta is None
+
+
+def test_sugestao_empresa_faz_rodizio_entre_filiais_da_mesma_uf(client):
+    """Quando mais de uma empresa do grupo atende a UF de origem, a
+    sugestao de CNPJ alterna entre elas a cada OC gerada (fila em
+    rodizio), em vez de sempre sugerir a mesma."""
+    from app.filiais import empresas_elegiveis, extrair_uf
+
+    fila = empresas_elegiveis(extrair_uf(VALID["origem_cidade"]))
+    assert len(fila) >= 2  # PR (origem do VALID) atende por varias empresas
+
+    escolhidas = []
+    for _ in range(len(fila) + 1):  # uma volta completa + 1, pra conferir que reinicia
+        code = _fluxo_ate_aprovada(client)
+        preview = client.get(f"/admin/cotacao/{code}/gerar-oc")
+        empresa_cnpj = _empresa_sugerida_no_form(preview.text)
+        assert empresa_cnpj, "nenhuma opcao sugerida (selected) no dropdown"
+        _gerar_oc(client, code, empresa_cnpj)
+        escolhidas.append(empresa_cnpj.split("|")[0])
+
+    assert escolhidas[: len(fila)] == fila  # uma volta completa segue a ordem da fila
+    assert escolhidas[len(fila)] == fila[0]  # e reinicia do topo
+
+
+def _fluxo_ate_aprovada_em(client, origem_cidade: str):
+    code = _submit_quote(client, origem_cidade=origem_cidade)
+    _admin_login(client)
+    _respond(client, code)
+    page = client.get(f"/admin/cotacao/{code}")
+    token = csrf_from(page.text)
+    client.post(f"/admin/cotacao/{code}/aprovar", data={"csrf_token": token})
+    return code
+
+
+def _gerar_oc(client, code: str, empresa_cnpj: str):
+    form_page = client.get(f"/admin/cotacao/{code}/gerar-oc")
+    token = csrf_from(form_page.text)
+    resp = client.post(
+        f"/admin/cotacao/{code}/gerar-oc",
+        data={
+            "csrf_token": token, "empresa_cnpj": empresa_cnpj,
+            "pagador": "Remetente", "pagador_documento": "12.345.678/0001-90",
+            "fornecedor_nome": "Fornecedor X", "destinatario_nome": "Obra Y",
+        },
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    return form_page
+
+
+def _empresa_sugerida_no_form(html: str) -> str | None:
+    import re
+
+    m = re.search(r'value="([^"]+)"\s+selected', html)
+    return m.group(1) if m else None
+
+
+def test_sugestao_empresa_uf_com_uma_so_filial_nao_alterna(client):
+    """BA so tem filial da JVA -- a sugestao deve continuar sempre a mesma,
+    sem rodizio (nao ha o que alternar)."""
+    jva = "JVA Logistica e Transportes Ltda|22.729.681/0002-47"
+
+    code1 = _fluxo_ate_aprovada_em(client, "Salvador - BA")
+    form1 = _gerar_oc(client, code1, jva)
+    assert _empresa_sugerida_no_form(form1.text) == jva
+
+    code2 = _fluxo_ate_aprovada_em(client, "Salvador - BA")
+    form2 = _gerar_oc(client, code2, jva)
+    assert _empresa_sugerida_no_form(form2.text) == jva  # continua a mesma (unica elegivel)
 
 
 def test_client_form_lists_carrocerias_e_tipos_veiculo(client):

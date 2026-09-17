@@ -59,13 +59,35 @@ def opcoes_empresa_cnpj() -> list[tuple[str, str]]:
 
 def sugestao_empresa_cnpj(uf: str | None) -> str | None:
     """Value pre-selecionado: primeira empresa (por prioridade) com filial
-    na UF informada. None se nenhuma tiver (admin escolhe manualmente)."""
+    na UF informada. None se nenhuma tiver (admin escolhe manualmente).
+    Usada como base "sem historico" -- em uso normal pelo painel, prefira
+    `crud.sugestao_empresa_cnpj_fila`, que faz rodizio entre as elegiveis."""
     if not uf:
         return None
     for empresa, ufs in FILIAIS_CNPJ.items():
         if uf in ufs:
             return f"{empresa}|{ufs[uf]}"
     return None
+
+
+def empresas_elegiveis(uf: str | None) -> list[str]:
+    """Empresas com filial na UF informada, na ordem de prioridade -- e a
+    "fila" usada para o rodizio quando mais de uma atende a mesma UF."""
+    if not uf:
+        return []
+    return [empresa for empresa, ufs in FILIAIS_CNPJ.items() if uf in ufs]
+
+
+def proxima_empresa_da_fila(elegiveis: list[str], ultima_empresa: str | None) -> str | None:
+    """Proxima empresa da fila apos `ultima_empresa` (rodizio simples,
+    volta ao inicio ao chegar no fim). Sem `elegiveis`, None. Sem historico
+    valido (`ultima_empresa` ausente ou fora da lista), comeca do topo."""
+    if not elegiveis:
+        return None
+    if ultima_empresa not in elegiveis:
+        return elegiveis[0]
+    idx = elegiveis.index(ultima_empresa)
+    return elegiveis[(idx + 1) % len(elegiveis)]
 
 
 def parse_empresa_cnpj(value: str | None) -> tuple[str, str] | None:

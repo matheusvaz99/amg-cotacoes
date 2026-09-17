@@ -44,8 +44,8 @@
     {% if not quote.ordem_coleta %}
       <h2>Validar solicitação</h2>
       <p class="hint">Confira os dados ao lado. Escolha a empresa/filial que vai emitir a OC —
-         o CNPJ é sugerido automaticamente conforme a UF de origem ({{ uf_origem or '?' }}); troque
-         se precisar.</p>
+         o CNPJ é sugerido automaticamente conforme a UF de origem ({{ uf_origem or '?' }}), em
+         rodízio quando mais de uma empresa atende essa UF; troque se precisar.</p>
       <form method="post" action="/admin/cotacao/{{ quote.code }}/solicitacao/validar">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <div class="field">
