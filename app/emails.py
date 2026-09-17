@@ -6,7 +6,7 @@ import logging
 
 from app.config import settings
 from app.constants import STATUS_LABELS
-from app.models import AgendaCarregamento, OrdemColeta, Proposal, Quote, SolicitacaoFrete
+from app.models import AgendaCarregamento, OrdemColeta, Quote, SolicitacaoFrete
 from app.security import sign_quote_token
 from app.utils import format_brl, format_peso
 
@@ -123,47 +123,6 @@ def send_confirmation_to_client(quote: Quote) -> None:
     <p><a href="{_quote_link(quote)}">Acompanhar a cotação</a></p>
     """
     _send(quote.client_email, f"Cotação {quote.code} recebida — AMG Logística", html)
-
-
-def _proposta_rows(proposal: Proposal) -> list[str]:
-    rows = [_row("Valor do frete", format_brl(proposal.fe))]
-    for label, valor in proposal.adicionais_itens():
-        rows.append(_row(label, format_brl(valor)))
-    rows.append(_row("Valor total da cotação", format_brl(proposal.valor_final)))
-    rows.append(_row("Prazo de entrega", proposal.prazo_entrega))
-    rows.append(_row("Validade da proposta", proposal.validade.strftime("%d/%m/%Y")))
-    return rows
-
-
-def send_proposal_ready_to_client(quote: Quote, proposal: Proposal) -> None:
-    """Avisa o cliente que a cotação foi respondida — nunca mostra FC nem margem."""
-    html = f"""
-    <h2>Sua cotação {quote.code} foi respondida</h2>
-    <p>Olá, {quote.client_name}! Preparamos a proposta para a rota
-    <strong>{quote.origem_cidade} &rarr; {quote.destino_cidade}</strong>.</p>
-    {_table(*_proposta_rows(proposal))}
-    <p><a href="{_quote_link(quote)}">Ver a proposta e decidir</a></p>
-    """
-    _send(quote.client_email, f"Proposta pronta — cotação {quote.code}", html)
-
-
-def notify_comercial_client_decision(quote: Quote) -> None:
-    """Cliente aprovou, pediu negociação ou reprovou pelo site — avisa o comercial."""
-    label = STATUS_LABELS.get(quote.status, quote.status)
-    extra = (
-        f"<p><strong>Observação do cliente:</strong><br>{quote.decision_note}</p>"
-        if quote.decision_note
-        else ""
-    )
-    html = f"""
-    <h2>Cliente respondeu a cotação {quote.code}: {label}</h2>
-    <p>Comprador: {quote.client_name} ({quote.client_company or '-'})</p>
-    <p>E-mail: {quote.client_email}</p>
-    <p>Rota: {quote.origem_cidade} &rarr; {quote.destino_cidade}</p>
-    {extra}
-    <p><a href="{_admin_link(quote)}">Abrir no painel comercial</a></p>
-    """
-    _send(settings.email_comercial, f"Cliente {label.lower()} a cotação {quote.code}", html)
 
 
 def send_decision_to_client(quote: Quote) -> None:

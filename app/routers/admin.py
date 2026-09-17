@@ -15,6 +15,7 @@ from app.constants import (
     ADMIN_TABS,
     AGENDA_STATUS_LABELS,
     OPCOES_CATEGORIAS,
+    PAGADOR_OPCOES,
     PROXIMA_ACAO,
     STATUS_APROVADA,
     STATUS_EM_VALIDACAO,
@@ -26,7 +27,9 @@ from app.constants import (
     TIPOS_COTACAO_LABELS,
 )
 from app.database import get_db
-from app.forms import AgendaForm, ProposalForm
+from app.filiais import extrair_uf, opcoes_empresa_cnpj, parse_empresa_cnpj, sugestao_empresa_cnpj
+from app.forms import AgendaForm, ProposalForm, SolicitacaoFreteForm
+from app.ordem_coleta_docx import build_ordem_coleta_docx
 from app.pdf import build_quote_pdf
 from app.security import (
     admin_login,
@@ -194,8 +197,7 @@ async def quote_respond(
             csrf_token=get_csrf_token(request),
         )
 
-    proposal = crud.add_proposal(db, quote, pf.values, created_by=admin)
-    emails.send_proposal_ready_to_client(quote, proposal)
+    crud.add_proposal(db, quote, pf.values, created_by=admin)
     return RedirectResponse(f"/admin/cotacao/{code}?ok=1", status_code=303)
 
 
@@ -272,12 +274,16 @@ def solicitacao_view(
     quote = crud.get_quote_by_code(db, code)
     if not quote or not quote.solicitacao:
         return RedirectResponse("/admin", status_code=303)
+    uf = extrair_uf(quote.origem_cidade)
     return render(
         request,
         "admin/solicitacao.html",
         admin=admin,
         quote=quote,
         solicitacao=quote.solicitacao,
+        empresa_opcoes=opcoes_empresa_cnpj(),
+        empresa_sugerida=sugestao_empresa_cnpj(uf),
+        uf_origem=uf,
         csrf_token=get_csrf_token(request),
     )
 
@@ -295,10 +301,106 @@ async def solicitacao_validar(
     form = dict((await request.form()))
     if not validate_csrf(request, form.get("csrf_token")):
         return RedirectResponse(f"/admin/cotacao/{code}/solicitacao", status_code=303)
+    escolha = parse_empresa_cnpj(form.get("empresa_cnpj"))
+    if not escolha:
+        return RedirectResponse(f"/admin/cotacao/{code}/solicitacao?err=empresa", status_code=303)
     if quote.status in (STATUS_FRETE_SOLICITADO, STATUS_EM_VALIDACAO) and not quote.ordem_coleta:
-        oc = crud.gerar_ordem_coleta(db, quote, gerado_por=admin)
+        empresa, cnpj = escolha
+        oc = crud.gerar_ordem_coleta(
+            db, quote, empresa=empresa, cnpj_filial=cnpj,
+            uf_referencia=extrair_uf(quote.origem_cidade), gerado_por=admin,
+        )
         emails.send_oc_emitida_interno(quote, oc)
     return RedirectResponse(f"/admin/cotacao/{code}/solicitacao?ok=oc", status_code=303)
+
+
+@router.get("/cotacao/{code}/gerar-oc")
+def gerar_oc_form(
+    request: Request,
+    code: str,
+    admin: str = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Atalho: gera a Ordem de Coleta direto de uma cotacao aprovada, sem
+    esperar o cliente preencher a Solicitacao de Frete. Se ja houver uma
+    solicitacao (cliente enviou), os dados vem pre-preenchidos."""
+    quote = crud.get_quote_by_code(db, code)
+    if not quote or quote.status != STATUS_APROVADA or quote.ordem_coleta:
+        return RedirectResponse(f"/admin/cotacao/{code}", status_code=303)
+    s = quote.solicitacao
+    values = {
+        "pagador": s.pagador if s else "", "pagador_documento": s.pagador_documento if s else "",
+        "fornecedor_nome": s.fornecedor_nome if s else "", "fornecedor_contato": s.fornecedor_contato if s else "",
+        "destinatario_nome": s.destinatario_nome if s else "", "destinatario_contato": s.destinatario_contato if s else "",
+        "valor_nf": s.valor_nf if s else quote.valor_nf, "observacoes_operacionais": s.observacoes_operacionais if s else "",
+    }
+    uf = extrair_uf(quote.origem_cidade)
+    return render(
+        request, "admin/gerar_oc.html", admin=admin, quote=quote, values=values, errors={},
+        pagador_opcoes=PAGADOR_OPCOES, empresa_opcoes=opcoes_empresa_cnpj(),
+        empresa_sugerida=sugestao_empresa_cnpj(uf), uf_origem=uf,
+        csrf_token=get_csrf_token(request),
+    )
+
+
+@router.post("/cotacao/{code}/gerar-oc")
+async def gerar_oc_submit(
+    request: Request,
+    code: str,
+    admin: str = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    quote = crud.get_quote_by_code(db, code)
+    if not quote or quote.status != STATUS_APROVADA or quote.ordem_coleta:
+        return RedirectResponse(f"/admin/cotacao/{code}", status_code=303)
+    form = dict((await request.form()))
+    if not validate_csrf(request, form.get("csrf_token")):
+        return RedirectResponse(f"/admin/cotacao/{code}/gerar-oc", status_code=303)
+
+    escolha = parse_empresa_cnpj(form.get("empresa_cnpj"))
+    sf = SolicitacaoFreteForm(form)
+    valida = sf.validate()
+    if not escolha:
+        valida = False
+    if not valida:
+        errors = dict(sf.errors)
+        if not escolha:
+            errors["empresa_cnpj"] = "Selecione a empresa/CNPJ da filial."
+        return render(
+            request, "admin/gerar_oc.html", admin=admin, quote=quote,
+            values={**form}, errors=errors, pagador_opcoes=PAGADOR_OPCOES,
+            empresa_opcoes=opcoes_empresa_cnpj(), empresa_sugerida=form.get("empresa_cnpj"),
+            uf_origem=extrair_uf(quote.origem_cidade), csrf_token=get_csrf_token(request),
+        )
+
+    crud.create_or_update_solicitacao(db, quote, sf.values)
+    empresa, cnpj = escolha
+    oc = crud.gerar_ordem_coleta(
+        db, quote, empresa=empresa, cnpj_filial=cnpj,
+        uf_referencia=extrair_uf(quote.origem_cidade), gerado_por=admin,
+    )
+    emails.send_oc_emitida_interno(quote, oc)
+    return RedirectResponse(f"/admin/cotacao/{code}/solicitacao?ok=oc", status_code=303)
+
+
+@router.get("/cotacao/{code}/ordem-coleta.docx")
+def baixar_ordem_coleta(
+    request: Request,
+    code: str,
+    admin: str = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    quote = crud.get_quote_by_code(db, code)
+    if not quote or not quote.ordem_coleta:
+        return RedirectResponse("/admin", status_code=303)
+    conteudo = build_ordem_coleta_docx(quote)
+    return Response(
+        content=conteudo,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={
+            "Content-Disposition": f'attachment; filename="ordem-coleta-{quote.ordem_coleta.numero}.docx"'
+        },
+    )
 
 
 @router.post("/cotacao/{code}/solicitacao/devolver")

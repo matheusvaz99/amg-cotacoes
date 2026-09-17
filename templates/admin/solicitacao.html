@@ -17,6 +17,8 @@
   <p class="notice notice--ok">Ordem de Coleta emitida.</p>
 {% elif request.query_params.get('ok') == 'logistica' %}
   <p class="notice notice--ok">Enviada à Logística e adicionada à Agenda de Carregamentos.</p>
+{% elif request.query_params.get('err') == 'empresa' %}
+  <p class="notice notice--error">Selecione a empresa/CNPJ da filial antes de validar.</p>
 {% endif %}
 
 <div class="two-col">
@@ -41,9 +43,21 @@
   <div class="card">
     {% if not quote.ordem_coleta %}
       <h2>Validar solicitação</h2>
-      <p class="hint">Confira os dados ao lado. Validar gera a Ordem de Coleta automaticamente.</p>
+      <p class="hint">Confira os dados ao lado. Escolha a empresa/filial que vai emitir a OC —
+         o CNPJ é sugerido automaticamente conforme a UF de origem ({{ uf_origem or '?' }}); troque
+         se precisar.</p>
       <form method="post" action="/admin/cotacao/{{ quote.code }}/solicitacao/validar">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field">
+          <label for="f_empresa_cnpj">Empresa / CNPJ da filial <span class="req">*</span></label>
+          <select id="f_empresa_cnpj" name="empresa_cnpj" required>
+            <option value="">Selecione...</option>
+            {% for value, label in empresa_opcoes %}
+              <option value="{{ value }}" {% if value == empresa_sugerida %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          {% if not empresa_sugerida %}<p class="hint">Nenhuma filial encontrada para {{ uf_origem or 'essa UF' }} — escolha manualmente.</p>{% endif %}
+        </div>
         <button type="submit" class="btn btn--primary btn--block">Validar e gerar Ordem de Coleta</button>
       </form>
 
@@ -62,9 +76,12 @@
       <h2>Ordem de Coleta</h2>
       <dl class="kv">
         <div><dt>Número</dt><dd>{{ quote.ordem_coleta.numero }}</dd></div>
+        <div><dt>Empresa emissora</dt><dd>{{ quote.ordem_coleta.empresa or '-' }}</dd></div>
+        <div><dt>CNPJ da filial</dt><dd>{{ quote.ordem_coleta.cnpj_filial or '-' }}</dd></div>
         <div><dt>Gerada em</dt><dd>{{ quote.ordem_coleta.gerado_em | date_br }}</dd></div>
         <div><dt>Gerada por</dt><dd>{{ quote.ordem_coleta.gerado_por or '-' }}</dd></div>
       </dl>
+      <a class="btn btn--ghost btn--block" href="/admin/cotacao/{{ quote.code }}/ordem-coleta.docx">Baixar Ordem de Coleta (.docx)</a>
 
       {% if not quote.ordem_coleta.enviado_logistica_em %}
         <form method="post" action="/admin/cotacao/{{ quote.code }}/enviar-logistica">

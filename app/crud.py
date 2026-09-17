@@ -195,12 +195,18 @@ def devolver_solicitacao(db: Session, quote: Quote, motivo: str) -> Quote:
     return quote
 
 
-def gerar_ordem_coleta(db: Session, quote: Quote, *, gerado_por: str | None = None) -> OrdemColeta:
+def gerar_ordem_coleta(
+    db: Session, quote: Quote, *, empresa: str, cnpj_filial: str,
+    uf_referencia: str | None = None, gerado_por: str | None = None,
+) -> OrdemColeta:
     oc = OrdemColeta(
         numero=gen_oc_numero(db),
         quote_id=quote.id,
         solicitacao_id=quote.solicitacao.id,
         gerado_por=gerado_por,
+        empresa=empresa,
+        cnpj_filial=cnpj_filial,
+        uf_referencia=uf_referencia,
     )
     db.add(oc)
     quote.solicitacao.status = SOLICITACAO_VALIDADA

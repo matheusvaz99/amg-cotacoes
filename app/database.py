@@ -65,6 +65,11 @@ _ADDED_COLUMNS = {
         "valor_guincho": "NUMERIC(14,2)",
         "valor_final": "NUMERIC(14,2)",
     },
+    "ordens_coleta": {
+        "empresa": "VARCHAR(120)",
+        "cnpj_filial": "VARCHAR(20)",
+        "uf_referencia": "VARCHAR(2)",
+    },
 }
 
 # Colunas que existiam como NOT NULL na primeira versao e agora precisam

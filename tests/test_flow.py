@@ -148,14 +148,14 @@ def test_custos_adicionais_somam_no_valor_final(client):
     assert "R$ 12.560,00" in detail  # 11760 + 450 + 350
 
 
-def test_cliente_aprova_e_ve_link_para_solicitacao(client):
+def test_admin_aprova_e_cliente_ve_link_para_solicitacao(client):
     code = _submit_quote(client)
     _admin_login(client)
     _respond(client, code)
 
-    detail = client.get(f"/cotacao/{code}")
-    token = csrf_from(detail.text)
-    resp = client.post(f"/cotacao/{code}/aprovar", data={"csrf_token": token, "t": ""}, follow_redirects=False)
+    page = client.get(f"/admin/cotacao/{code}")
+    token = csrf_from(page.text)
+    resp = client.post(f"/admin/cotacao/{code}/aprovar", data={"csrf_token": token}, follow_redirects=False)
     assert resp.status_code == 303
 
     detail2 = client.get(f"/cotacao/{code}").text
@@ -163,23 +163,10 @@ def test_cliente_aprova_e_ve_link_para_solicitacao(client):
     assert f"/cotacao/{code}/solicitacao" in detail2
 
 
-def test_cliente_solicita_negociacao_admin_reprecifica_gera_historico(client):
+def test_admin_reprecifica_gera_historico_de_versoes(client):
     code = _submit_quote(client)
     _admin_login(client)
     _respond(client, code)
-
-    detail = client.get(f"/cotacao/{code}")
-    token = csrf_from(detail.text)
-    resp = client.post(
-        f"/cotacao/{code}/negociar",
-        data={"csrf_token": token, "t": "", "motivo": "Consegue baixar a margem?"},
-        follow_redirects=False,
-    )
-    assert resp.status_code == 303
-
-    admin_page = client.get(f"/admin/cotacao/{code}").text
-    assert "Consegue baixar a margem" in admin_page
-
     _respond(client, code, margem_pct="10")  # reprecifica -> FE menor
 
     from app.database import SessionLocal
@@ -188,23 +175,38 @@ def test_cliente_solicita_negociacao_admin_reprecifica_gera_historico(client):
     with SessionLocal() as db:
         q = db.query(Quote).filter_by(code=code).one()
         assert q.status == "respondida"
-        assert q.decision_note is None  # negociacao foi respondida
         historico = db.query(ProposalVersionLog).filter_by(quote_id=q.id).all()
         assert len(historico) == 1
         assert historico[0].versao == 1
-        assert historico[0].motivo_negociacao == "Consegue baixar a margem?"
         assert q.proposal.versao == 2
         assert q.proposal.fe == Decimal("10780.00")  # 9800 * 1.10
 
 
-def test_negociar_sem_motivo_e_rejeitado(client):
+def test_cliente_nao_pode_mais_aprovar_ou_negociar_via_app(client):
+    """O cliente nao decide mais pelo site (feature retirada) -- as rotas
+    antigas simplesmente nao existem mais."""
     code = _submit_quote(client)
     _admin_login(client)
     _respond(client, code)
-    detail = client.get(f"/cotacao/{code}")
-    token = csrf_from(detail.text)
-    resp = client.post(f"/cotacao/{code}/negociar", data={"csrf_token": token, "t": "", "motivo": ""})
-    assert "negociar" in resp.text.lower() or "Descreva" in resp.text
+
+    # a pagina nao tem mais formulario de decisao (nem csrf_token para ela) --
+    # a rota em si nao existe mais, entao o token nao importa aqui.
+    resp = client.post(f"/cotacao/{code}/aprovar", data={"csrf_token": "x", "t": ""})
+    assert resp.status_code == 404
+    resp2 = client.post(f"/cotacao/{code}/negociar", data={"csrf_token": "x", "t": "", "motivo": "x"})
+    assert resp2.status_code == 404
+
+
+def test_salvar_precificacao_apenas_salva_sem_notificar(client):
+    code = _submit_quote(client)
+    _admin_login(client)
+    page = client.get(f"/admin/cotacao/{code}").text
+    assert "Salvar precificação" in page
+    assert "notificar cliente" not in page.lower()
+    assert "enviar ao cliente" not in page.lower()
+
+    resp = _respond(client, code)
+    assert resp.headers["location"] == f"/admin/cotacao/{code}?ok=1"
 
 
 def test_admin_aprova_e_reprova_manual(client):
@@ -234,9 +236,9 @@ def _fluxo_ate_aprovada(client):
     code = _submit_quote(client)
     _admin_login(client)
     _respond(client, code)
-    detail = client.get(f"/cotacao/{code}")
-    token = csrf_from(detail.text)
-    client.post(f"/cotacao/{code}/aprovar", data={"csrf_token": token, "t": ""})
+    page = client.get(f"/admin/cotacao/{code}")
+    token = csrf_from(page.text)
+    client.post(f"/admin/cotacao/{code}/aprovar", data={"csrf_token": token})
     return code
 
 
@@ -265,8 +267,17 @@ def test_fluxo_completo_solicitacao_oc_logistica_agenda(client):
     assert admin_sol.status_code == 200
     assert "Fornecedor X" in admin_sol.text
     token = csrf_from(admin_sol.text)
+
+    from app.filiais import extrair_uf, sugestao_empresa_cnpj
+
+    empresa_cnpj = sugestao_empresa_cnpj(extrair_uf(VALID["origem_cidade"]))
+    assert empresa_cnpj  # origem PR tem filial cadastrada -- deve sugerir sozinho
+    assert empresa_cnpj in admin_sol.text
+
     resp = client.post(
-        f"/admin/cotacao/{code}/solicitacao/validar", data={"csrf_token": token}, follow_redirects=False
+        f"/admin/cotacao/{code}/solicitacao/validar",
+        data={"csrf_token": token, "empresa_cnpj": empresa_cnpj},
+        follow_redirects=False,
     )
     assert resp.status_code == 303
 
@@ -278,6 +289,15 @@ def test_fluxo_completo_solicitacao_oc_logistica_agenda(client):
         assert q.status == "oc_emitida"
         assert q.ordem_coleta is not None
         assert q.ordem_coleta.numero.startswith("OC-")
+        assert q.ordem_coleta.empresa == empresa_cnpj.split("|")[0]
+        assert q.ordem_coleta.cnpj_filial == empresa_cnpj.split("|")[1]
+
+    docx_resp = client.get(f"/admin/cotacao/{code}/ordem-coleta.docx")
+    assert docx_resp.status_code == 200
+    assert docx_resp.headers["content-type"] == (
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+    assert docx_resp.content[:2] == b"PK"  # docx = zip
 
     sol_page2 = client.get(f"/admin/cotacao/{code}/solicitacao")
     token = csrf_from(sol_page2.text)
@@ -337,6 +357,69 @@ def test_solicitacao_devolvida_volta_para_aprovada(client):
     assert resp.status_code == 303
     detail = client.get(f"/cotacao/{code}").text
     assert "Falta CNPJ correto" in detail
+
+
+def test_gerar_oc_atalho_direto_da_cotacao_aprovada(client):
+    """Cotacao aprovada ganha um atalho para gerar a OC direto pelo painel,
+    sem esperar o cliente enviar a Solicitacao de Frete (mantem os dois
+    caminhos: este atalho e o formulario do cliente)."""
+    code = _fluxo_ate_aprovada(client)
+
+    form_page = client.get(f"/admin/cotacao/{code}/gerar-oc")
+    assert form_page.status_code == 200
+    assert 'name="empresa_cnpj"' in form_page.text
+    token = csrf_from(form_page.text)
+
+    from app.filiais import extrair_uf, sugestao_empresa_cnpj
+
+    empresa_cnpj = sugestao_empresa_cnpj(extrair_uf(VALID["origem_cidade"]))
+    assert empresa_cnpj  # sugerido automaticamente para a UF de origem
+
+    resp = client.post(
+        f"/admin/cotacao/{code}/gerar-oc",
+        data={
+            "csrf_token": token, "empresa_cnpj": empresa_cnpj,
+            "pagador": "Remetente", "pagador_documento": "12.345.678/0001-90",
+            "fornecedor_nome": "Fornecedor X", "destinatario_nome": "Obra Y",
+            "valor_nf": "25.000,00", "observacoes_operacionais": "",
+        },
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+
+    from app.database import SessionLocal
+    from app.models import Quote
+
+    with SessionLocal() as db:
+        q = db.query(Quote).filter_by(code=code).one()
+        assert q.status == "oc_emitida"
+        assert q.solicitacao is not None  # criada junto pelo atalho
+        assert q.ordem_coleta is not None
+        assert q.ordem_coleta.empresa == empresa_cnpj.split("|")[0]
+
+
+def test_gerar_oc_sem_empresa_e_rejeitado(client):
+    code = _fluxo_ate_aprovada(client)
+    form_page = client.get(f"/admin/cotacao/{code}/gerar-oc")
+    token = csrf_from(form_page.text)
+    resp = client.post(
+        f"/admin/cotacao/{code}/gerar-oc",
+        data={
+            "csrf_token": token, "empresa_cnpj": "",
+            "pagador": "Remetente", "pagador_documento": "12.345.678/0001-90",
+            "fornecedor_nome": "Fornecedor X", "destinatario_nome": "Obra Y",
+        },
+    )
+    assert resp.status_code == 200
+    assert "Selecione a empresa" in resp.text
+
+    from app.database import SessionLocal
+    from app.models import Quote
+
+    with SessionLocal() as db:
+        q = db.query(Quote).filter_by(code=code).one()
+        assert q.status == "aprovada"  # nao avancou
+        assert q.ordem_coleta is None
 
 
 def test_client_form_lists_carrocerias_e_tipos_veiculo(client):

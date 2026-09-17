@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "partials/fields.html" import field, select, textarea %}
+{% block title %}Gerar Ordem de Coleta — {{ quote.code }}{% endblock %}
+
+{% block content %}
+<p class="hint"><a href="/admin/cotacao/{{ quote.code }}">&larr; Voltar para a cotação</a></p>
+
+<h1>Gerar Ordem de Coleta</h1>
+<p class="lead">Cotação <strong>{{ quote.code }}</strong> aprovada — preencha os dados abaixo
+   direto pelo painel (sem esperar o cliente enviar a Solicitação de Frete).</p>
+
+{% if errors.get('__all__') %}<p class="notice notice--error">{{ errors.get('__all__') }}</p>{% endif %}
+
+<form method="post" action="/admin/cotacao/{{ quote.code }}/gerar-oc" class="form-shell" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+  <div class="field {% if errors.get('empresa_cnpj') %}field--error{% endif %}">
+    <label for="f_empresa_cnpj">Empresa / CNPJ da filial <span class="req">*</span></label>
+    <select id="f_empresa_cnpj" name="empresa_cnpj" required>
+      <option value="">Selecione...</option>
+      {% for value, label in empresa_opcoes %}
+        <option value="{{ value }}" {% if value == empresa_sugerida %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% if not empresa_sugerida %}<p class="hint">Nenhuma filial encontrada para {{ uf_origem or 'essa UF' }} — escolha manualmente.</p>{% endif %}
+    {% if errors.get('empresa_cnpj') %}<p class="error-msg">{{ errors.get('empresa_cnpj') }}</p>{% endif %}
+  </div>
+
+  {{ select('pagador', 'Pagador do frete', pagador_opcoes, values, errors, required=True) }}
+  {{ field('pagador_documento', 'CNPJ/CPF do pagador', values, errors, required=True, placeholder='00.000.000/0000-00') }}
+
+  <h2 class="section-title">Fornecedor / remetente</h2>
+  <div class="grid-2">
+    {{ field('fornecedor_nome', 'Nome', values, errors, required=True) }}
+    {{ field('fornecedor_contato', 'Contato', values, errors, hint='Opcional') }}
+  </div>
+
+  <h2 class="section-title">Destinatário</h2>
+  <div class="grid-2">
+    {{ field('destinatario_nome', 'Nome', values, errors, required=True) }}
+    {{ field('destinatario_contato', 'Contato', values, errors, hint='Opcional') }}
+  </div>
+
+  {{ field('valor_nf', 'Valor da NF / valor segurado (R$)', values, errors, inputmode='decimal', hint='Opcional se já informado na cotação.') }}
+  {{ textarea('observacoes_operacionais', 'Observações operacionais', values, errors, hint='Opcional.') }}
+
+  <button type="submit" class="btn btn--primary btn--block">Gerar Ordem de Coleta</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/masks.js') }}" defer></script>
+{% endblock %}

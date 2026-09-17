@@ -241,6 +241,12 @@ class OrdemColeta(Base):
     enviado_logistica_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     enviado_por: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
+    # Empresa do grupo AMG (e respectivo CNPJ de filial) que emite esta OC —
+    # define tambem qual modelo .docx e usado. Ver app.filiais.
+    empresa: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    cnpj_filial: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    uf_referencia: Mapped[str | None] = mapped_column(String(2), nullable=True)
+
     quote: Mapped[Quote] = relationship(back_populates="ordem_coleta")
     agenda: Mapped[AgendaCarregamento | None] = relationship(
         back_populates="ordem_coleta", uselist=False, cascade="all, delete-orphan"

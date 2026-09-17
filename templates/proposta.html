@@ -54,28 +54,9 @@
       {% endif %}
     </div>
 
-    {% if quote.status == 'respondida' and not proposal.expirada %}
-      <div class="card actions-card">
-        <form method="post" action="/cotacao/{{ quote.code }}/aprovar">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-          <input type="hidden" name="t" value="{{ t }}">
-          <button type="submit" class="btn btn--primary btn--block">Aprovar cotação</button>
-        </form>
-
-        <details class="adjust">
-          <summary>Solicitar negociação</summary>
-          <form method="post" action="/cotacao/{{ quote.code }}/negociar">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <input type="hidden" name="t" value="{{ t }}">
-            <div class="field {% if negociar_error %}field--error{% endif %}">
-              <label for="f_motivo">O que gostaria de negociar?</label>
-              <textarea id="f_motivo" name="motivo" rows="3" required></textarea>
-              {% if negociar_error %}<p class="error-msg">{{ negociar_error }}</p>{% endif %}
-            </div>
-            <button type="submit" class="btn btn--ghost btn--block">Enviar pedido de negociação</button>
-          </form>
-        </details>
-      </div>
+    {% if quote.status == 'respondida' %}
+      <p class="notice">Proposta enviada. Nosso time comercial entrará em contato para confirmar
+         a aprovação e os próximos passos.</p>
     {% elif quote.status == 'negociacao' %}
       <p class="notice">Seu pedido de negociação foi enviado. Em breve enviaremos uma proposta revisada.</p>
       {% if quote.decision_note %}<p class="hint">Você pediu: {{ quote.decision_note }}</p>{% endif %}

@@ -1,5 +1,7 @@
-"""Rotas do cliente: escolher tipo de cotacao, solicitar, decidir (aprovar/
-negociar), preencher a Solicitacao de Frete e acompanhar pelas cotacoes do e-mail."""
+"""Rotas do cliente: escolher tipo de cotacao, solicitar, preencher a
+Solicitacao de Frete (apos aprovacao pelo comercial) e acompanhar pelas
+cotacoes do e-mail. A decisao (aprovar/reprovar) e sempre do time comercial,
+lancada no painel."""
 
 from __future__ import annotations
 
@@ -227,40 +229,6 @@ def quote_detail(request: Request, code: str, t: str | None = None, db: Session 
     return render(request, "proposta.html", **_quote_detail_context(request, quote))
 
 
-@router.post("/cotacao/{code}/aprovar")
-async def client_aprovar(request: Request, code: str, db: Session = Depends(get_db)):
-    form = dict((await request.form()))
-    quote = crud.get_quote_by_code(db, code)
-    if not quote or not client_can_view(request, code, form.get("t")):
-        return RedirectResponse("/acompanhar", status_code=303)
-    if not validate_csrf(request, form.get("csrf_token")):
-        return RedirectResponse(f"/cotacao/{code}", status_code=303)
-
-    if quote.status in (STATUS_RESPONDIDA, STATUS_NEGOCIACAO) and quote.proposal and not quote.proposal.expirada:
-        crud.set_status(db, quote, STATUS_APROVADA, decision_note="")
-        emails.notify_comercial_client_decision(quote)
-    return RedirectResponse(f"/cotacao/{code}", status_code=303)
-
-
-@router.post("/cotacao/{code}/negociar")
-async def client_negociar(request: Request, code: str, db: Session = Depends(get_db)):
-    form = dict((await request.form()))
-    quote = crud.get_quote_by_code(db, code)
-    if not quote or not client_can_view(request, code, form.get("t")):
-        return RedirectResponse("/acompanhar", status_code=303)
-    if not validate_csrf(request, form.get("csrf_token")):
-        return RedirectResponse(f"/cotacao/{code}", status_code=303)
-
-    motivo = (form.get("motivo") or "").strip()
-    if not motivo:
-        ctx = _quote_detail_context(request, quote)
-        ctx["negociar_error"] = "Descreva o que gostaria de negociar."
-        return render(request, "proposta.html", **ctx)
-
-    if quote.status == STATUS_RESPONDIDA and quote.proposal and not quote.proposal.expirada:
-        crud.set_status(db, quote, STATUS_NEGOCIACAO, decision_note=motivo)
-        emails.notify_comercial_client_decision(quote)
-    return RedirectResponse(f"/cotacao/{code}", status_code=303)
 
 
 @router.get("/cotacao/{code}/solicitacao")

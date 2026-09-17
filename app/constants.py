@@ -29,7 +29,7 @@ PROXIMA_ACAO = {
     STATUS_EM_ANALISE: "Formar preço",
     STATUS_RESPONDIDA: "Aguardar cliente",
     STATUS_NEGOCIACAO: "Revisar FE",
-    STATUS_APROVADA: "Aguardar solicitação de frete",
+    STATUS_APROVADA: "Gerar Ordem de Coleta",
     STATUS_REPROVADA: "Encerrado",
     STATUS_FRETE_SOLICITADO: "Validar solicitação",
     STATUS_EM_VALIDACAO: "Validar solicitação",

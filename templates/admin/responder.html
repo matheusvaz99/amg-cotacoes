@@ -21,7 +21,7 @@
 </div>
 
 {% if request.query_params.get('ok') == '1' %}
-  <p class="notice notice--ok">Precificação salva. O cliente foi avisado por e-mail.</p>
+  <p class="notice notice--ok">Precificação salva.</p>
 {% elif request.query_params.get('ok') == 'aprovada' %}
   <p class="notice notice--ok">Cotação aprovada. O cliente foi avisado por e-mail.</p>
 {% elif request.query_params.get('ok') == 'reprovada' %}
@@ -41,6 +41,8 @@
   <a class="btn btn--sm btn--ghost" href="/admin/cotacao/{{ quote.code }}/pdf?inline=1" target="_blank" rel="noopener">Visualizar PDF</a>
   {% if quote.solicitacao %}
   <a class="btn btn--sm" href="/admin/cotacao/{{ quote.code }}/solicitacao">Ver Solicitação de Frete</a>
+  {% elif quote.status == 'aprovada' %}
+  <a class="btn btn--sm" href="/admin/cotacao/{{ quote.code }}/gerar-oc">Gerar Ordem de Coleta</a>
   {% endif %}
 </div>
 
@@ -131,13 +133,13 @@
       {{ field('prazo_entrega', 'Prazo de entrega', values, errors, required=True, placeholder='Ex.: 1 dia útil') }}
       {{ field('validade', 'Validade da proposta', values, errors, type='date', required=True) }}
       {{ textarea('observacoes', 'Observações', values, errors, hint='Padrão: valores sujeitos a confirmação na contratação.') }}
-      <button type="submit" class="btn btn--primary btn--block">Salvar precificação e notificar cliente</button>
+      <button type="submit" class="btn btn--primary btn--block">Salvar precificação</button>
     </form>
 
     {% if quote.status in ('respondida', 'negociacao', 'aprovada', 'reprovada') %}
     <div class="decision-box">
-      <h3>Decisão manual</h3>
-      <p class="hint">Use quando o cliente decidiu por outro canal (telefone, WhatsApp).</p>
+      <h3>Decisão</h3>
+      <p class="hint">Registre aqui a decisão do cliente (telefone, WhatsApp, e-mail).</p>
       <div class="row-actions">
         <form method="post" action="/admin/cotacao/{{ quote.code }}/aprovar">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
