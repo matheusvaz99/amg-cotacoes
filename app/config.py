@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     resend_api_key: str = ""
     email_from: str = "AMG Logistica <onboarding@resend.dev>"
     email_comercial: str = "comercial@amglogistica.com.br"
+    # Destinatario do aviso interno de "OC enviada a Logistica", com o
+    # responsavel comercial em copia.
+    email_logistica: str = "josemarteixeiracosta@gmail.com"
+    email_logistica_cc: str = "comercial4@amglog.com.br"
 
     base_url: str = "http://localhost:8000"
     database_url: str = "sqlite:///./amg.db"

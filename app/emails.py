@@ -28,11 +28,15 @@ def _send(
     subject: str,
     html: str,
     attachments: list[tuple[str, bytes]] | None = None,
+    cc: str | list[str] | None = None,
 ) -> None:
+    cc_list = [cc] if isinstance(cc, str) else (cc or [])
     if _resend is None:
         extra = ""
+        if cc_list:
+            extra += f"\nCc: {', '.join(cc_list)}"
         if attachments:
-            extra = "\nAnexos: " + ", ".join(
+            extra += "\nAnexos: " + ", ".join(
                 f"{name} ({len(data)} bytes)" for name, data in attachments
             )
         print(
@@ -48,6 +52,8 @@ def _send(
             "subject": subject,
             "html": html,
         }
+        if cc_list:
+            params["cc"] = cc_list
         if attachments:
             params["attachments"] = [
                 {"filename": name, "content": list(data)} for name, data in attachments
@@ -195,4 +201,9 @@ def send_enviado_logistica_interno(quote: Quote, oc: OrdemColeta, agenda: Agenda
     <p>Carregamento previsto: {agenda.data_carregamento.strftime('%d/%m/%Y')}</p>
     <p>Já consta na Agenda de Carregamentos.</p>
     """
-    _send(settings.email_comercial, f"OC {oc.numero} enviada à Logística", html)
+    _send(
+        settings.email_logistica,
+        f"OC {oc.numero} enviada à Logística",
+        html,
+        cc=settings.email_logistica_cc,
+    )

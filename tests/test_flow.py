@@ -244,7 +244,7 @@ def _fluxo_ate_aprovada(client):
     return code
 
 
-def test_fluxo_completo_solicitacao_oc_logistica_agenda(client):
+def test_fluxo_completo_solicitacao_oc_logistica_agenda(client, capsys):
     code = _fluxo_ate_aprovada(client)
 
     sol_page = client.get(f"/cotacao/{code}/solicitacao")
@@ -307,6 +307,12 @@ def test_fluxo_completo_solicitacao_oc_logistica_agenda(client):
         f"/admin/cotacao/{code}/enviar-logistica", data={"csrf_token": token}, follow_redirects=False
     )
     assert resp.status_code == 303
+
+    from app.config import settings
+
+    email_log = capsys.readouterr().out
+    assert f"Para: {settings.email_logistica}" in email_log
+    assert f"Cc: {settings.email_logistica_cc}" in email_log
 
     with SessionLocal() as db:
         q = db.query(Quote).filter_by(code=code).one()
