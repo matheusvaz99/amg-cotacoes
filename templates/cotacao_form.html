@@ -46,7 +46,7 @@
         {{ field('client_company', 'Empresa que representa', values, errors, required=True, autocomplete='organization') }}
       </div>
       <div class="grid-2">
-        {{ field('client_email', 'E-mail', values, errors, type='email', required=True, autocomplete='email') }}
+        {{ field('client_email', 'E-mail', values, errors, type='email', hint='Opcional', autocomplete='email') }}
         {{ field('client_phone', 'Telefone / WhatsApp', values, errors, hint='Opcional', inputmode='tel', autocomplete='tel') }}
       </div>
 
@@ -85,7 +85,7 @@
       {{ select('tipo_material', 'Tipo de material', tipos_material, values, errors, required=True) }}
       {{ textarea('descricao_material', 'Descricao do material', values, errors, hint='Opcional. Ex.: Tubos e acessorios de andaime') }}
       <div class="grid-2">
-        {{ field('qtd_volumes', 'Quantidade de volumes', values, errors, required=completa, inputmode='numeric', hint=None if completa else 'Opcional') }}
+        {{ field('qtd_volumes', 'Quantidade de volumes', values, errors, inputmode='numeric', hint='Opcional') }}
         {{ field('peso_total_kg', 'Peso total aproximado (kg)', values, errors, required=True, inputmode='numeric', placeholder='Ex.: 5.000', hint='Somente o peso em quilos.') }}
       </div>
       {% if completa %}

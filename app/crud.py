@@ -21,7 +21,12 @@ from app.constants import (
     STATUS_OC_EMITIDA,
     STATUS_RESPONDIDA,
 )
-from app.filiais import FILIAIS_CNPJ, empresas_elegiveis, proxima_empresa_da_fila
+from app.filiais import (
+    FILIAIS_CNPJ,
+    empresas_elegiveis,
+    parse_empresa_cnpj,
+    proxima_empresa_da_fila,
+)
 from app.models import (
     AgendaCarregamento,
     Opcao,
@@ -212,6 +217,19 @@ def sugestao_empresa_cnpj_fila(db: Session, uf: str | None) -> str | None:
     ).first()
     proxima = proxima_empresa_da_fila(elegiveis, ultima_empresa)
     return f"{proxima}|{FILIAIS_CNPJ[proxima][uf]}"
+
+
+def resolver_empresa_cnpj_oc(
+    db: Session, uf: str | None, escolha_manual: str | None
+) -> tuple[str, str] | None:
+    """Decide quem emite a OC: quando ha filial elegivel na UF, a escolha e
+    sempre automatica (rodizio), ignorando qualquer valor enviado pelo
+    formulario -- so exige escolha manual (`escolha_manual`, o dropdown) nos
+    casos em que nenhuma empresa tem filial cadastrada ali."""
+    sugestao = sugestao_empresa_cnpj_fila(db, uf)
+    if sugestao:
+        return parse_empresa_cnpj(sugestao)
+    return parse_empresa_cnpj(escolha_manual)
 
 
 def gerar_ordem_coleta(

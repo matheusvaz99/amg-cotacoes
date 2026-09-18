@@ -98,3 +98,11 @@ def parse_empresa_cnpj(value: str | None) -> tuple[str, str] | None:
     if empresa not in FILIAIS_CNPJ:
         return None
     return empresa, cnpj
+
+
+def label_empresa_cnpj(value: str | None) -> str | None:
+    """Label legivel ('Empresa — UF — CNPJ') para um value 'Empresa|CNPJ',
+    usado para exibir a escolha automatica sem o dropdown."""
+    if not value:
+        return None
+    return dict(opcoes_empresa_cnpj()).get(value, value)

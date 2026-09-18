@@ -15,17 +15,20 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
   <div class="field {% if errors.get('empresa_cnpj') %}field--error{% endif %}">
-    <label for="f_empresa_cnpj">Empresa / CNPJ da filial <span class="req">*</span></label>
-    <select id="f_empresa_cnpj" name="empresa_cnpj" required>
-      <option value="">Selecione...</option>
-      {% for value, label in empresa_opcoes %}
-        <option value="{{ value }}" {% if value == empresa_sugerida %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    {% if not empresa_sugerida %}
-      <p class="hint">Nenhuma filial encontrada para {{ uf_origem or 'essa UF' }} — escolha manualmente.</p>
+    <label>Empresa / CNPJ da filial</label>
+    {% if empresa_sugerida %}
+      <input type="hidden" name="empresa_cnpj" value="{{ empresa_sugerida }}">
+      <p class="field-static">{{ empresa_sugerida_label }}</p>
+      <p class="hint">Definido automaticamente pela filial em {{ uf_destino }} (rodízio quando mais de uma
+         empresa atende essa UF).</p>
     {% else %}
-      <p class="hint">Sugestão em rodízio entre as empresas com filial em {{ uf_origem }}; troque se precisar.</p>
+      <select id="f_empresa_cnpj" name="empresa_cnpj" required>
+        <option value="">Selecione...</option>
+        {% for value, label in empresa_opcoes %}
+          <option value="{{ value }}" {% if value == values.get('empresa_cnpj') %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <p class="hint">Nenhuma filial encontrada para {{ uf_destino or 'essa UF' }} — escolha manualmente.</p>
     {% endif %}
     {% if errors.get('empresa_cnpj') %}<p class="error-msg">{{ errors.get('empresa_cnpj') }}</p>{% endif %}
   </div>

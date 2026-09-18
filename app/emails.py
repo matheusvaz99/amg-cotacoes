@@ -91,7 +91,7 @@ def send_quote_to_comercial(quote: Quote) -> None:
     {_table(
         _row("Comprador", quote.client_name),
         _row("Empresa", quote.client_company or "-"),
-        _row("E-mail", quote.client_email),
+        _row("E-mail", quote.client_email or "-"),
         _row("Telefone", quote.client_phone or "-"),
         _row("Origem", f"{quote.origem_cidade} — CEP {quote.origem_cep or '-'} — {quote.origem_endereco or '-'} — {quote.origem_bairro or '-'}"),
         _row("Destino", f"{quote.destino_cidade} — CEP {quote.destino_cep or '-'} — {quote.destino_endereco or '-'} — {quote.destino_bairro or '-'}"),
@@ -120,6 +120,8 @@ def send_quote_to_comercial(quote: Quote) -> None:
 
 
 def send_confirmation_to_client(quote: Quote) -> None:
+    if not quote.client_email:
+        return  # cliente nao informou e-mail -- nao ha pra quem avisar
     html = f"""
     <h2>Recebemos a sua solicitação de cotação</h2>
     <p>Olá, {quote.client_name}!</p>
@@ -134,6 +136,8 @@ def send_confirmation_to_client(quote: Quote) -> None:
 def send_decision_to_client(quote: Quote) -> None:
     """Avisa o cliente quando o ADMIN registra manualmente aprovação/reprovação
     (ex.: cliente decidiu por telefone)."""
+    if not quote.client_email:
+        return  # cliente nao informou e-mail -- nao ha pra quem avisar
     label = STATUS_LABELS.get(quote.status, quote.status)
     if quote.status == "aprovada":
         corpo = (
@@ -176,6 +180,8 @@ def send_solicitacao_to_comercial(quote: Quote, solicitacao: SolicitacaoFrete) -
 
 
 def send_solicitacao_devolvida_to_client(quote: Quote) -> None:
+    if not quote.client_email:
+        return  # cliente nao informou e-mail -- nao ha pra quem avisar
     html = f"""
     <h2>Solicitação de frete devolvida — cotação {quote.code}</h2>
     <p>Olá, {quote.client_name}! Sua solicitação de frete precisa de um ajuste antes de
@@ -196,14 +202,13 @@ def send_oc_emitida_interno(quote: Quote, oc: OrdemColeta) -> None:
 
 
 def send_enviado_logistica_interno(quote: Quote, oc: OrdemColeta, agenda: AgendaCarregamento) -> None:
+    # TODO: reativar `cc=settings.email_logistica_cc` assim que um dominio
+    # proprio estiver verificado no Resend. Sem isso, a conta sandbox so
+    # entrega para o e-mail do dono da conta -- um CC de outro dominio faz
+    # o Resend rejeitar o envio inteiro (nem o "Para" principal sai).
     html = f"""
     <h2>OC {oc.numero} enviada à Logística — cotação {quote.code}</h2>
     <p>Carregamento previsto: {agenda.data_carregamento.strftime('%d/%m/%Y')}</p>
     <p>Já consta na Agenda de Carregamentos.</p>
     """
-    _send(
-        settings.email_logistica,
-        f"OC {oc.numero} enviada à Logística",
-        html,
-        cc=settings.email_logistica_cc,
-    )
+    _send(settings.email_logistica, f"OC {oc.numero} enviada à Logística", html)

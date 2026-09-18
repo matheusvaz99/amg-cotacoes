@@ -1,5 +1,10 @@
 """Testes de app/emails.py: suporte a copia (cc) e o aviso interno de OC
-enviada a Logistica (destinatario + copia do responsavel comercial)."""
+enviada a Logistica.
+
+O CC do responsavel comercial (settings.email_logistica_cc) esta
+temporariamente desligado nesse envio -- ver o comentario TODO em
+send_enviado_logistica_interno: sem dominio verificado no Resend, um CC de
+outro dominio faz a conta sandbox rejeitar o envio inteiro."""
 
 from datetime import date
 from types import SimpleNamespace
@@ -27,7 +32,7 @@ def test_send_console_dev_sem_cc_nao_mostra_linha(capsys):
     assert "Cc:" not in out
 
 
-def test_send_enviado_logistica_interno_usa_email_logistica_e_cc(monkeypatch):
+def test_send_enviado_logistica_interno_usa_email_logistica_sem_cc(monkeypatch):
     captured = {}
 
     def fake_send(to, subject, html, attachments=None, cc=None):
@@ -45,6 +50,6 @@ def test_send_enviado_logistica_interno_usa_email_logistica_e_cc(monkeypatch):
     emails.send_enviado_logistica_interno(quote, oc, agenda)
 
     assert captured["to"] == settings.email_logistica
-    assert captured["cc"] == settings.email_logistica_cc
+    assert captured["cc"] is None  # desligado ate o dominio ser verificado no Resend
     assert "OC-2026-000001" in captured["subject"]
     assert "COT-2026-000001" in captured["html"]

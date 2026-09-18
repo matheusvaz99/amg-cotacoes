@@ -73,8 +73,25 @@ def test_quote_form_completa_exige_campos_extras():
     )
     form = QuoteForm(payload, tipo_cotacao=TIPO_COTACAO_COMPLETA)
     assert not form.validate()
-    for campo in ("qtd_volumes", "valor_nf", "tipo_veiculo", "carroceria", "capacidade_aprox"):
+    for campo in ("valor_nf", "tipo_veiculo", "carroceria", "capacidade_aprox"):
         assert campo in form.errors, campo
+    # quantidade de volumes e sempre opcional, mesmo na completa
+    assert "qtd_volumes" not in form.errors
+    assert form.values["qtd_volumes"] is None
+
+
+def test_quote_form_email_e_opcional():
+    payload = _valid_payload(client_email="")
+    form = QuoteForm(payload, tipo_cotacao=TIPO_COTACAO_COMPLETA)
+    assert form.validate(), form.errors
+    assert form.values["client_email"] is None
+
+
+def test_quote_form_email_invalido_e_rejeitado_quando_informado():
+    payload = _valid_payload(client_email="nao-e-um-email")
+    form = QuoteForm(payload)
+    assert not form.validate()
+    assert "client_email" in form.errors
 
 
 def test_quote_form_rejects_carroceria_outside_list():

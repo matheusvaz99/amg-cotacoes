@@ -12,7 +12,7 @@ from app.models import Proposal, Quote
 # funciona no SQLite de dev (tabela sempre criada do zero) mas quebra no
 # Postgres de producao (ALTER COLUMN nunca roda para ela).
 LEGACY_NULLABLE = {
-    Quote: ["qtd_volumes", "valor_nf", "tipo_veiculo", "capacidade_aprox"],
+    Quote: ["qtd_volumes", "valor_nf", "tipo_veiculo", "capacidade_aprox", "client_email"],
     Proposal: ["frete", "pedagio", "seguro", "total"],
 }
 

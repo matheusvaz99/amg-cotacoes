@@ -42,7 +42,7 @@ class Quote(Base):
     # Contato
     client_name: Mapped[str] = mapped_column(String(120))  # nome do comprador
     client_company: Mapped[str] = mapped_column(String(160), default="")  # empresa
-    client_email: Mapped[str] = mapped_column(String(180), index=True)
+    client_email: Mapped[str | None] = mapped_column(String(180), index=True, nullable=True)
     client_phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
     # Origem (coleta)

@@ -6,6 +6,7 @@ from app.filiais import (
     FILIAIS_CNPJ,
     empresas_elegiveis,
     extrair_uf,
+    label_empresa_cnpj,
     opcoes_empresa_cnpj,
     parse_empresa_cnpj,
     proxima_empresa_da_fila,
@@ -106,3 +107,15 @@ def test_proxima_empresa_da_fila_ultima_fora_da_lista_comeca_do_topo():
 def test_proxima_empresa_da_fila_vazia():
     assert proxima_empresa_da_fila([], None) is None
     assert proxima_empresa_da_fila([], "qualquer") is None
+
+
+def test_label_empresa_cnpj():
+    valor = "AMG Logistica Ltda|53.805.774/0001-56"
+    assert label_empresa_cnpj(valor) == "AMG Logistica Ltda — PR — 53.805.774/0001-56"
+
+
+def test_label_empresa_cnpj_none_ou_invalido():
+    assert label_empresa_cnpj(None) is None
+    assert label_empresa_cnpj("") is None
+    # valor sem correspondencia: devolve o proprio valor (nao quebra o template)
+    assert label_empresa_cnpj("Algo|123") == "Algo|123"

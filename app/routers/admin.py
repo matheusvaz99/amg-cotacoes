@@ -27,7 +27,7 @@ from app.constants import (
     TIPOS_COTACAO_LABELS,
 )
 from app.database import get_db
-from app.filiais import extrair_uf, opcoes_empresa_cnpj, parse_empresa_cnpj
+from app.filiais import extrair_uf, label_empresa_cnpj, opcoes_empresa_cnpj
 from app.forms import AgendaForm, ProposalForm, SolicitacaoFreteForm
 from app.ordem_coleta_docx import build_ordem_coleta_docx
 from app.pdf import build_quote_pdf
@@ -274,7 +274,8 @@ def solicitacao_view(
     quote = crud.get_quote_by_code(db, code)
     if not quote or not quote.solicitacao:
         return RedirectResponse("/admin", status_code=303)
-    uf = extrair_uf(quote.origem_cidade)
+    uf = extrair_uf(quote.destino_cidade)
+    sugestao = crud.sugestao_empresa_cnpj_fila(db, uf)
     return render(
         request,
         "admin/solicitacao.html",
@@ -282,8 +283,9 @@ def solicitacao_view(
         quote=quote,
         solicitacao=quote.solicitacao,
         empresa_opcoes=opcoes_empresa_cnpj(),
-        empresa_sugerida=crud.sugestao_empresa_cnpj_fila(db, uf),
-        uf_origem=uf,
+        empresa_sugerida=sugestao,
+        empresa_sugerida_label=label_empresa_cnpj(sugestao),
+        uf_destino=uf,
         csrf_token=get_csrf_token(request),
     )
 
@@ -301,14 +303,15 @@ async def solicitacao_validar(
     form = dict((await request.form()))
     if not validate_csrf(request, form.get("csrf_token")):
         return RedirectResponse(f"/admin/cotacao/{code}/solicitacao", status_code=303)
-    escolha = parse_empresa_cnpj(form.get("empresa_cnpj"))
+    uf = extrair_uf(quote.destino_cidade)
+    escolha = crud.resolver_empresa_cnpj_oc(db, uf, form.get("empresa_cnpj"))
     if not escolha:
         return RedirectResponse(f"/admin/cotacao/{code}/solicitacao?err=empresa", status_code=303)
     if quote.status in (STATUS_FRETE_SOLICITADO, STATUS_EM_VALIDACAO) and not quote.ordem_coleta:
         empresa, cnpj = escolha
         oc = crud.gerar_ordem_coleta(
             db, quote, empresa=empresa, cnpj_filial=cnpj,
-            uf_referencia=extrair_uf(quote.origem_cidade), gerado_por=admin,
+            uf_referencia=uf, gerado_por=admin,
         )
         emails.send_oc_emitida_interno(quote, oc)
     return RedirectResponse(f"/admin/cotacao/{code}/solicitacao?ok=oc", status_code=303)
@@ -334,12 +337,13 @@ def gerar_oc_form(
         "destinatario_nome": s.destinatario_nome if s else "", "destinatario_contato": s.destinatario_contato if s else "",
         "valor_nf": s.valor_nf if s else quote.valor_nf, "observacoes_operacionais": s.observacoes_operacionais if s else "",
     }
-    uf = extrair_uf(quote.origem_cidade)
+    uf = extrair_uf(quote.destino_cidade)
+    sugestao = crud.sugestao_empresa_cnpj_fila(db, uf)
     return render(
         request, "admin/gerar_oc.html", admin=admin, quote=quote, values=values, errors={},
         pagador_opcoes=PAGADOR_OPCOES, empresa_opcoes=opcoes_empresa_cnpj(),
-        empresa_sugerida=crud.sugestao_empresa_cnpj_fila(db, uf), uf_origem=uf,
-        csrf_token=get_csrf_token(request),
+        empresa_sugerida=sugestao, empresa_sugerida_label=label_empresa_cnpj(sugestao),
+        uf_destino=uf, csrf_token=get_csrf_token(request),
     )
 
 
@@ -357,7 +361,8 @@ async def gerar_oc_submit(
     if not validate_csrf(request, form.get("csrf_token")):
         return RedirectResponse(f"/admin/cotacao/{code}/gerar-oc", status_code=303)
 
-    escolha = parse_empresa_cnpj(form.get("empresa_cnpj"))
+    uf = extrair_uf(quote.destino_cidade)
+    escolha = crud.resolver_empresa_cnpj_oc(db, uf, form.get("empresa_cnpj"))
     sf = SolicitacaoFreteForm(form)
     valida = sf.validate()
     if not escolha:
@@ -366,18 +371,20 @@ async def gerar_oc_submit(
         errors = dict(sf.errors)
         if not escolha:
             errors["empresa_cnpj"] = "Selecione a empresa/CNPJ da filial."
+        sugestao = crud.sugestao_empresa_cnpj_fila(db, uf)
         return render(
             request, "admin/gerar_oc.html", admin=admin, quote=quote,
             values={**form}, errors=errors, pagador_opcoes=PAGADOR_OPCOES,
-            empresa_opcoes=opcoes_empresa_cnpj(), empresa_sugerida=form.get("empresa_cnpj"),
-            uf_origem=extrair_uf(quote.origem_cidade), csrf_token=get_csrf_token(request),
+            empresa_opcoes=opcoes_empresa_cnpj(),
+            empresa_sugerida=sugestao, empresa_sugerida_label=label_empresa_cnpj(sugestao),
+            uf_destino=uf, csrf_token=get_csrf_token(request),
         )
 
     crud.create_or_update_solicitacao(db, quote, sf.values)
     empresa, cnpj = escolha
     oc = crud.gerar_ordem_coleta(
         db, quote, empresa=empresa, cnpj_filial=cnpj,
-        uf_referencia=extrair_uf(quote.origem_cidade), gerado_por=admin,
+        uf_referencia=uf, gerado_por=admin,
     )
     emails.send_oc_emitida_interno(quote, oc)
     return RedirectResponse(f"/admin/cotacao/{code}/solicitacao?ok=oc", status_code=303)

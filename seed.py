@@ -12,11 +12,12 @@ from decimal import Decimal
 from app import crud
 from app.constants import PAGADOR_OPCOES, TIPO_COTACAO_RAPIDA
 from app.database import SessionLocal, init_db
-from app.filiais import extrair_uf, sugestao_empresa_cnpj, parse_empresa_cnpj
+from app.filiais import extrair_uf
 
 
-def _empresa_cnpj_para(quote):
-    escolha = parse_empresa_cnpj(sugestao_empresa_cnpj(extrair_uf(quote.origem_cidade)))
+def _empresa_cnpj_para(db, quote):
+    uf = extrair_uf(quote.destino_cidade)
+    escolha = crud.resolver_empresa_cnpj_oc(db, uf, None)
     return escolha or ("AMG Logistica Ltda", "53.805.774/0001-56")
 
 D = Decimal
@@ -178,10 +179,10 @@ def run() -> None:
             destinatario_nome="Filial BH", destinatario_contato="(31) 97777-3333",
             valor_nf=D("60000.00"), observacoes_operacionais=None,
         ))
-        empresa6, cnpj6 = _empresa_cnpj_para(q6)
+        empresa6, cnpj6 = _empresa_cnpj_para(db, q6)
         crud.gerar_ordem_coleta(
             db, q6, empresa=empresa6, cnpj_filial=cnpj6,
-            uf_referencia=extrair_uf(q6.origem_cidade), gerado_por="seed",
+            uf_referencia=extrair_uf(q6.destino_cidade), gerado_por="seed",
         )
         print("  -> OC emitida")
 
@@ -208,10 +209,10 @@ def run() -> None:
                 destinatario_nome=f"Obra {destino}", destinatario_contato=None,
                 valor_nf=D("30000.00"), observacoes_operacionais=None,
             ))
-            empresa_n, cnpj_n = _empresa_cnpj_para(qn)
+            empresa_n, cnpj_n = _empresa_cnpj_para(db, qn)
             crud.gerar_ordem_coleta(
                 db, qn, empresa=empresa_n, cnpj_filial=cnpj_n,
-                uf_referencia=extrair_uf(qn.origem_cidade), gerado_por="seed",
+                uf_referencia=extrair_uf(qn.destino_cidade), gerado_por="seed",
             )
             agenda = crud.enviar_logistica(db, qn, enviado_por="seed")
             agenda.responsavel_logistica = "Ryan"

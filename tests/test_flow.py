@@ -8,7 +8,11 @@ VALID = {
     "client_name": "Joao Alves",
     "client_company": "Construtora Alfa",
     "client_email": "compras@alfa.com.br",
-    "origem_cidade": "Curitiba - PR",
+    # origem e destino ficam em UFs diferentes de proposito: a empresa/CNPJ
+    # da OC deve seguir o destino (Londrina - PR, com varias filiais
+    # elegiveis), nunca a origem (Salvador - BA, so a JVA atende) -- assim os
+    # testes pegam se essa logica for trocada de volta por engano.
+    "origem_cidade": "Salvador - BA",
     "destino_cidade": "Londrina - PR",
     "tipo_material": "Andaime",
     "qtd_volumes": "10",
@@ -103,6 +107,46 @@ def test_submit_quote_rapida_com_campos_minimos(client):
     }
     resp = client.post("/cotacao/nova", data=payload, follow_redirects=False)
     assert resp.status_code == 303, resp.text
+
+
+def test_submit_quote_sem_email_e_aceito(client, capsys):
+    """E-mail do comprador e opcional -- a cotacao e criada normalmente, so
+    nao ha confirmacao por e-mail (nao ha pra quem mandar)."""
+    code = _submit_quote(client, client_email="")
+    capsys.readouterr()  # descarta o e-mail interno ao comercial, so nos interessa o do cliente
+
+    detail = client.get(f"/cotacao/{code}")
+    assert detail.status_code == 200
+
+    from app.database import SessionLocal
+    from app.models import Quote
+
+    with SessionLocal() as db:
+        q = db.query(Quote).filter_by(code=code).one()
+        assert q.client_email is None
+
+    _admin_login(client)
+    _respond(client, code)
+    page = client.get(f"/admin/cotacao/{code}")
+    token = csrf_from(page.text)
+    capsys.readouterr()  # limpa o buffer antes do aprovar, pra isolar so esse passo
+    resp = client.post(
+        f"/admin/cotacao/{code}/aprovar", data={"csrf_token": token}, follow_redirects=False
+    )
+    assert resp.status_code == 303
+    out = capsys.readouterr()
+    assert "----- E-MAIL" not in out.out  # sem e-mail, nao ha aviso nenhum pra disparar
+
+
+def test_submit_quote_sem_qtd_volumes_completa_e_aceito(client):
+    code = _submit_quote(client, qtd_volumes="")
+
+    from app.database import SessionLocal
+    from app.models import Quote
+
+    with SessionLocal() as db:
+        q = db.query(Quote).filter_by(code=code).one()
+        assert q.qtd_volumes is None
 
 
 def test_admin_requires_login(client):
@@ -272,13 +316,14 @@ def test_fluxo_completo_solicitacao_oc_logistica_agenda(client, capsys):
 
     from app.filiais import extrair_uf, sugestao_empresa_cnpj
 
-    empresa_cnpj = sugestao_empresa_cnpj(extrair_uf(VALID["origem_cidade"]))
-    assert empresa_cnpj  # origem PR tem filial cadastrada -- deve sugerir sozinho
-    assert empresa_cnpj in admin_sol.text
+    empresa_cnpj = sugestao_empresa_cnpj(extrair_uf(VALID["destino_cidade"]))
+    assert empresa_cnpj  # destino PR tem filial cadastrada -- resolvido sozinho, sem dropdown
+    assert f'value="{empresa_cnpj}"' in admin_sol.text
+    assert "<select" not in admin_sol.text  # nao pede escolha manual quando ha filial
 
     resp = client.post(
         f"/admin/cotacao/{code}/solicitacao/validar",
-        data={"csrf_token": token, "empresa_cnpj": empresa_cnpj},
+        data={"csrf_token": token},  # empresa/CNPJ e resolvido pelo servidor, nao pelo form
         follow_redirects=False,
     )
     assert resp.status_code == 303
@@ -312,7 +357,8 @@ def test_fluxo_completo_solicitacao_oc_logistica_agenda(client, capsys):
 
     email_log = capsys.readouterr().out
     assert f"Para: {settings.email_logistica}" in email_log
-    assert f"Cc: {settings.email_logistica_cc}" in email_log
+    # CC do comercial4 desligado por ora -- ver TODO em send_enviado_logistica_interno
+    assert "Cc:" not in email_log
 
     with SessionLocal() as db:
         q = db.query(Quote).filter_by(code=code).one()
@@ -380,8 +426,8 @@ def test_gerar_oc_atalho_direto_da_cotacao_aprovada(client):
 
     from app.filiais import extrair_uf, sugestao_empresa_cnpj
 
-    empresa_cnpj = sugestao_empresa_cnpj(extrair_uf(VALID["origem_cidade"]))
-    assert empresa_cnpj  # sugerido automaticamente para a UF de origem
+    empresa_cnpj = sugestao_empresa_cnpj(extrair_uf(VALID["destino_cidade"]))
+    assert empresa_cnpj  # resolvido automaticamente para a UF de destino
 
     resp = client.post(
         f"/admin/cotacao/{code}/gerar-oc",
@@ -406,9 +452,12 @@ def test_gerar_oc_atalho_direto_da_cotacao_aprovada(client):
         assert q.ordem_coleta.empresa == empresa_cnpj.split("|")[0]
 
 
-def test_gerar_oc_sem_empresa_e_rejeitado(client):
-    code = _fluxo_ate_aprovada(client)
+def test_gerar_oc_sem_filial_na_uf_exige_escolha_manual_e_rejeita_vazio(client):
+    """Manaus - AM nao tem filial de nenhuma empresa cadastrada -- e o unico
+    caso em que o dropdown aparece e a escolha manual e obrigatoria."""
+    code = _fluxo_ate_aprovada_em(client, "Manaus - AM")
     form_page = client.get(f"/admin/cotacao/{code}/gerar-oc")
+    assert "<select" in form_page.text  # sem filial elegivel, pede escolha manual
     token = csrf_from(form_page.text)
     resp = client.post(
         f"/admin/cotacao/{code}/gerar-oc",
@@ -430,14 +479,53 @@ def test_gerar_oc_sem_empresa_e_rejeitado(client):
         assert q.ordem_coleta is None
 
 
+def test_gerar_oc_sem_filial_na_uf_aceita_escolha_manual(client):
+    """No mesmo cenario sem filial (Manaus - AM), escolher manualmente no
+    dropdown deve funcionar normalmente."""
+    code = _fluxo_ate_aprovada_em(client, "Manaus - AM")
+    manual = "AMG Expresso Ltda|50.786.286/0003-12"  # MS, so pra ilustrar escolha livre
+    _gerar_oc(client, code, manual)
+
+    from app.database import SessionLocal
+    from app.models import Quote
+
+    with SessionLocal() as db:
+        q = db.query(Quote).filter_by(code=code).one()
+        assert q.status == "oc_emitida"
+        assert q.ordem_coleta.empresa == "AMG Expresso Ltda"
+        assert q.ordem_coleta.cnpj_filial == "50.786.286/0003-12"
+
+
+def test_resolver_empresa_cnpj_oc(client):
+    """Unidade direta de crud.resolver_empresa_cnpj_oc: automatico quando ha
+    filial elegivel (ignora qualquer escolha manual enviada), manual so
+    quando nao ha nenhuma."""
+    from app import crud
+    from app.database import SessionLocal
+
+    with SessionLocal() as db:
+        # PR tem filiais elegiveis -- sempre automatico, mesmo com lixo/None enviado
+        auto = crud.resolver_empresa_cnpj_oc(db, "PR", None)
+        assert auto is not None
+        assert auto == crud.resolver_empresa_cnpj_oc(db, "PR", "isso nao deveria importar")
+
+        # AM nao tem nenhuma filial -- so a escolha manual decide
+        assert crud.resolver_empresa_cnpj_oc(db, "AM", None) is None
+        assert crud.resolver_empresa_cnpj_oc(db, "AM", "valor invalido") is None
+        manual = "JVA Logistica e Transportes Ltda|22.729.681/0001-66"
+        assert crud.resolver_empresa_cnpj_oc(db, "AM", manual) == (
+            "JVA Logistica e Transportes Ltda", "22.729.681/0001-66",
+        )
+
+
 def test_sugestao_empresa_faz_rodizio_entre_filiais_da_mesma_uf(client):
-    """Quando mais de uma empresa do grupo atende a UF de origem, a
+    """Quando mais de uma empresa do grupo atende a UF de destino, a
     sugestao de CNPJ alterna entre elas a cada OC gerada (fila em
     rodizio), em vez de sempre sugerir a mesma."""
     from app.filiais import empresas_elegiveis, extrair_uf
 
-    fila = empresas_elegiveis(extrair_uf(VALID["origem_cidade"]))
-    assert len(fila) >= 2  # PR (origem do VALID) atende por varias empresas
+    fila = empresas_elegiveis(extrair_uf(VALID["destino_cidade"]))
+    assert len(fila) >= 2  # PR (destino do VALID) atende por varias empresas
 
     escolhidas = []
     for _ in range(len(fila) + 1):  # uma volta completa + 1, pra conferir que reinicia
@@ -452,8 +540,8 @@ def test_sugestao_empresa_faz_rodizio_entre_filiais_da_mesma_uf(client):
     assert escolhidas[len(fila)] == fila[0]  # e reinicia do topo
 
 
-def _fluxo_ate_aprovada_em(client, origem_cidade: str):
-    code = _submit_quote(client, origem_cidade=origem_cidade)
+def _fluxo_ate_aprovada_em(client, destino_cidade: str):
+    code = _submit_quote(client, destino_cidade=destino_cidade)
     _admin_login(client)
     _respond(client, code)
     page = client.get(f"/admin/cotacao/{code}")
@@ -479,8 +567,14 @@ def _gerar_oc(client, code: str, empresa_cnpj: str):
 
 
 def _empresa_sugerida_no_form(html: str) -> str | None:
+    """Le a empresa/CNPJ que o form vai enviar: modo automatico (input
+    hidden, quando ha filial elegivel) ou modo manual (option selecionada
+    no dropdown, quando nao ha nenhuma)."""
     import re
 
+    m = re.search(r'name="empresa_cnpj" value="([^"]+)"', html)
+    if m:
+        return m.group(1)
     m = re.search(r'value="([^"]+)"\s+selected', html)
     return m.group(1) if m else None
 

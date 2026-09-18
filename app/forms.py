@@ -51,7 +51,6 @@ class QuoteForm:
     REQUIRED_LABELS = {
         "client_name": "Nome do comprador",
         "client_company": "Empresa que representa",
-        "client_email": "E-mail",
         "origem_cidade": "Cidade de origem",
         "destino_cidade": "Cidade de destino",
         "tipo_material": "Tipo de material",
@@ -60,7 +59,6 @@ class QuoteForm:
     }
     # Obrigatorios so na cotacao completa.
     REQUIRED_LABELS_COMPLETA = {
-        "qtd_volumes": "Quantidade de volumes",
         "valor_nf": "Valor aproximado da NF",
         "tipo_veiculo": "Tipo de veiculo desejado",
         "carroceria": "Carroceria",
@@ -87,11 +85,11 @@ class QuoteForm:
         if completa and not v["capacidade_aprox"]:
             self.errors["capacidade_aprox"] = f"{self.REQUIRED_LABELS_COMPLETA['capacidade_aprox']} é obrigatório."
 
-        # E-mail
-        v["client_email"] = _clean(d.get("client_email")).lower()
-        if not v["client_email"]:
-            self.errors["client_email"] = "E-mail é obrigatório."
-        elif "@" not in v["client_email"] or "." not in v["client_email"].split("@")[-1]:
+        # E-mail: opcional -- se informado, precisa ser valido
+        v["client_email"] = _clean(d.get("client_email")).lower() or None
+        if v["client_email"] and (
+            "@" not in v["client_email"] or "." not in v["client_email"].split("@")[-1]
+        ):
             self.errors["client_email"] = "Informe um e-mail válido."
 
         v["client_phone"] = _clean(d.get("client_phone")) or None
@@ -122,11 +120,9 @@ class QuoteForm:
         elif v["carroceria"] and self.allowed_carrocerias is not None and v["carroceria"] not in self.allowed_carrocerias:
             self.errors["carroceria"] = "Opção inválida."
 
-        # Quantidade de volumes: obrigatoria so na completa
+        # Quantidade de volumes: sempre opcional
         v["qtd_volumes"] = parse_int(d.get("qtd_volumes"))
-        if completa and v["qtd_volumes"] is None:
-            self.errors["qtd_volumes"] = "Informe a quantidade de volumes."
-        elif v["qtd_volumes"] is not None and v["qtd_volumes"] <= 0:
+        if v["qtd_volumes"] is not None and v["qtd_volumes"] <= 0:
             self.errors["qtd_volumes"] = "A quantidade deve ser maior que zero."
 
         # Peso: sempre obrigatorio (rapida e completa)

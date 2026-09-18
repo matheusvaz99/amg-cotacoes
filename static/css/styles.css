@@ -145,6 +145,11 @@ a { color: var(--orange-600); }
   outline: 2px solid var(--orange); outline-offset: 1px; border-color: var(--orange);
 }
 .field--error input, .field--error select, .field--error textarea { border-color: var(--err); background: #fff8f8; }
+.field-static {
+  width: 100%; min-height: 46px; padding: 10px 12px; margin: 0; box-sizing: border-box;
+  display: flex; align-items: center; font-weight: 600; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-sm);
+}
 .req { color: var(--err); }
 .hint { color: var(--muted); font-size: .8rem; margin: 4px 0 0; }
 .error-msg { color: var(--err); font-size: .82rem; margin: 4px 0 0; font-weight: 500; }

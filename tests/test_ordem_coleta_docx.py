@@ -75,7 +75,7 @@ def _fluxo_ate_oc(client):
     token = csrf_from(form_page.text)
     from app.filiais import extrair_uf, sugestao_empresa_cnpj
 
-    empresa_cnpj = sugestao_empresa_cnpj(extrair_uf(VALID["origem_cidade"]))
+    empresa_cnpj = sugestao_empresa_cnpj(extrair_uf(VALID["destino_cidade"]))
     client.post(
         f"/admin/cotacao/{code}/gerar-oc",
         data={
