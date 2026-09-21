@@ -56,7 +56,7 @@
         {% else %}
           <div class="field">
             <label for="f_empresa_cnpj">Empresa / CNPJ da filial <span class="req">*</span></label>
-            <select id="f_empresa_cnpj" name="empresa_cnpj" required>
+            <select id="f_empresa_cnpj" name="empresa_cnpj" required autocomplete="off">
               <option value="">Selecione...</option>
               {% for value, label in empresa_opcoes %}
                 <option value="{{ value }}">{{ label }}</option>

@@ -22,7 +22,7 @@
       <p class="hint">Definido automaticamente pela filial em {{ uf_destino }} (rodízio quando mais de uma
          empresa atende essa UF).</p>
     {% else %}
-      <select id="f_empresa_cnpj" name="empresa_cnpj" required>
+      <select id="f_empresa_cnpj" name="empresa_cnpj" required autocomplete="off">
         <option value="">Selecione...</option>
         {% for value, label in empresa_opcoes %}
           <option value="{{ value }}" {% if value == values.get('empresa_cnpj') %}selected{% endif %}>{{ label }}</option>

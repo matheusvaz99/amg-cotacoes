@@ -4,6 +4,14 @@ Ordem de Coleta com o modelo .docx e o CNPJ corretos. Fonte: planilha
 
 from __future__ import annotations
 
+import re
+
+UFS_VALIDAS = {
+    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS",
+    "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC",
+    "SP", "SE", "TO",
+}
+
 # Ordem = prioridade de sugestao quando mais de uma empresa tem filial na
 # mesma UF (o admin sempre pode escolher outra opcao no dropdown).
 FILIAIS_CNPJ: dict[str, dict[str, str]] = {
@@ -40,11 +48,21 @@ EMPRESAS_OC = list(FILIAIS_CNPJ.keys())
 
 
 def extrair_uf(cidade_uf: str | None) -> str | None:
-    """'Curitiba - PR' -> 'PR'. Devolve None se nao conseguir extrair."""
-    if not cidade_uf or "-" not in cidade_uf:
+    """Extrai a sigla da UF de um texto livre. O formulario do cliente so
+    sugere o padrao "Cidade - UF" no placeholder, mas o campo e texto livre
+    -- na pratica chega "Cidade/UF", "Cidade, UF", "Cidade UF", minusculo,
+    etc. Por isso procura qualquer sigla valida de estado que apareca
+    isolada no texto (no colada a outras letras), em vez de depender de um
+    separador especifico. Se houver mais de uma, fica com a ultima (segue
+    a convencao "cidade - UF"). Devolve None se nao encontrar nenhuma."""
+    if not cidade_uf:
         return None
-    uf = cidade_uf.rsplit("-", 1)[-1].strip().upper()
-    return uf if len(uf) == 2 and uf.isalpha() else None
+    encontrada = None
+    for match in re.finditer(r"(?<![A-Za-zÀ-ÿ])[A-Za-zÀ-ÿ]{2}(?![A-Za-zÀ-ÿ])", cidade_uf):
+        candidato = match.group(0).upper()
+        if candidato in UFS_VALIDAS:
+            encontrada = candidato
+    return encontrada
 
 
 def opcoes_empresa_cnpj() -> list[tuple[str, str]]:

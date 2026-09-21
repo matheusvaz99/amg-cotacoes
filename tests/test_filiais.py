@@ -26,6 +26,27 @@ def test_extrair_uf_invalido_devolve_none():
     assert extrair_uf("Curitiba - Parana") is None
 
 
+def test_extrair_uf_aceita_formatos_livres_do_cliente():
+    """O campo de cidade e texto livre (so o placeholder sugere "Cidade -
+    UF") -- o cliente real digita de varios jeitos. extrair_uf precisa
+    reconhecer a UF em qualquer um deles, senao a OC nunca acha a filial
+    automaticamente e o admin acaba sempre escolhendo a mesma no dropdown
+    manual (o "CNPJ fixo" reportado)."""
+    assert extrair_uf("Curitiba/PR") == "PR"
+    assert extrair_uf("Curitiba, PR") == "PR"
+    assert extrair_uf("Curitiba PR") == "PR"
+    assert extrair_uf("curitiba - pr") == "PR"
+    assert extrair_uf("  Curitiba - PR  ") == "PR"
+    assert extrair_uf("PR - Curitiba") == "PR"
+
+
+def test_extrair_uf_nao_confunde_palavras_curtas_com_uf():
+    # "de", "do" etc nao sao UF -- so pega a sigla de verdade quando houver
+    assert extrair_uf("Rio de Janeiro") is None
+    assert extrair_uf("Rio de Janeiro - RJ") == "RJ"
+    assert extrair_uf("Barra do Piraí - RJ") == "RJ"
+
+
 def test_sugestao_empresa_cnpj_uf_com_filial():
     # PR tem filial nas 4 empresas -- prioridade e a ordem do dict
     assert sugestao_empresa_cnpj("PR") == "AMG Logistica Ltda|53.805.774/0001-56"
