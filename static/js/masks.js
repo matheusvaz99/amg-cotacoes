@@ -46,6 +46,7 @@
     "valor_nf", "custos_adicionais",
     "custo_motorista", "custo_pedagio", "custo_impostos", "custo_seguro", "custo_outros_internos",
     "valor_carga", "valor_descarga", "valor_diaria", "valor_ajudante", "valor_empilhadeira", "valor_guincho",
+    "fe_manual",
   ];
   document
     .querySelectorAll(CURRENCY_FIELDS.map(function (n) { return 'input[name="' + n + '"]'; }).join(", "))
