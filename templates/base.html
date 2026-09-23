@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b2138">
   <meta name="description" content="Solicite cotacoes de frete da AMG Logistica de forma rapida, simples e padronizada.">
   <title>{% block title %}AMG Logistica — Cotacao Rapida de Frete{% endblock %}</title>
-  <link rel="icon" href="{{ url_for('static', path='img/favicon.svg') }}">
+  <link rel="icon" href="{{ url_for('static', path='img/favicon.png') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,8 +16,7 @@
   <header class="site-header">
     <div class="container site-header__inner">
       <a class="brand" href="/">
-        <span class="brand__mark">AMG</span>
-        <span class="brand__sub">LOGISTICA</span>
+        <img class="brand__logo" src="{{ url_for('static', path='img/logo-amg-expresso.png') }}" alt="AMG Logística">
       </a>
       <nav class="site-nav">
         <a href="/cotacao">Nova cotacao</a>

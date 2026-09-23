@@ -52,9 +52,8 @@ a { color: var(--orange-600); }
 /* ---------- Header / footer ---------- */
 .site-header { background: var(--navy); color: #fff; }
 .site-header__inner { display: flex; align-items: center; justify-content: space-between; min-height: 60px; gap: 12px; }
-.brand { display: flex; align-items: baseline; gap: 6px; text-decoration: none; }
-.brand__mark { font-weight: 800; font-size: 1.35rem; color: var(--orange); letter-spacing: .02em; }
-.brand__sub { font-weight: 700; font-size: .7rem; letter-spacing: .28em; color: #cfd8e3; }
+.brand { display: flex; align-items: center; text-decoration: none; }
+.brand__logo { height: 42px; width: auto; display: block; }
 .site-nav { display: flex; gap: 6px; flex-wrap: wrap; }
 .site-nav a {
   color: #e8edf3; text-decoration: none; font-size: .9rem; font-weight: 500;
