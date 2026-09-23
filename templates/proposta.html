@@ -52,6 +52,10 @@
       {% if proposal.expirada and quote.status == 'respondida' %}
         <p class="notice notice--error">Proposta expirada. Solicite uma nova cotação.</p>
       {% endif %}
+      <h3 class="section-title">Condições comerciais</h3>
+      <ul class="disclaimers">
+        {% for item in TERMOS_COTACAO %}<li>{{ item }}</li>{% endfor %}
+      </ul>
     </div>
 
     {% if quote.status == 'respondida' %}

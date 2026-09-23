@@ -86,9 +86,11 @@ def test_gen_quote_code_increments():
 
 
 def test_gen_oc_numero_increments():
+    """AMG-J-<sequencial continuo>, sem reset por ano -- so soma o total de
+    OCs ja emitidas."""
     db = SessionLocal()
     try:
-        assert gen_oc_numero(db, year=2025) == "OC-2025-000001"
+        assert gen_oc_numero(db) == "AMG-J-1"
     finally:
         db.close()
 

@@ -335,7 +335,7 @@ def test_fluxo_completo_solicitacao_oc_logistica_agenda(client, capsys):
         q = db.query(Quote).filter_by(code=code).one()
         assert q.status == "oc_emitida"
         assert q.ordem_coleta is not None
-        assert q.ordem_coleta.numero.startswith("OC-")
+        assert q.ordem_coleta.numero.startswith("AMG-J-")
         assert q.ordem_coleta.empresa == empresa_cnpj.split("|")[0]
         assert q.ordem_coleta.cnpj_filial == empresa_cnpj.split("|")[1]
 

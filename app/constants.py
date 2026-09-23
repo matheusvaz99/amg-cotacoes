@@ -163,4 +163,20 @@ DISCLAIMERS = [
     "Em caso de informacoes incompletas, o time comercial podera entrar em contato.",
 ]
 
+# Condicoes comerciais padrao, exibidas ao final de cada cotacao com
+# proposta (site do cliente + PDF) -- texto conforme modelo de cotacao
+# fornecido pelo cliente, a partir de "Obrigatoria apresentacao da nota
+# fiscal...". Nao entra no rodape geral do site (DISCLAIMERS), so nas
+# telas/documentos da propria cotacao.
+TERMOS_COTACAO = [
+    "Obrigatória apresentação da nota fiscal no momento do embarque para fins de seguro da carga.",
+    "Inclusos: impostos, pedágios e seguros. Condição de pagamento: 28 dias no boleto bancário.",
+    "**Não inclusos serviços de carga e descarga, sendo de inteira responsabilidade do contratante do frete o correto armazenamento do material no veículo.",
+    "**Não incluso serviço de conferência.",
+    "**Não incluso diária (se necessário, avisar a transportadora).",
+    "**Caso ocorra cancelamento da carga sem prévio aviso, será cobrado valor de deslocamento acordado à parte (verificar valor junto ao comercial).",
+    "**Valores sujeitos a alterações devido a aumento do diesel/pedágios, etc.",
+    "**Validade da proposta: 10 dias.",
+]
+
 SLOGAN = "RAPIDO PARA SOLICITAR. FACIL PARA COTAR. EFICIENTE PARA TODOS."

@@ -31,11 +31,13 @@ def gen_quote_code(db: Session, *, year: int | None = None) -> str:
     return _gen_sequential_code(db, Quote, "code", "COT", year=year)
 
 
-def gen_oc_numero(db: Session, *, year: int | None = None) -> str:
-    """Gera OC-<ano>-<sequencial de 6 digitos> para a Ordem de Coleta."""
+def gen_oc_numero(db: Session) -> str:
+    """Gera AMG-J-<sequencial> para a Ordem de Coleta -- sequencial continuo
+    (sem reset por ano), contando todas as OCs ja emitidas."""
     from app.models import OrdemColeta
 
-    return _gen_sequential_code(db, OrdemColeta, "numero", "OC", year=year)
+    count = db.query(func.count(OrdemColeta.id)).scalar() or 0
+    return f"AMG-J-{count + 1}"
 
 
 def parse_brl(value: str | None) -> Decimal | None:

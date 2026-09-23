@@ -11,7 +11,7 @@ from datetime import datetime
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 
-from app.constants import DISCLAIMERS, SLOGAN, STATUS_LABELS
+from app.constants import DISCLAIMERS, SLOGAN, STATUS_LABELS, TERMOS_COTACAO
 from app.models import Quote
 from app.utils import format_brl, format_peso
 
@@ -220,6 +220,14 @@ def build_quote_pdf(quote: Quote) -> bytes:
         pdf.row("Prazo de entrega", proposal.prazo_entrega)
         pdf.row("Validade da proposta", proposal.validade.strftime("%d/%m/%Y"))
         pdf.row("Observacoes", proposal.observacoes or "-")
+
+        pdf.ln(2)
+        pdf.section("Condicoes comerciais")
+        pdf.set_font("Helvetica", "", 8)
+        pdf.set_text_color(*INK)
+        for item in TERMOS_COTACAO:
+            pdf.multi_cell(0, 4.4, _s(item), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.ln(0.8)
 
     pdf.ln(4)
     pdf.set_draw_color(*LINE)
