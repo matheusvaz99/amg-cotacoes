@@ -70,8 +70,6 @@
       <div><dt>Dimensões</dt><dd>{{ quote.dimensoes or '-' }}</dd></div>
       <div><dt>Peso total (kg)</dt><dd>{{ quote.peso_total_kg | peso }}</dd></div>
       <div><dt>Valor da NF</dt><dd>{{ quote.valor_nf | brl }}</dd></div>
-      <div><dt>Serviço de carga</dt><dd>{{ 'Sim' if quote.servico_carga else 'Não' }}</dd></div>
-      <div><dt>Serviço de descarga</dt><dd>{{ 'Sim' if quote.servico_descarga else 'Não' }}</dd></div>
       <div><dt>Diária</dt><dd>{{ 'Sim' if quote.servico_diaria else 'Não' }}</dd></div>
       <div><dt>Ajudante</dt><dd>{{ 'Sim' if quote.servico_ajudante else 'Não' }}{% if quote.ajudante_qtd %} ({{ quote.ajudante_qtd }}){% endif %}</dd></div>
       <div><dt>Empilhadeira</dt><dd>{{ 'Sim' if quote.servico_empilhadeira else 'Não' }}</dd></div>
@@ -117,10 +115,6 @@
 
       <div class="pricing-block">
         <h3>Adicionais <span class="hint">(cobrados só os que tiverem valor)</span></h3>
-        {{ field('valor_carga', 'Carga (R$)' , values, errors, inputmode='decimal', placeholder='0,00') }}
-        {% if quote.servico_carga %}<span class="adicional-hint">solicitado pelo cliente</span>{% endif %}
-        {{ field('valor_descarga', 'Descarga (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
-        {% if quote.servico_descarga %}<span class="adicional-hint">solicitado pelo cliente</span>{% endif %}
         {{ field('valor_diaria', 'Diária (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
         {% if quote.servico_diaria %}<span class="adicional-hint">solicitado pelo cliente</span>{% endif %}
         {{ field('valor_ajudante', 'Ajudante (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}

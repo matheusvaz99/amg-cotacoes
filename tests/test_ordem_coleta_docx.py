@@ -28,8 +28,6 @@ VALID = {
     "tipo_veiculo": "Carreta Sider",
     "carroceria": "Sider",
     "capacidade_aprox": "28 toneladas",
-    "servico_carga": "sim",
-    "servico_descarga": "sim",
     "servico_diaria": "sim",
     "servico_guincho": "nao",
 }
@@ -121,7 +119,6 @@ def test_build_ordem_coleta_docx_preenche_campos_da_cotacao(client):
     assert "Rua das Flores, 100" in texto
     assert "R$ 11.760,00" in texto  # FE total, sem FC/margem
     assert "9.800,00" not in texto  # FC nunca aparece no documento
-    assert "SIM" in texto  # servico de carga/descarga
     assert quote.data_coleta.strftime("%d/%m/%Y") in texto
 
 

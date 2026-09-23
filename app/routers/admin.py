@@ -131,8 +131,6 @@ def _proposal_values(quote) -> dict:
         "custo_seguro": format_valor(p.custo_seguro),
         "custo_outros_internos": format_valor(p.custo_outros_internos),
         "margem_pct": format_valor(p.margem_pct),
-        "valor_carga": format_valor(p.valor_carga),
-        "valor_descarga": format_valor(p.valor_descarga),
         "valor_diaria": format_valor(p.valor_diaria),
         "valor_ajudante": format_valor(p.valor_ajudante),
         "valor_empilhadeira": format_valor(p.valor_empilhadeira),

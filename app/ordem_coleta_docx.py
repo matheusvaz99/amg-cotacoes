@@ -82,8 +82,6 @@ def build_ordem_coleta_docx(quote: Quote) -> bytes:
         "SOLICITANTE DO FRETE (NOME)": quote.client_name,
         "CNPJ PAGADOR DO FRETE": solicitacao.pagador_documento if solicitacao else "-",
         "FE TOTAL EMPRESA R$:": format_brl(proposal.valor_final) if proposal else "-",
-        "SERVIÇO DE CARGA (SIM/NÃO):": "SIM" if quote.servico_carga else "NÃO",
-        "SERVIÇO DE DESCARGA (SIM/NÃO):": "SIM" if quote.servico_descarga else "NÃO",
     }
 
     for table in doc.tables:

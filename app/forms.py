@@ -168,8 +168,6 @@ class QuoteForm:
                 self.errors["data_entrega"] = "Data inválida."
 
         # Sim/Nao (default Nao) — servicos que o cliente pode precisar
-        v["servico_carga"] = _yesno(d.get("servico_carga"))
-        v["servico_descarga"] = _yesno(d.get("servico_descarga"))
         v["servico_diaria"] = _yesno(d.get("servico_diaria"))
         v["servico_guincho"] = _yesno(d.get("servico_guincho"))
         v["servico_ajudante"] = _yesno(d.get("servico_ajudante"))
@@ -208,8 +206,6 @@ class ProposalForm:
         "custo_outros_internos",
     ]
     ADICIONAL_FIELDS = [
-        "valor_carga",
-        "valor_descarga",
         "valor_diaria",
         "valor_ajudante",
         "valor_empilhadeira",
@@ -364,8 +360,6 @@ def prefill_from_quote(quote) -> dict[str, Any]:
         "qtd_volumes": quote.qtd_volumes,
         "peso_total_kg": quote.peso_total_kg,
         "valor_nf": quote.valor_nf,
-        "servico_carga": quote.servico_carga,
-        "servico_descarga": quote.servico_descarga,
         "servico_diaria": quote.servico_diaria,
         "servico_guincho": quote.servico_guincho,
         "servico_ajudante": quote.servico_ajudante,

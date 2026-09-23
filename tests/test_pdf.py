@@ -27,8 +27,6 @@ def _make_quote(db, **over):
         qtd_volumes=10,
         peso_total_kg=Decimal("5000.00"),
         valor_nf=Decimal("25000.00"),
-        servico_carga=True,
-        servico_descarga=False,
         servico_diaria=False,
         servico_ajudante=False,
         servico_empilhadeira=False,
@@ -51,7 +49,6 @@ def _proposal_values(**over):
         custo_impostos=Decimal("0.00"), custo_seguro=Decimal("50.00"),
         custo_outros_internos=Decimal("0.00"), fc=Decimal("3000.00"),
         margem_pct=Decimal("0.00"), fe=Decimal("3000.00"),
-        valor_carga=Decimal("0.00"), valor_descarga=Decimal("0.00"),
         valor_diaria=Decimal("0.00"), valor_ajudante=Decimal("0.00"),
         valor_empilhadeira=Decimal("0.00"), valor_guincho=Decimal("350.00"),
         custos_adicionais=Decimal("0.00"), custos_adicionais_desc=None,
@@ -98,10 +95,10 @@ def test_pdf_shows_only_fe_and_charged_adicionais():
         quote = _make_quote(db)
         crud.add_proposal(
             db, quote,
-            _proposal_values(valor_carga=Decimal("100.00"), valor_guincho=Decimal("0.00")),
+            _proposal_values(valor_diaria=Decimal("100.00"), valor_guincho=Decimal("0.00")),
             created_by="tester",
         )
         db.refresh(quote)
         itens = dict(quote.proposal.adicionais_itens())
-        assert "Carga" in itens
+        assert "Diária" in itens
         assert "Guincho / Munck" not in itens  # zerado -> nao aparece

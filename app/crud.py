@@ -105,7 +105,7 @@ def list_quotes(
 _PROPOSAL_FIELDS = (
     "custo_motorista", "custo_pedagio", "custo_impostos", "custo_seguro",
     "custo_outros_internos", "fc", "margem_pct", "fe",
-    "valor_carga", "valor_descarga", "valor_diaria", "valor_ajudante",
+    "valor_diaria", "valor_ajudante",
     "valor_empilhadeira", "valor_guincho", "custos_adicionais",
     "custos_adicionais_desc", "valor_final",
     "prazo_entrega", "validade", "observacoes",

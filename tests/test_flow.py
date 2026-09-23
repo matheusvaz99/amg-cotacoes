@@ -21,8 +21,6 @@ VALID = {
     "tipo_veiculo": "Carreta Sider",
     "carroceria": "Sider",
     "capacidade_aprox": "28 toneladas",
-    "servico_carga": "nao",
-    "servico_descarga": "sim",
     "servico_diaria": "sim",
     "servico_guincho": "nao",
 }

@@ -93,10 +93,6 @@
       {% endif %}
       {{ field('valor_nf', 'Valor aproximado da NF (R$)', values, errors, required=completa, inputmode='decimal', placeholder='Ex.: 25.000,00', hint=None if completa else 'Opcional') }}
       <div class="grid-2">
-        {{ yesno('servico_carga', 'Necessita servico de carga?', values, errors) }}
-        {{ yesno('servico_descarga', 'Necessita servico de descarga?', values, errors) }}
-      </div>
-      <div class="grid-2">
         {{ yesno('servico_diaria', 'Necessita de diaria?', values, errors) }}
         {{ yesno('servico_guincho', 'Necessita de guincho / Munck?', values, errors) }}
       </div>

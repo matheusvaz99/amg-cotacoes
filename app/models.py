@@ -64,6 +64,8 @@ class Quote(Base):
     dimensoes: Mapped[str | None] = mapped_column(String(120), nullable=True)
     peso_total_kg: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     valor_nf: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    # carga/descarga removidos das opcoes (cliente e precificacao) -- colunas
+    # legadas mantidas sem DROP, nao usadas pelo codigo novo.
     servico_carga: Mapped[bool] = mapped_column(Boolean, default=False)
     servico_descarga: Mapped[bool] = mapped_column(Boolean, default=False)
     servico_diaria: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -136,9 +138,12 @@ class Proposal(Base):
     margem_pct: Mapped[Decimal] = mapped_column(Numeric(6, 2), default=Decimal("0.00"))
     fe: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
 
-    # --- Adicionais precificaveis (visiveis ao cliente somente os cobrados) ---
+    # carga/descarga removidos das opcoes (cliente e precificacao) -- colunas
+    # legadas mantidas sem DROP, nao usadas pelo codigo novo.
     valor_carga: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
     valor_descarga: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
+
+    # --- Adicionais precificaveis (visiveis ao cliente somente os cobrados) ---
     valor_diaria: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
     valor_ajudante: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
     valor_empilhadeira: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
@@ -155,8 +160,6 @@ class Proposal(Base):
     quote: Mapped[Quote] = relationship(back_populates="proposal")
 
     ADICIONAIS_LABELS = {
-        "valor_carga": "Carga",
-        "valor_descarga": "Descarga",
         "valor_diaria": "Diária",
         "valor_ajudante": "Ajudante",
         "valor_empilhadeira": "Empilhadeira",

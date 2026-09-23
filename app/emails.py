@@ -101,8 +101,6 @@ def send_quote_to_comercial(quote: Quote) -> None:
         _row("Dimensões", quote.dimensoes or "-"),
         _row("Peso total (kg)", format_peso(quote.peso_total_kg)),
         _row("Valor da NF", format_brl(quote.valor_nf)),
-        _row("Serviço de carga", sn[quote.servico_carga]),
-        _row("Serviço de descarga", sn[quote.servico_descarga]),
         _row("Diária", sn[bool(quote.servico_diaria)]),
         _row("Ajudante", sn[bool(quote.servico_ajudante)] + (f" ({quote.ajudante_qtd})" if quote.ajudante_qtd else "")),
         _row("Empilhadeira", sn[bool(quote.servico_empilhadeira)]),

@@ -21,7 +21,7 @@
   var feInput = document.getElementById("f_valor_frete");
 
   var CUSTO_FIELDS = ["custo_motorista", "custo_pedagio", "custo_impostos", "custo_seguro", "custo_outros_internos"];
-  var ADICIONAL_FIELDS = ["valor_carga", "valor_descarga", "valor_diaria", "valor_ajudante", "valor_empilhadeira", "valor_guincho", "custos_adicionais"];
+  var ADICIONAL_FIELDS = ["valor_diaria", "valor_ajudante", "valor_empilhadeira", "valor_guincho", "custos_adicionais"];
 
   function toNumber(v) {
     if (!v) return 0;

@@ -188,8 +188,6 @@ def build_quote_pdf(quote: Quote) -> bytes:
         pdf.row("Dimensões", quote.dimensoes)
     pdf.row("Peso total aproximado", f"{format_peso(quote.peso_total_kg)} kg")
     pdf.row("Valor aproximado da NF", format_brl(quote.valor_nf))
-    pdf.row("Servico de carga", "Sim" if quote.servico_carga else "Nao")
-    pdf.row("Servico de descarga", "Sim" if quote.servico_descarga else "Nao")
     pdf.row("Necessita diaria", "Sim" if quote.servico_diaria else "Nao")
     pdf.row("Necessita ajudante", "Sim" if quote.servico_ajudante else "Nao")
     pdf.row("Necessita empilhadeira", "Sim" if quote.servico_empilhadeira else "Nao")

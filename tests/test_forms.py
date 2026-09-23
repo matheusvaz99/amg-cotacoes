@@ -20,8 +20,6 @@ def _valid_payload(**over):
         "carroceria": "Sider",
         "capacidade_aprox": "28 toneladas",
         "data_coleta": (date.today() + timedelta(days=5)).isoformat(),
-        "servico_carga": "sim",
-        "servico_descarga": "nao",
         "servico_diaria": "sim",
         "servico_guincho": "nao",
     }
@@ -40,8 +38,9 @@ def test_quote_form_ok_without_optionals_completa():
     assert form.values["carroceria"] == "Sider"
     assert form.values["client_company"] == "Construtora Alfa"
     assert form.values["tipo_cotacao"] == TIPO_COTACAO_COMPLETA
-    assert form.values["servico_carga"] is True
     assert form.values["servico_diaria"] is True
+    assert "servico_carga" not in form.values  # removido das opcoes
+    assert "servico_descarga" not in form.values
 
 
 def test_quote_form_requires_company():

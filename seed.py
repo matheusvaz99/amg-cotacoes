@@ -26,18 +26,18 @@ TWO = D("0.01")
 
 def _proposta_values(
     *, motorista, pedagio=D("0"), impostos=D("0"), seguro=D("0"), outros_internos=D("0"),
-    margem_pct=D("20"), carga=D("0"), descarga=D("0"), diaria=D("0"), ajudante=D("0"),
+    margem_pct=D("20"), diaria=D("0"), ajudante=D("0"),
     empilhadeira=D("0"), guincho=D("0"), outros=D("0"), outros_desc=None,
     prazo_entrega="1 dia útil", validade_dias=7, observacoes=None,
 ):
     fc = (motorista + pedagio + impostos + seguro + outros_internos).quantize(TWO)
     fe = (fc * (D("1") + margem_pct / D("100"))).quantize(TWO)
-    adicionais = carga + descarga + diaria + ajudante + empilhadeira + guincho + outros
+    adicionais = diaria + ajudante + empilhadeira + guincho + outros
     return dict(
         custo_motorista=motorista, custo_pedagio=pedagio, custo_impostos=impostos,
         custo_seguro=seguro, custo_outros_internos=outros_internos, fc=fc,
         margem_pct=margem_pct, fe=fe,
-        valor_carga=carga, valor_descarga=descarga, valor_diaria=diaria,
+        valor_diaria=diaria,
         valor_ajudante=ajudante, valor_empilhadeira=empilhadeira, valor_guincho=guincho,
         custos_adicionais=outros, custos_adicionais_desc=outros_desc,
         valor_final=(fe + adicionais).quantize(TWO),
@@ -52,8 +52,6 @@ def _quote(db, **kw):
     kw.setdefault("dimensoes", None)
     kw.setdefault("qtd_volumes", 10)
     kw.setdefault("valor_nf", D("25000.00"))
-    kw.setdefault("servico_carga", False)
-    kw.setdefault("servico_descarga", False)
     kw.setdefault("servico_diaria", False)
     kw.setdefault("servico_guincho", False)
     kw.setdefault("servico_ajudante", False)
@@ -95,8 +93,8 @@ def run() -> None:
             db, client_name="Marina Souza", client_company="Metalurgica Beta",
             client_email="logistica@beta.com.br", origem_cidade="Itajai - SC",
             destino_cidade="Maringa - PR", tipo_material="Estrutura metalica",
-            peso_total_kg=D("12000.00"), valor_nf=D("80000.00"), servico_carga=True,
-            servico_descarga=True, servico_diaria=True, tipo_veiculo="Carreta Grade Baixa",
+            peso_total_kg=D("12000.00"), valor_nf=D("80000.00"), servico_diaria=True,
+            tipo_veiculo="Carreta Grade Baixa",
             carroceria="Grade baixa", capacidade_aprox="30 toneladas",
             data_coleta=date.today() + timedelta(days=8),
         )
@@ -104,7 +102,7 @@ def run() -> None:
             db, q2,
             _proposta_values(
                 motorista=D("6500"), pedagio=D("620"), impostos=D("280"), seguro=D("160"),
-                margem_pct=D("22"), carga=D("300"), descarga=D("300"), diaria=D("450"),
+                margem_pct=D("22"), diaria=D("450"),
             ),
             created_by="seed",
         )
@@ -132,12 +130,12 @@ def run() -> None:
             db, client_name="Ana Martins", client_company="Construtora Alfa",
             client_email="compras@alfa.com.br", origem_cidade="Campinas - SP",
             destino_cidade="Bauru - SP", tipo_material="Andaime",
-            peso_total_kg=D("5000.00"), valor_nf=D("25000.00"), servico_descarga=True,
+            peso_total_kg=D("5000.00"), valor_nf=D("25000.00"),
             tipo_veiculo="Carreta Sider", carroceria="Sider", capacidade_aprox="28 toneladas",
             data_coleta=date.today() + timedelta(days=6),
         )
         crud.add_proposal(
-            db, q4, _proposta_values(motorista=D("2400"), pedagio=D("40"), seguro=D("50"), margem_pct=D("18"), descarga=D("200")),
+            db, q4, _proposta_values(motorista=D("2400"), pedagio=D("40"), seguro=D("50"), margem_pct=D("18")),
             created_by="seed",
         )
         crud.set_status(db, q4, "aprovada")
