@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 170" role="img" aria-label="AMG Expresso">
+  <ellipse cx="200" cy="80" rx="188" ry="72" fill="#241f1c" stroke="#f26a21" stroke-width="7"/>
+  <path d="M 58 64 L 122 39 L 133 51 L 69 76 Z" fill="#f5f5f5"/>
+  <g transform="skewX(-8)">
+    <text x="218" y="98" font-family="Arial, Helvetica, sans-serif" font-weight="900"
+          font-size="82" fill="#f26a21" text-anchor="middle" letter-spacing="-2">AMG</text>
+  </g>
+  <text x="200" y="138" font-family="Arial, Helvetica, sans-serif" font-weight="700"
+        font-size="26" fill="#ffffff" text-anchor="middle" letter-spacing="7">EXPRESSO</text>
+</svg>

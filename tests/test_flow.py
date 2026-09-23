@@ -16,7 +16,7 @@ VALID = {
     "destino_cidade": "Londrina - PR",
     "tipo_material": "Andaime",
     "qtd_volumes": "10",
-    "peso_total_kg": "5.000",
+    "peso_total": "5.000 kg",
     "valor_nf": "25.000,00",
     "tipo_veiculo": "Carreta Sider",
     "carroceria": "Sider",
@@ -101,7 +101,7 @@ def test_submit_quote_rapida_com_campos_minimos(client):
         "client_name": "Fulano", "client_company": "Empresa X",
         "client_email": "fulano@x.com", "origem_cidade": "Curitiba - PR",
         "destino_cidade": "Sao Paulo - SP", "tipo_material": "Andaime",
-        "peso_total_kg": "3.000", "data_coleta": (date.today() + timedelta(days=4)).isoformat(),
+        "peso_total": "3 toneladas", "data_coleta": (date.today() + timedelta(days=4)).isoformat(),
     }
     resp = client.post("/cotacao/nova", data=payload, follow_redirects=False)
     assert resp.status_code == 303, resp.text

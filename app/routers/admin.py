@@ -65,7 +65,7 @@ async def login_submit(request: Request):
             "admin/login.html",
             next=nxt,
             csrf_token=get_csrf_token(request),
-            error="Sessao expirada. Tente novamente.",
+            error="Sessão expirada. Tente novamente.",
         )
     username = (form.get("username") or "").strip()
     password = form.get("password") or ""
@@ -75,7 +75,7 @@ async def login_submit(request: Request):
             "admin/login.html",
             next=nxt,
             csrf_token=get_csrf_token(request),
-            error="Usuario ou senha invalidos.",
+            error="Usuário ou senha inválidos.",
             username=username,
         )
     admin_login(request, username)

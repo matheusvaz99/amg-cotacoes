@@ -29,18 +29,6 @@
     });
   }
 
-  // Peso em kg: agrupa milhar com ponto, aceita uma virgula com ate 2 casas.
-  function maskWeight(el) {
-    function format() {
-      var v = el.value.replace(/[^\d,]/g, "");
-      var parts = v.split(",");
-      var intp = parts[0].replace(/^0+(?=\d)/, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-      el.value = parts.length > 1 ? intp + "," + parts[1].slice(0, 2) : intp;
-    }
-    el.addEventListener("input", format);
-    el.addEventListener("blur", format);
-  }
-
   document.querySelectorAll('input[name$="_cep"]').forEach(maskCEP);
   var CURRENCY_FIELDS = [
     "valor_nf", "custos_adicionais",
@@ -51,7 +39,6 @@
   document
     .querySelectorAll(CURRENCY_FIELDS.map(function (n) { return 'input[name="' + n + '"]'; }).join(", "))
     .forEach(maskCurrency);
-  document.querySelectorAll('input[name="peso_total_kg"]').forEach(maskWeight);
   document.querySelectorAll('input[name="qtd_volumes"], input[name="ajudante_qtd"]').forEach(maskInteger);
 
   // data minima = hoje para campos de coleta

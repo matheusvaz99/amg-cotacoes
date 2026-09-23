@@ -7,12 +7,10 @@ from app.utils import (
     alerta_agenda,
     calc_seguro,
     format_brl,
-    format_peso,
     gen_oc_numero,
     gen_quote_code,
     normalize_cep,
     parse_brl,
-    parse_peso,
 )
 
 
@@ -43,26 +41,6 @@ def test_format_brl():
     assert format_brl(Decimal("1234.5")) == "R$ 1.234,50"
     assert format_brl(0) == "R$ 0,00"
     assert format_brl(None) == "-"
-
-
-def test_parse_peso_kg():
-    assert parse_peso("5.000") == Decimal("5000.00")
-    assert parse_peso("5000") == Decimal("5000.00")
-    assert parse_peso("12.500") == Decimal("12500.00")
-    assert parse_peso("1.234.567") == Decimal("1234567.00")
-    assert parse_peso("5.000,5") == Decimal("5000.50")
-    assert parse_peso("750,25") == Decimal("750.25")
-    assert parse_peso("5000 kg") == Decimal("5000.00")
-    assert parse_peso("") is None
-    assert parse_peso("abc") is None
-
-
-def test_format_peso():
-    assert format_peso(Decimal("5000.00")) == "5.000"
-    assert format_peso(Decimal("12500")) == "12.500"
-    assert format_peso(Decimal("750.25")) == "750,25"
-    assert format_peso(Decimal("5000.50")) == "5.000,5"
-    assert format_peso(None) == "-"
 
 
 def test_calc_seguro():

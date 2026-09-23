@@ -62,7 +62,11 @@ class Quote(Base):
     descricao_material: Mapped[str | None] = mapped_column(Text, nullable=True)
     qtd_volumes: Mapped[int | None] = mapped_column(nullable=True)
     dimensoes: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    peso_total_kg: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    # peso_total_kg era numerico fixo em kg; peso agora e texto livre (o
+    # cliente escreve a unidade -- kg ou toneladas). Coluna legada mantida
+    # sem DROP, nao usada pelo codigo novo.
+    peso_total_kg: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    peso_total: Mapped[str | None] = mapped_column(String(60), nullable=True)
     valor_nf: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
     # carga/descarga removidos das opcoes (cliente e precificacao) -- colunas
     # legadas mantidas sem DROP, nao usadas pelo codigo novo.

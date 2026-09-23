@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% from "partials/status_badge.html" import status_badge %}
-{% block title %}Minhas cotacoes — AMG Logistica{% endblock %}
+{% block title %}Minhas cotações — AMG Logística{% endblock %}
 
 {% block content %}
-<h1>Minhas cotacoes</h1>
-<p class="lead">Cotacoes vinculadas a este navegador.</p>
+<h1>Minhas cotações</h1>
+<p class="lead">Cotações vinculadas a este navegador.</p>
 
 {% if not quotes %}
-  <p class="notice">Nenhuma cotacao por aqui ainda. <a href="/cotacao">Solicitar cotacao</a>.</p>
+  <p class="notice">Nenhuma cotação por aqui ainda. <a href="/cotacao">Solicitar cotação</a>.</p>
 {% else %}
 <ul class="quote-list">
   {% for q in quotes %}
@@ -28,5 +28,5 @@
 </ul>
 {% endif %}
 
-<p><a class="btn btn--ghost" href="/cotacao">Nova cotacao</a></p>
+<p><a class="btn btn--ghost" href="/cotacao">Nova cotação</a></p>
 {% endblock %}

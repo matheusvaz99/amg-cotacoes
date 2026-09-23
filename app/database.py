@@ -44,6 +44,7 @@ _ADDED_COLUMNS = {
         "servico_ajudante": "BOOLEAN",
         "servico_empilhadeira": "BOOLEAN",
         "ajudante_qtd": "INTEGER",
+        "peso_total": "VARCHAR(60)",
     },
     "proposals": {
         "custos_adicionais": "NUMERIC(14,2)",
@@ -77,7 +78,7 @@ _ADDED_COLUMNS = {
 # SQLite nao suporta ALTER COLUMN ... DROP NOT NULL (exigiria reconstruir a
 # tabela); em dev, apague amg.db e rode seed.py de novo apos essa mudanca.
 _RELAX_NOT_NULL = {
-    "quotes": ["qtd_volumes", "valor_nf", "tipo_veiculo", "capacidade_aprox", "client_email"],
+    "quotes": ["qtd_volumes", "valor_nf", "tipo_veiculo", "capacidade_aprox", "client_email", "peso_total_kg"],
     # frete/pedagio/seguro/total sao as colunas legadas da 1a versao da formacao
     # de preco; o codigo novo nao grava mais nelas (usa fc/fe/adicionais).
     "proposals": ["frete", "pedagio", "seguro", "total"],
@@ -127,6 +128,24 @@ def _migrate_statuses() -> None:
             )
 
 
+def _fix_opcoes_ortografia() -> None:
+    """Corrige o nome de opcoes semeadas antes da correcao ortografica
+    (ex.: 'Bau' -> 'Baú'). So atualiza linhas que ainda tem o nome antigo
+    exato -- idempotente, nao mexe em nada que o admin ja tenha renomeado."""
+    from app.constants import OPCOES_ORTOGRAFIA_LEGADO
+
+    inspector = inspect(engine)
+    if "opcoes" not in set(inspector.get_table_names()):
+        return
+    with engine.begin() as conn:
+        for categoria, nomes in OPCOES_ORTOGRAFIA_LEGADO.items():
+            for antigo, novo in nomes.items():
+                conn.execute(
+                    text("UPDATE opcoes SET nome = :novo WHERE categoria = :categoria AND nome = :antigo"),
+                    {"novo": novo, "categoria": categoria, "antigo": antigo},
+                )
+
+
 def _seed_opcoes() -> None:
     """Cria a carga inicial de cada categoria de opcao (carroceria, tipo de
     veiculo...) apenas se essa categoria ainda nao tiver nenhuma opcao."""
@@ -149,4 +168,5 @@ def init_db() -> None:
     _ensure_columns()
     _relax_not_null()
     _migrate_statuses()
+    _fix_opcoes_ortografia()
     _seed_opcoes()

@@ -21,7 +21,6 @@ from app.utils import (
     normalize_cep,
     parse_brl,
     parse_int,
-    parse_peso,
     utcnow,
 )
 
@@ -54,13 +53,13 @@ class QuoteForm:
         "origem_cidade": "Cidade de origem",
         "destino_cidade": "Cidade de destino",
         "tipo_material": "Tipo de material",
-        "peso_total_kg": "Peso total aproximado",
+        "peso_total": "Peso total aproximado",
         "data_coleta": "Data prevista para coleta",
     }
     # Obrigatorios so na cotacao completa.
     REQUIRED_LABELS_COMPLETA = {
         "valor_nf": "Valor aproximado da NF",
-        "tipo_veiculo": "Tipo de veiculo desejado",
+        "tipo_veiculo": "Tipo de veículo desejado",
         "carroceria": "Carroceria",
         "capacidade_aprox": "Capacidade aproximada",
     }
@@ -125,12 +124,11 @@ class QuoteForm:
         if v["qtd_volumes"] is not None and v["qtd_volumes"] <= 0:
             self.errors["qtd_volumes"] = "A quantidade deve ser maior que zero."
 
-        # Peso: sempre obrigatorio (rapida e completa)
-        v["peso_total_kg"] = parse_peso(d.get("peso_total_kg"))
-        if v["peso_total_kg"] is None:
-            self.errors["peso_total_kg"] = "Informe o peso total aproximado em kg."
-        elif v["peso_total_kg"] <= 0:
-            self.errors["peso_total_kg"] = "O peso deve ser maior que zero."
+        # Peso: sempre obrigatorio (rapida e completa) -- texto livre, o
+        # proprio cliente informa a unidade (kg ou toneladas).
+        v["peso_total"] = _clean(d.get("peso_total"))
+        if not v["peso_total"]:
+            self.errors["peso_total"] = "Informe o peso total aproximado (kg ou toneladas)."
 
         # Valor da NF: obrigatorio so na completa
         v["valor_nf"] = parse_brl(d.get("valor_nf"))
@@ -358,7 +356,7 @@ def prefill_from_quote(quote) -> dict[str, Any]:
         "descricao_material": quote.descricao_material,
         "dimensoes": quote.dimensoes,
         "qtd_volumes": quote.qtd_volumes,
-        "peso_total_kg": quote.peso_total_kg,
+        "peso_total": quote.peso_total,
         "valor_nf": quote.valor_nf,
         "servico_diaria": quote.servico_diaria,
         "servico_guincho": quote.servico_guincho,

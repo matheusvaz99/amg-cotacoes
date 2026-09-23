@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     admin_pass: str = "amg123"
 
     resend_api_key: str = ""
-    email_from: str = "AMG Logistica <onboarding@resend.dev>"
+    email_from: str = "AMG Logística <onboarding@resend.dev>"
     email_comercial: str = "comercial@amglogistica.com.br"
     # Destinatario do aviso interno de "OC enviada a Logistica", com o
     # responsavel comercial em copia.

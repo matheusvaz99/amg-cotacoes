@@ -25,7 +25,7 @@ def _make_quote(db, **over):
         descricao_material="Tubos e acessórios",
         dimensoes=None,
         qtd_volumes=10,
-        peso_total_kg=Decimal("5000.00"),
+        peso_total="5.000 kg",
         valor_nf=Decimal("25000.00"),
         servico_diaria=False,
         servico_ajudante=False,

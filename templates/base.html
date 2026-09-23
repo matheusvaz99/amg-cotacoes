@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b2138">
-  <meta name="description" content="Solicite cotacoes de frete da AMG Logistica de forma rapida, simples e padronizada.">
-  <title>{% block title %}AMG Logistica — Cotacao Rapida de Frete{% endblock %}</title>
+  <meta name="theme-color" content="#f26a21">
+  <meta name="description" content="Solicite cotações de frete da AMG Logística de forma rápida, simples e padronizada.">
+  <title>{% block title %}AMG Logística — Cotação Rápida de Frete{% endblock %}</title>
   <link rel="icon" href="{{ url_for('static', path='img/favicon.png') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,16 +16,16 @@
   <header class="site-header">
     <div class="container site-header__inner">
       <a class="brand" href="/">
-        <img class="brand__logo" src="{{ url_for('static', path='img/logo-amg-expresso.png') }}" alt="AMG Logística">
+        <img class="brand__logo" src="{{ url_for('static', path='img/logo-amg-expresso.svg') }}" alt="AMG Logística">
       </a>
       <nav class="site-nav">
-        <a href="/cotacao">Nova cotacao</a>
+        <a href="/cotacao">Nova cotação</a>
         <a href="/acompanhar">Acompanhar</a>
         {% if request.session.get('admin_user') %}
           <a href="/admin">Painel</a>
           <a href="/admin/agenda">Agenda</a>
           <a href="/admin/opcoes/carroceria">Carrocerias</a>
-          <a href="/admin/opcoes/tipo_veiculo">Tipos de veiculo</a>
+          <a href="/admin/opcoes/tipo_veiculo">Tipos de veículo</a>
         {% endif %}
       </nav>
     </div>
@@ -41,7 +41,7 @@
       <ul class="disclaimers">
         {% for item in DISCLAIMERS %}<li>{{ item }}</li>{% endfor %}
       </ul>
-      <p class="site-footer__copy">AMG Logistica &middot; Cotacoes sao estimativas e nao geram reserva de veiculo.</p>
+      <p class="site-footer__copy">AMG Logística &middot; Cotações são estimativas e não geram reserva de veículo.</p>
     </div>
   </footer>
 

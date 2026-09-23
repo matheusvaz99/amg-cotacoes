@@ -14,7 +14,7 @@ def _valid_payload(**over):
         "destino_cidade": "Londrina - PR",
         "tipo_material": "Andaime",
         "qtd_volumes": "10",
-        "peso_total_kg": "5.000",
+        "peso_total": "5.000 kg",
         "valor_nf": "25.000,00",
         "tipo_veiculo": "Carreta Sider",
         "carroceria": "Sider",
@@ -34,13 +34,26 @@ def test_quote_form_ok_without_optionals_completa():
     )
     assert form.validate(), form.errors
     assert form.values["valor_nf"] == Decimal("25000.00")
-    assert form.values["peso_total_kg"] == Decimal("5000.00")
+    assert form.values["peso_total"] == "5.000 kg"
     assert form.values["carroceria"] == "Sider"
     assert form.values["client_company"] == "Construtora Alfa"
     assert form.values["tipo_cotacao"] == TIPO_COTACAO_COMPLETA
     assert form.values["servico_diaria"] is True
     assert "servico_carga" not in form.values  # removido das opcoes
     assert "servico_descarga" not in form.values
+
+
+def test_quote_form_peso_aceita_texto_livre_com_unidade():
+    # o proprio cliente escreve a unidade -- kg ou toneladas, sem parsing numerico
+    form = QuoteForm(_valid_payload(peso_total="12 toneladas"))
+    assert form.validate(), form.errors
+    assert form.values["peso_total"] == "12 toneladas"
+
+
+def test_quote_form_peso_vazio_e_obrigatorio():
+    form = QuoteForm(_valid_payload(peso_total=""))
+    assert not form.validate()
+    assert "peso_total" in form.errors
 
 
 def test_quote_form_requires_company():
@@ -63,7 +76,7 @@ def test_quote_form_rapida_dispensa_campos_da_completa():
     assert form.values["carroceria"] is None
     assert form.values["capacidade_aprox"] is None
     # peso continua obrigatorio em qualquer tipo
-    assert form.values["peso_total_kg"] == Decimal("5000.00")
+    assert form.values["peso_total"] == "5.000 kg"
 
 
 def test_quote_form_completa_exige_campos_extras():

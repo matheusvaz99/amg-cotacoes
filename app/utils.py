@@ -103,37 +103,6 @@ def format_valor(value: Decimal | float | int | str | None) -> str:
     return format_brl(value).replace("R$", "").strip()
 
 
-def parse_peso(value: str | None) -> Decimal | None:
-    """Converte um peso em kg digitado livremente ('5.000', '5000', '5.000,5',
-    '5000 kg') em Decimal. Sem virgula, os pontos sao separadores de milhar
-    (peso em kg raramente tem casas decimais)."""
-    if value is None:
-        return None
-    raw = str(value).strip().lower().replace("kg", "").strip().replace(" ", "")
-    if not raw:
-        return None
-    if "," in raw:
-        raw = raw.replace(".", "").replace(",", ".")
-    else:
-        raw = raw.replace(".", "")
-    try:
-        return Decimal(raw).quantize(TWO_PLACES, rounding=ROUND_HALF_UP)
-    except (InvalidOperation, ValueError):
-        return None
-
-
-def format_peso(value: Decimal | float | int | None) -> str:
-    """Formata um peso em kg: '5.000' ou '5.000,5' (casas decimais so quando existem)."""
-    if value is None:
-        return "-"
-    dec = Decimal(str(value)).quantize(TWO_PLACES, rounding=ROUND_HALF_UP)
-    inteiro, _, centavos = f"{abs(dec):.2f}".partition(".")
-    texto = _group_thousands(inteiro)
-    if centavos != "00":
-        texto += "," + centavos.rstrip("0")
-    return texto
-
-
 def alerta_agenda(data_carregamento, *, status_agenda: str | None = None) -> str | None:
     """HOJE / AMANHÃ / PRÓXIMO (ate 7 dias) / ATRASADO, ou None se for mais adiante.
     Carregamentos ja concluidos/cancelados nao geram alerta de atraso."""

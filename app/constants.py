@@ -44,6 +44,24 @@ STATUS_LEGADO = {
     "ajuste_solicitado": STATUS_REPROVADA,
 }
 
+# nomes de opcoes (carroceria/tipo_veiculo) semeados sem acentuacao antes da
+# correcao ortografica -> forma correta. Corrige as linhas ja existentes na
+# tabela `opcoes` em producao (o seed inicial so roda uma vez, entao mudar
+# OPCOES_PADRAO sozinho nao alcanca quem ja foi semeado). Chaves sao os
+# valores literais de categoria ("carroceria"/"tipo_veiculo"), nao as
+# constantes OPCAO_* -- elas ainda nao existem nesse ponto do arquivo.
+OPCOES_ORTOGRAFIA_LEGADO = {
+    "tipo_veiculo": {
+        "Carreta Bau": "Carreta Baú",
+    },
+    "carroceria": {
+        "Bau": "Baú",
+        "Cacamba / basculante": "Caçamba / basculante",
+        "Refrigerada / frigorifica": "Refrigerada / frigorífica",
+        "Bau frigorifico": "Baú frigorífico",
+    },
+}
+
 # Abas do painel comercial -> filtro de status (None = todas).
 ADMIN_TABS = {
     "todas": None,
@@ -108,8 +126,8 @@ TIPOS_MATERIAL = [
     "Escoramento",
     "Forma / painel",
     "Equipamento",
-    "Material de construcao",
-    "Estrutura metalica",
+    "Material de construção",
+    "Estrutura metálica",
     "Outro",
 ]
 
@@ -122,12 +140,12 @@ OPCAO_TIPO_VEICULO = "tipo_veiculo"
 
 OPCOES_CATEGORIAS = {
     OPCAO_CARROCERIA: {"titulo": "Carrocerias", "singular": "carroceria"},
-    OPCAO_TIPO_VEICULO: {"titulo": "Tipos de veiculo", "singular": "tipo de veiculo"},
+    OPCAO_TIPO_VEICULO: {"titulo": "Tipos de veículo", "singular": "tipo de veículo"},
 }
 
 TIPOS_VEICULO_PADRAO = [
     "Carreta Sider",
-    "Carreta Bau",
+    "Carreta Baú",
     "Carreta Grade Baixa",
     "Truck",
     "Toco",
@@ -138,14 +156,14 @@ TIPOS_VEICULO_PADRAO = [
 
 CARROCERIAS_PADRAO = [
     "Sider",
-    "Bau",
+    "Baú",
     "Grade baixa",
     "Graneleiro",
     "Prancha",
-    "Cacamba / basculante",
-    "Refrigerada / frigorifica",
+    "Caçamba / basculante",
+    "Refrigerada / frigorífica",
     "Plataforma",
-    "Bau frigorifico",
+    "Baú frigorífico",
     "Cegonha",
 ]
 
@@ -154,13 +172,13 @@ OPCOES_PADRAO = {
     OPCAO_TIPO_VEICULO: TIPOS_VEICULO_PADRAO,
 }
 
-OBSERVACAO_PADRAO_PROPOSTA = "Valores sujeitos a confirmacao na contratacao."
+OBSERVACAO_PADRAO_PROPOSTA = "Valores sujeitos a confirmação na contratação."
 
 DISCLAIMERS = [
-    "As cotacoes sao estimativas e nao geram reserva de veiculo.",
-    "Valores validos conforme o prazo informado na proposta.",
-    "A disponibilidade de veiculo e a confirmacao do frete acontecem somente apos aprovacao.",
-    "Em caso de informacoes incompletas, o time comercial podera entrar em contato.",
+    "As cotações são estimativas e não geram reserva de veículo.",
+    "Valores válidos conforme o prazo informado na proposta.",
+    "A disponibilidade de veículo e a confirmação do frete acontecem somente após aprovação.",
+    "Em caso de informações incompletas, o time comercial poderá entrar em contato.",
 ]
 
 # Condicoes comerciais padrao, exibidas ao final de cada cotacao com
@@ -179,4 +197,4 @@ TERMOS_COTACAO = [
     "**Validade da proposta: 10 dias.",
 ]
 
-SLOGAN = "RAPIDO PARA SOLICITAR. FACIL PARA COTAR. EFICIENTE PARA TODOS."
+SLOGAN = "RÁPIDO PARA SOLICITAR. FÁCIL PARA COTAR. EFICIENTE PARA TODOS."

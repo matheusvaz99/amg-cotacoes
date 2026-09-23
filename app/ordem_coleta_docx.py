@@ -16,7 +16,7 @@ from docx.table import _Cell, _Row
 
 from app.filiais import EMPRESA_TEMPLATE
 from app.models import Quote
-from app.utils import format_brl, format_peso
+from app.utils import format_brl
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "assets" / "ordem_coleta"
 
@@ -114,7 +114,7 @@ def build_ordem_coleta_docx(quote: Quote) -> bytes:
                 # a frente, com seu proprio valor no ultimo slot da linha.
                 _set_last(row, numero_cotacao)
             elif label == "PESO":
-                _set_first(row, f"{format_peso(quote.peso_total_kg)} kg")
+                _set_first(row, quote.peso_total)
             elif label in campos_simples:
                 _set_first(row, campos_simples[label])
 

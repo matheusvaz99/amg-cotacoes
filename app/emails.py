@@ -8,7 +8,7 @@ from app.config import settings
 from app.constants import STATUS_LABELS
 from app.models import AgendaCarregamento, OrdemColeta, Quote, SolicitacaoFrete
 from app.security import sign_quote_token
-from app.utils import format_brl, format_peso
+from app.utils import format_brl
 
 logger = logging.getLogger("amg.emails")
 
@@ -99,7 +99,7 @@ def send_quote_to_comercial(quote: Quote) -> None:
         _row("Descrição", quote.descricao_material or "-"),
         _row("Volumes", str(quote.qtd_volumes) if quote.qtd_volumes else "-"),
         _row("Dimensões", quote.dimensoes or "-"),
-        _row("Peso total (kg)", format_peso(quote.peso_total_kg)),
+        _row("Peso total", quote.peso_total or "-"),
         _row("Valor da NF", format_brl(quote.valor_nf)),
         _row("Diária", sn[bool(quote.servico_diaria)]),
         _row("Ajudante", sn[bool(quote.servico_ajudante)] + (f" ({quote.ajudante_qtd})" if quote.ajudante_qtd else "")),

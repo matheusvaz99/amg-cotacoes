@@ -68,7 +68,7 @@
       <div><dt>Descrição</dt><dd>{{ quote.descricao_material or '-' }}</dd></div>
       <div><dt>Volumes</dt><dd>{{ quote.qtd_volumes or '-' }}</dd></div>
       <div><dt>Dimensões</dt><dd>{{ quote.dimensoes or '-' }}</dd></div>
-      <div><dt>Peso total (kg)</dt><dd>{{ quote.peso_total_kg | peso }}</dd></div>
+      <div><dt>Peso total</dt><dd>{{ quote.peso_total or '-' }}</dd></div>
       <div><dt>Valor da NF</dt><dd>{{ quote.valor_nf | brl }}</dd></div>
       <div><dt>Diária</dt><dd>{{ 'Sim' if quote.servico_diaria else 'Não' }}</dd></div>
       <div><dt>Ajudante</dt><dd>{{ 'Sim' if quote.servico_ajudante else 'Não' }}{% if quote.ajudante_qtd %} ({{ quote.ajudante_qtd }}){% endif %}</dd></div>

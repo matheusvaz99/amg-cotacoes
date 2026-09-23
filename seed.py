@@ -83,7 +83,7 @@ def run() -> None:
             db, client_name="Fulano Rapido", client_company="Empresa Rapida LTDA",
             client_email="rapido@exemplo.com", tipo_cotacao=TIPO_COTACAO_RAPIDA,
             origem_cidade="Curitiba - PR", destino_cidade="Londrina - PR",
-            tipo_material="Andaime", peso_total_kg=D("3000.00"), valor_nf=None,
+            tipo_material="Andaime", peso_total="3.000 kg", valor_nf=None,
             qtd_volumes=None, tipo_veiculo=None, carroceria=None, capacidade_aprox=None,
             data_coleta=date.today() + timedelta(days=5),
         )
@@ -92,8 +92,8 @@ def run() -> None:
         q2 = _quote(
             db, client_name="Marina Souza", client_company="Metalurgica Beta",
             client_email="logistica@beta.com.br", origem_cidade="Itajai - SC",
-            destino_cidade="Maringa - PR", tipo_material="Estrutura metalica",
-            peso_total_kg=D("12000.00"), valor_nf=D("80000.00"), servico_diaria=True,
+            destino_cidade="Maringa - PR", tipo_material="Estrutura metálica",
+            peso_total="12 toneladas", valor_nf=D("80000.00"), servico_diaria=True,
             tipo_veiculo="Carreta Grade Baixa",
             carroceria="Grade baixa", capacidade_aprox="30 toneladas",
             data_coleta=date.today() + timedelta(days=8),
@@ -112,8 +112,8 @@ def run() -> None:
         q3 = _quote(
             db, client_name="Carlos Lima", client_company="Obras Gamma",
             client_email="gamma@obras.com.br", origem_cidade="Sao Paulo - SP",
-            destino_cidade="Curitiba - PR", tipo_material="Material de construcao",
-            peso_total_kg=D("18000.00"), valor_nf=D("42000.00"), servico_guincho=True,
+            destino_cidade="Curitiba - PR", tipo_material="Material de construção",
+            peso_total="18 toneladas", valor_nf=D("42000.00"), servico_guincho=True,
             tipo_veiculo="Truck", carroceria="Bau", capacidade_aprox="14 toneladas",
             data_coleta=date.today() + timedelta(days=3),
         )
@@ -130,7 +130,7 @@ def run() -> None:
             db, client_name="Ana Martins", client_company="Construtora Alfa",
             client_email="compras@alfa.com.br", origem_cidade="Campinas - SP",
             destino_cidade="Bauru - SP", tipo_material="Andaime",
-            peso_total_kg=D("5000.00"), valor_nf=D("25000.00"),
+            peso_total="5.000 kg", valor_nf=D("25000.00"),
             tipo_veiculo="Carreta Sider", carroceria="Sider", capacidade_aprox="28 toneladas",
             data_coleta=date.today() + timedelta(days=6),
         )
@@ -146,7 +146,7 @@ def run() -> None:
             db, client_name="Pedro Alves", client_company="Cliente E Engenharia",
             client_email="pedro@clientee.com.br", origem_cidade="Curitiba - PR",
             destino_cidade="Sao Paulo - SP", tipo_material="Piso elevado",
-            peso_total_kg=D("9000.00"), valor_nf=D("35000.00"),
+            peso_total="9 toneladas", valor_nf=D("35000.00"),
             tipo_veiculo="Truck", carroceria="Sider", capacidade_aprox="12 toneladas",
             data_coleta=date.today() + timedelta(days=4),
         )
@@ -165,7 +165,7 @@ def run() -> None:
             db, client_name="Luciana Reis", client_company="Cliente F Estruturas",
             client_email="luciana@clientef.com.br", origem_cidade="Joinville - SC",
             destino_cidade="Belo Horizonte - MG", tipo_material="Equipamentos",
-            peso_total_kg=D("14000.00"), valor_nf=D("60000.00"),
+            peso_total="14 toneladas", valor_nf=D("60000.00"),
             tipo_veiculo="Carreta Sider", carroceria="Sider", capacidade_aprox="24 toneladas",
             data_coleta=date.today() + timedelta(days=2),
         )
@@ -194,8 +194,8 @@ def run() -> None:
         for nome, empresa, email, origem, destino, dias, status_label in agenda_datas:
             qn = _quote(
                 db, client_name=nome, client_company=empresa, client_email=email,
-                origem_cidade=origem, destino_cidade=destino, tipo_material="Estruturas metalicas",
-                peso_total_kg=D("8000.00"), valor_nf=D("30000.00"),
+                origem_cidade=origem, destino_cidade=destino, tipo_material="Estruturas metálicas",
+                peso_total="8.000 kg", valor_nf=D("30000.00"),
                 tipo_veiculo="Truck", carroceria="Sider", capacidade_aprox="15 toneladas",
                 data_coleta=date.today() + timedelta(days=dias),
             )

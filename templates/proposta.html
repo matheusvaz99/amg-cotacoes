@@ -18,7 +18,7 @@
       <div><dt>Origem</dt><dd>{{ quote.origem_cidade }}</dd></div>
       <div><dt>Destino</dt><dd>{{ quote.destino_cidade }}</dd></div>
       <div><dt>Material</dt><dd>{{ quote.tipo_material }}</dd></div>
-      <div><dt>Peso total</dt><dd>{{ quote.peso_total_kg | peso }} kg</dd></div>
+      <div><dt>Peso total</dt><dd>{{ quote.peso_total }}</dd></div>
       {% if quote.tipo_veiculo %}<div><dt>Veículo</dt><dd>{{ quote.tipo_veiculo }}</dd></div>{% endif %}
       {% if quote.carroceria %}<div><dt>Carroceria</dt><dd>{{ quote.carroceria }}</dd></div>{% endif %}
       <div><dt>Coleta prevista</dt><dd>{{ quote.data_coleta | date_br }}</dd></div>

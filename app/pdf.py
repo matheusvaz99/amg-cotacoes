@@ -13,10 +13,10 @@ from fpdf.enums import XPos, YPos
 
 from app.constants import DISCLAIMERS, SLOGAN, STATUS_LABELS, TERMOS_COTACAO
 from app.models import Quote
-from app.utils import format_brl, format_peso
+from app.utils import format_brl
 
-NAVY = (11, 33, 56)
 ORANGE = (242, 106, 33)
+ORANGE_DARK = (184, 70, 15)
 INK = (31, 42, 55)
 MUTED = (91, 100, 114)
 LINE = (226, 230, 236)
@@ -53,14 +53,14 @@ class QuotePDF(FPDF):
     def __init__(self, quote: Quote):
         super().__init__(format="A4")
         self.quote = quote
-        self.set_title(f"Cotacao {quote.code} - AMG Logistica")
-        self.set_author("AMG Logistica")
+        self.set_title(f"Cotação {quote.code} - AMG Logística")
+        self.set_author("AMG Logística")
         self.set_auto_page_break(auto=True, margin=24)
         self.set_margins(16, 34, 16)
 
     # -- cabecalho e rodape em toda pagina --------------------------------
     def header(self):
-        self.set_fill_color(*NAVY)
+        self.set_fill_color(*ORANGE_DARK)
         self.rect(0, 0, self.w, 26, style="F")
         self.set_fill_color(*ORANGE)
         self.rect(0, 26, self.w, 1.2, style="F")
@@ -72,15 +72,15 @@ class QuotePDF(FPDF):
         self.set_xy(16, 15)
         self.set_font("Helvetica", "B", 7)
         self.set_text_color(255, 255, 255)
-        self.cell(40, 4, "L O G I S T I C A")
+        self.cell(40, 4, _s("L O G Í S T I C A"))
 
         self.set_xy(self.w - 96, 7)
         self.set_font("Helvetica", "B", 12)
         self.set_text_color(255, 255, 255)
-        self.cell(80, 6, "COTACAO DE FRETE", align="R")
+        self.cell(80, 6, _s("COTAÇÃO DE FRETE"), align="R")
         self.set_xy(self.w - 96, 15)
         self.set_font("Helvetica", "", 9)
-        self.set_text_color(206, 214, 224)
+        self.set_text_color(252, 222, 204)
         self.cell(80, 5, _s(self.quote.code), align="R")
 
         self.set_y(34)
@@ -92,14 +92,14 @@ class QuotePDF(FPDF):
         self.line(16, self.get_y(), self.w - 16, self.get_y())
         self.ln(2)
         self.set_font("Helvetica", "B", 8)
-        self.set_text_color(*NAVY)
+        self.set_text_color(*ORANGE_DARK)
         self.cell(0, 4, _s(SLOGAN), align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.set_font("Helvetica", "", 6.5)
         self.set_text_color(*MUTED)
         gerado = datetime.now().strftime("%d/%m/%Y %H:%M")
         self.cell(
             0, 3.6,
-            _s(f"AMG Logistica  -  documento gerado em {gerado}  -  pagina {self.page_no()}"),
+            _s(f"AMG Logística  -  documento gerado em {gerado}  -  página {self.page_no()}"),
             align="C",
         )
 
@@ -144,7 +144,7 @@ def _items(pdf: QuotePDF, proposal) -> None:
     pdf.ln(1)
     pdf.set_fill_color(*LIGHT)
     pdf.set_font("Helvetica", "B", 11)
-    pdf.set_text_color(*NAVY)
+    pdf.set_text_color(*ORANGE_DARK)
     pdf.cell(120, 9, "  VALOR TOTAL DA COTAÇÃO", fill=True)
     pdf.cell(0, 9, _s(format_brl(proposal.valor_final)) + "  ", align="R", fill=True,
              new_x=XPos.LMARGIN, new_y=YPos.NEXT)
@@ -156,8 +156,8 @@ def build_quote_pdf(quote: Quote) -> bytes:
     pdf.add_page()
 
     pdf.set_font("Helvetica", "B", 15)
-    pdf.set_text_color(*NAVY)
-    pdf.cell(0, 8, _s(f"Cotacao {quote.code}"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.set_text_color(*ORANGE_DARK)
+    pdf.cell(0, 8, _s(f"Cotação {quote.code}"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.set_font("Helvetica", "", 9)
     pdf.set_text_color(*MUTED)
     status = STATUS_LABELS.get(quote.status, quote.status)
@@ -182,19 +182,19 @@ def build_quote_pdf(quote: Quote) -> bytes:
     pdf.section("Carga")
     pdf.row("Tipo de material", quote.tipo_material)
     if quote.descricao_material:
-        pdf.row("Descricao", quote.descricao_material)
+        pdf.row("Descrição", quote.descricao_material)
     pdf.row("Quantidade de volumes", str(quote.qtd_volumes) if quote.qtd_volumes else "-")
     if quote.dimensoes:
         pdf.row("Dimensões", quote.dimensoes)
-    pdf.row("Peso total aproximado", f"{format_peso(quote.peso_total_kg)} kg")
+    pdf.row("Peso total aproximado", quote.peso_total or "-")
     pdf.row("Valor aproximado da NF", format_brl(quote.valor_nf))
-    pdf.row("Necessita diaria", "Sim" if quote.servico_diaria else "Nao")
-    pdf.row("Necessita ajudante", "Sim" if quote.servico_ajudante else "Nao")
-    pdf.row("Necessita empilhadeira", "Sim" if quote.servico_empilhadeira else "Nao")
-    pdf.row("Necessita guincho", "Sim" if quote.servico_guincho else "Nao")
+    pdf.row("Necessita diária", "Sim" if quote.servico_diaria else "Não")
+    pdf.row("Necessita ajudante", "Sim" if quote.servico_ajudante else "Não")
+    pdf.row("Necessita empilhadeira", "Sim" if quote.servico_empilhadeira else "Não")
+    pdf.row("Necessita guincho", "Sim" if quote.servico_guincho else "Não")
 
     pdf.section("Transporte")
-    pdf.row("Tipo de veiculo desejado", quote.tipo_veiculo or "-")
+    pdf.row("Tipo de veículo desejado", quote.tipo_veiculo or "-")
     pdf.row("Carroceria", quote.carroceria or "-")
     pdf.row("Capacidade aproximada", quote.capacidade_aprox or "-")
     pdf.row("Data prevista para coleta", quote.data_coleta.strftime("%d/%m/%Y"))
@@ -203,24 +203,24 @@ def build_quote_pdf(quote: Quote) -> bytes:
         quote.data_entrega.strftime("%d/%m/%Y") if quote.data_entrega else "-",
     )
     if quote.observacoes:
-        pdf.row("Observacoes", quote.observacoes)
+        pdf.row("Observações", quote.observacoes)
 
     pdf.section("Proposta")
     proposal = quote.proposal
     if proposal is None:
         pdf.set_font("Helvetica", "I", 9)
         pdf.set_text_color(*MUTED)
-        pdf.multi_cell(0, 5.6, _s("Proposta ainda nao cadastrada para esta cotacao."),
+        pdf.multi_cell(0, 5.6, _s("Proposta ainda não cadastrada para esta cotação."),
                        new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     else:
         _items(pdf, proposal)
         pdf.ln(2.5)
         pdf.row("Prazo de entrega", proposal.prazo_entrega)
         pdf.row("Validade da proposta", proposal.validade.strftime("%d/%m/%Y"))
-        pdf.row("Observacoes", proposal.observacoes or "-")
+        pdf.row("Observações", proposal.observacoes or "-")
 
         pdf.ln(2)
-        pdf.section("Condicoes comerciais")
+        pdf.section("Condições comerciais")
         pdf.set_font("Helvetica", "", 8)
         pdf.set_text_color(*INK)
         for item in TERMOS_COTACAO:

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Minhas cotacoes — AMG Logistica{% endblock %}
+{% block title %}Minhas cotações — AMG Logística{% endblock %}
 
 {% block content %}
 <div class="form-shell form-shell--narrow">
-  <h1>Minhas cotacoes</h1>
-  <p class="lead">Informe o e-mail usado nas solicitacoes para ver todas as suas cotacoes.</p>
+  <h1>Minhas cotações</h1>
+  <p class="lead">Informe o e-mail usado nas solicitações para ver todas as suas cotações.</p>
 
   {% if error %}<p class="notice notice--error">{{ error }}</p>{% endif %}
 
@@ -14,7 +14,7 @@
       <label for="f_email">E-mail <span class="req">*</span></label>
       <input id="f_email" name="email" type="email" required autocomplete="email" value="{{ email or '' }}">
     </div>
-    <button type="submit" class="btn btn--primary">Consultar minhas cotacoes</button>
+    <button type="submit" class="btn btn--primary">Consultar minhas cotações</button>
   </form>
 </div>
 {% endblock %}

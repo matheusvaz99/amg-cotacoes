@@ -23,7 +23,7 @@ VALID = {
     "destino_bairro": "Jardim",
     "tipo_material": "Andaime",
     "qtd_volumes": "10",
-    "peso_total_kg": "5.000",
+    "peso_total": "5.000 kg",
     "valor_nf": "25.000,00",
     "tipo_veiculo": "Carreta Sider",
     "carroceria": "Sider",
@@ -119,6 +119,7 @@ def test_build_ordem_coleta_docx_preenche_campos_da_cotacao(client):
     assert "Rua das Flores, 100" in texto
     assert "R$ 11.760,00" in texto  # FE total, sem FC/margem
     assert "9.800,00" not in texto  # FC nunca aparece no documento
+    assert "5.000 kg" in texto  # peso: texto livre, repassado verbatim
     assert quote.data_coleta.strftime("%d/%m/%Y") in texto
 
 

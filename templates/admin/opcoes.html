@@ -9,19 +9,19 @@
   </div>
 </div>
 
-<p class="lead">Cadastre, edite ou remova as opcoes de {{ info.singular }} que o cliente escolhe
-   na cotacao. Opcoes inativas deixam de aparecer no formulario, mas continuam nas cotacoes ja
+<p class="lead">Cadastre, edite ou remova as opções de {{ info.singular }} que o cliente escolhe
+   na cotação. Opções inativas deixam de aparecer no formulário, mas continuam nas cotações já
    registradas.</p>
 
-{% if ok == 'add' %}<p class="notice notice--ok">Opcao adicionada.</p>{% endif %}
-{% if ok == 'edit' %}<p class="notice notice--ok">Opcao atualizada.</p>{% endif %}
+{% if ok == 'add' %}<p class="notice notice--ok">Opção adicionada.</p>{% endif %}
+{% if ok == 'edit' %}<p class="notice notice--ok">Opção atualizada.</p>{% endif %}
 {% if ok == 'toggle' %}<p class="notice notice--ok">Status atualizado.</p>{% endif %}
-{% if ok == 'delete' %}<p class="notice notice--ok">Opcao removida.</p>{% endif %}
-{% if err == 'vazio' %}<p class="notice notice--error">Informe o nome da opcao.</p>{% endif %}
-{% if err == 'duplicado' %}<p class="notice notice--error">Ja existe uma opcao com esse nome.</p>{% endif %}
+{% if ok == 'delete' %}<p class="notice notice--ok">Opção removida.</p>{% endif %}
+{% if err == 'vazio' %}<p class="notice notice--error">Informe o nome da opção.</p>{% endif %}
+{% if err == 'duplicado' %}<p class="notice notice--error">Já existe uma opção com esse nome.</p>{% endif %}
 
 <div class="card">
-  <h2>Nova opcao</h2>
+  <h2>Nova opção</h2>
   <form method="post" action="/admin/opcoes/{{ categoria }}" class="inline-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <div class="field">
@@ -33,8 +33,8 @@
 </div>
 
 {% if not opcoes %}
-  <p class="notice">Nenhuma opcao cadastrada. O formulario de cotacao ficara sem opcoes de
-     {{ info.singular }} ate voce adicionar ao menos uma.</p>
+  <p class="notice">Nenhuma opção cadastrada. O formulário de cotação ficará sem opções de
+     {{ info.singular }} até você adicionar ao menos uma.</p>
 {% else %}
 <div class="table-wrap">
   <table class="admin-table">
@@ -53,7 +53,7 @@
         </td>
         <td data-label="Status">
           {% if o.ativa %}<span class="badge badge--respondida">Ativa</span>
-          {% else %}<span class="badge badge--aberta">Inativa</span>{% endif %}
+          {% else %}<span class="badge badge--inativa">Inativa</span>{% endif %}
         </td>
         <td data-label="">
           <div class="row-actions">

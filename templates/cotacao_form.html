@@ -25,7 +25,7 @@
   <div id="draft-banner" class="notice" hidden>
     Encontramos um rascunho salvo neste navegador.
     <button type="button" class="linkbtn" data-draft="restore">Retomar rascunho</button> ou
-    <button type="button" class="linkbtn" data-draft="discard">comecar novo</button>.
+    <button type="button" class="linkbtn" data-draft="discard">começar novo</button>.
   </div>
 
   <ol class="stepper" aria-hidden="true">
@@ -57,7 +57,7 @@
       </div>
       {% if completa %}
       <div class="grid-2">
-        {{ field('origem_endereco', 'Endereco', values, errors, hint='Opcional') }}
+        {{ field('origem_endereco', 'Endereço', values, errors, hint='Opcional') }}
         {{ field('origem_bairro', 'Bairro', values, errors, hint='Opcional') }}
       </div>
       {% endif %}
@@ -69,7 +69,7 @@
       </div>
       {% if completa %}
       <div class="grid-2">
-        {{ field('destino_endereco', 'Endereco', values, errors, hint='Opcional') }}
+        {{ field('destino_endereco', 'Endereço', values, errors, hint='Opcional') }}
         {{ field('destino_bairro', 'Bairro', values, errors, hint='Opcional') }}
       </div>
       {% endif %}
@@ -83,17 +83,17 @@
     <fieldset class="step" data-step="2" hidden>
       <legend>2. Dados da carga</legend>
       {{ select('tipo_material', 'Tipo de material', tipos_material, values, errors, required=True) }}
-      {{ textarea('descricao_material', 'Descricao do material', values, errors, hint='Opcional. Ex.: Tubos e acessorios de andaime') }}
+      {{ textarea('descricao_material', 'Descrição do material', values, errors, hint='Opcional. Ex.: Tubos e acessórios de andaime') }}
       <div class="grid-2">
         {{ field('qtd_volumes', 'Quantidade de volumes', values, errors, inputmode='numeric', hint='Opcional') }}
-        {{ field('peso_total_kg', 'Peso total aproximado (kg)', values, errors, required=True, inputmode='numeric', placeholder='Ex.: 5.000', hint='Somente o peso em quilos.') }}
+        {{ field('peso_total', 'Peso total aproximado', values, errors, required=True, placeholder='Ex.: 5.000 kg ou 5 toneladas', hint='Informe o peso e a unidade (kg ou toneladas).') }}
       </div>
       {% if completa %}
       {{ field('dimensoes', 'Dimensões (C x L x A ou m³)', values, errors, hint='Opcional', placeholder='Ex.: 6 x 2,4 x 2,6 m') }}
       {% endif %}
       {{ field('valor_nf', 'Valor aproximado da NF (R$)', values, errors, required=completa, inputmode='decimal', placeholder='Ex.: 25.000,00', hint=None if completa else 'Opcional') }}
       <div class="grid-2">
-        {{ yesno('servico_diaria', 'Necessita de diaria?', values, errors) }}
+        {{ yesno('servico_diaria', 'Necessita de diária?', values, errors) }}
         {{ yesno('servico_guincho', 'Necessita de guincho / Munck?', values, errors) }}
       </div>
       <div class="grid-2">
@@ -111,19 +111,19 @@
     <fieldset class="step" data-step="3" hidden>
       <legend>3. Dados do transporte</legend>
       <div class="grid-2">
-        {{ select('tipo_veiculo', 'Tipo de veiculo desejado', tipos_veiculo, values, errors, required=completa, hint=None if completa else 'Opcional — marque se souber.') }}
-        {{ select('carroceria', 'Carroceria', carrocerias, values, errors, required=completa, hint='Tipos disponiveis conforme cadastro da AMG.' if completa else 'Opcional.') }}
+        {{ select('tipo_veiculo', 'Tipo de veículo desejado', tipos_veiculo, values, errors, required=completa, hint=None if completa else 'Opcional — marque se souber.') }}
+        {{ select('carroceria', 'Carroceria', carrocerias, values, errors, required=completa, hint='Tipos disponíveis conforme cadastro da AMG.' if completa else 'Opcional.') }}
       </div>
       <div class="grid-2">
         {{ field('capacidade_aprox', 'Capacidade aproximada', values, errors, required=completa, placeholder='Ex.: 28 toneladas', hint=None if completa else 'Opcional') }}
         {{ field('data_coleta', 'Data prevista para coleta', values, errors, type='date', required=True) }}
       </div>
       {{ field('data_entrega', 'Data desejada de entrega', values, errors, type='date', hint='Opcional.') }}
-      {{ textarea('observacoes', 'Observacoes', values, errors, hint='Opcional. Ex.: Acesso facil para carga e descarga.') }}
+      {{ textarea('observacoes', 'Observações', values, errors, hint='Opcional. Ex.: Acesso fácil para carga e descarga.') }}
 
       <div class="step-actions">
         <button type="button" class="btn btn--ghost" data-nav="prev">Voltar</button>
-        <button type="submit" class="btn btn--primary" data-submit>Enviar cotacao</button>
+        <button type="submit" class="btn btn--primary" data-submit>Enviar cotação</button>
       </div>
     </fieldset>
   </form>
