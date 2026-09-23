@@ -45,6 +45,7 @@ _ADDED_COLUMNS = {
         "servico_empilhadeira": "BOOLEAN",
         "ajudante_qtd": "INTEGER",
         "peso_total": "VARCHAR(60)",
+        "client_cnpj": "VARCHAR(20)",
     },
     "proposals": {
         "custos_adicionais": "NUMERIC(14,2)",

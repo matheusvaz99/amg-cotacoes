@@ -7,6 +7,7 @@ VALID = {
     "tipo_cotacao": "completa",
     "client_name": "Joao Alves",
     "client_company": "Construtora Alfa",
+    "client_cnpj": "12.345.678/0001-90",
     "client_email": "compras@alfa.com.br",
     # origem e destino ficam em UFs diferentes de proposito: a empresa/CNPJ
     # da OC deve seguir o destino (Londrina - PR, com varias filiais
@@ -99,6 +100,7 @@ def test_submit_quote_rapida_com_campos_minimos(client):
     payload = {
         "tipo_cotacao": "rapida", "csrf_token": token,
         "client_name": "Fulano", "client_company": "Empresa X",
+        "client_cnpj": "98.765.432/0001-10",
         "client_email": "fulano@x.com", "origem_cidade": "Curitiba - PR",
         "destino_cidade": "Sao Paulo - SP", "tipo_material": "Andaime",
         "peso_total": "3 toneladas", "data_coleta": (date.today() + timedelta(days=4)).isoformat(),
@@ -355,8 +357,7 @@ def test_fluxo_completo_solicitacao_oc_logistica_agenda(client, capsys):
 
     email_log = capsys.readouterr().out
     assert f"Para: {settings.email_logistica}" in email_log
-    # CC do comercial4 desligado por ora -- ver TODO em send_enviado_logistica_interno
-    assert "Cc:" not in email_log
+    assert f"Cc: {settings.email_logistica_cc}" in email_log
 
     with SessionLocal() as db:
         q = db.query(Quote).filter_by(code=code).one()

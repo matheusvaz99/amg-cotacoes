@@ -46,9 +46,10 @@
         {{ field('client_company', 'Empresa que representa', values, errors, required=True, autocomplete='organization') }}
       </div>
       <div class="grid-2">
+        {{ field('client_cnpj', 'CNPJ/CPF da empresa', values, errors, required=True, placeholder='00.000.000/0000-00', hint='Usado na Ordem de Coleta.') }}
         {{ field('client_email', 'E-mail', values, errors, type='email', hint='Opcional', autocomplete='email') }}
-        {{ field('client_phone', 'Telefone / WhatsApp', values, errors, hint='Opcional', inputmode='tel', autocomplete='tel') }}
       </div>
+      {{ field('client_phone', 'Telefone / WhatsApp', values, errors, hint='Opcional', inputmode='tel', autocomplete='tel') }}
 
       <h2 class="section-title">Origem (coleta)</h2>
       <div class="grid-2">

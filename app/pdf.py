@@ -170,6 +170,7 @@ def build_quote_pdf(quote: Quote) -> bytes:
     pdf.section("Cliente")
     pdf.row("Comprador", quote.client_name)
     pdf.row("Empresa", quote.client_company or "-")
+    pdf.row("CNPJ/CPF", quote.client_cnpj or "-")
     pdf.row("E-mail", quote.client_email)
     pdf.row("Telefone", quote.client_phone or "-")
 

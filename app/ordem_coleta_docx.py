@@ -108,7 +108,10 @@ def build_ordem_coleta_docx(quote: Quote) -> bytes:
                     quote.destino_cidade, quote.destino_cep, quote.destino_endereco, quote.destino_bairro
                 ))
             elif secao == "coleta" and label == "CNPJ COLETA":
-                _set_first(row, oc.cnpj_filial)
+                # CNPJ/CPF do CLIENTE (quem esta na ponta da coleta) -- nao
+                # confundir com oc.cnpj_filial, que e o CNPJ da propria AMG
+                # (usado so pra escolher o modelo/letterhead do documento).
+                _set_first(row, quote.client_cnpj)
             elif label == "COMERCIAL RESPONSÁVEL":
                 # a mesma linha carrega o rotulo "N. DA COTACAO/COLETA" mais
                 # a frente, com seu proprio valor no ultimo slot da linha.

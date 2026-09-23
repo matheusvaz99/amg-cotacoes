@@ -42,6 +42,10 @@ class Quote(Base):
     # Contato
     client_name: Mapped[str] = mapped_column(String(120))  # nome do comprador
     client_company: Mapped[str] = mapped_column(String(160), default="")  # empresa
+    # CNPJ/CPF da empresa do cliente (quem esta na ponta da coleta) -- usado
+    # no campo "CNPJ COLETA" da Ordem de Coleta, nao confundir com o CNPJ do
+    # pagador do frete (pode ser outra empresa, ver SolicitacaoFrete).
+    client_cnpj: Mapped[str | None] = mapped_column(String(20), nullable=True)
     client_email: Mapped[str | None] = mapped_column(String(180), index=True, nullable=True)
     client_phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
 

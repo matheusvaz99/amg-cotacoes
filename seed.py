@@ -63,6 +63,7 @@ def _quote(db, **kw):
     kw.setdefault("data_entrega", None)
     kw.setdefault("observacoes", None)
     kw.setdefault("client_phone", None)
+    kw.setdefault("client_cnpj", "12.345.678/0001-90")
     kw.setdefault("origem_cep", None)
     kw.setdefault("origem_endereco", None)
     kw.setdefault("origem_bairro", None)

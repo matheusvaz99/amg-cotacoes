@@ -10,6 +10,7 @@ def _make_quote(db, **over):
     data = dict(
         client_name="José da Silva",
         client_company="Construtora São José",
+        client_cnpj="12.345.678/0001-90",
         client_email="compras@saojose.com.br",
         client_phone="(41) 99999-0000",
         tipo_cotacao="completa",

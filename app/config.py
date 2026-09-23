@@ -23,6 +23,14 @@ class Settings(BaseSettings):
     # responsavel comercial em copia.
     email_logistica: str = "josemarteixeiracosta@gmail.com"
     email_logistica_cc: str = "comercial4@amglog.com.br"
+    # Enquanto nenhum dominio proprio estiver verificado no Resend, a conta
+    # so consegue ENTREGAR e-mail pro proprio dono da conta -- qualquer
+    # outro destinatario (cliente real, logistica, etc.) e rejeitado pela
+    # API. Se preenchido, TODO e-mail (para + cc) e redirecionado pra esse
+    # endereco, com o destinatario real anotado no assunto, em vez de
+    # falhar silenciosamente. Remover essa variavel assim que um dominio
+    # for verificado (ai os e-mails voltam a ir pro destinatario de verdade).
+    email_destino: str = ""
 
     base_url: str = "http://localhost:8000"
     database_url: str = "sqlite:///./amg.db"

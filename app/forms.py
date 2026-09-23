@@ -50,6 +50,7 @@ class QuoteForm:
     REQUIRED_LABELS = {
         "client_name": "Nome do comprador",
         "client_company": "Empresa que representa",
+        "client_cnpj": "CNPJ/CPF da empresa",
         "origem_cidade": "Cidade de origem",
         "destino_cidade": "Cidade de destino",
         "tipo_material": "Tipo de material",
@@ -74,7 +75,7 @@ class QuoteForm:
         v["tipo_cotacao"] = TIPO_COTACAO_COMPLETA if completa else TIPO_COTACAO_RAPIDA
 
         # Texto simples sempre obrigatorio
-        for key in ("client_name", "client_company", "origem_cidade", "destino_cidade"):
+        for key in ("client_name", "client_company", "client_cnpj", "origem_cidade", "destino_cidade"):
             v[key] = _clean(d.get(key))
             if not v[key]:
                 self.errors[key] = f"{self.REQUIRED_LABELS[key]} é obrigatório."

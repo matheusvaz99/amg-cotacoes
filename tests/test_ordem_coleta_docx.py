@@ -11,6 +11,7 @@ VALID = {
     "tipo_cotacao": "completa",
     "client_name": "Joao Alves",
     "client_company": "Construtora Alfa",
+    "client_cnpj": "11.222.333/0001-44",
     "client_email": "compras@alfa.com.br",
     "client_phone": "(41) 99999-0000",
     "origem_cidade": "Curitiba - PR",
@@ -113,7 +114,8 @@ def test_build_ordem_coleta_docx_preenche_campos_da_cotacao(client):
 
     assert code in texto
     assert quote.ordem_coleta.numero in texto
-    assert quote.ordem_coleta.cnpj_filial in texto
+    assert quote.client_cnpj in texto  # CNPJ COLETA = CNPJ do cliente, nao da AMG
+    assert quote.ordem_coleta.cnpj_filial not in texto  # CNPJ da AMG so escolhe o modelo/letterhead
     assert "Construtora Alfa" in texto  # nome da empresa na coleta
     assert "Obra Y" in texto  # destinatario, vindo da solicitacao
     assert "Rua das Flores, 100" in texto

@@ -52,6 +52,7 @@
     <dl class="kv">
       <div><dt>Comprador</dt><dd>{{ quote.client_name }}</dd></div>
       <div><dt>Empresa</dt><dd>{{ quote.client_company or '-' }}</dd></div>
+      <div><dt>CNPJ/CPF</dt><dd>{{ quote.client_cnpj or '-' }}</dd></div>
       <div><dt>E-mail</dt><dd>{{ quote.client_email or '-' }}</dd></div>
       <div><dt>Telefone</dt><dd>{{ quote.client_phone or '-' }}</dd></div>
       <div><dt>Solicitada em</dt><dd>{{ quote.created_at | date_br }}</dd></div>

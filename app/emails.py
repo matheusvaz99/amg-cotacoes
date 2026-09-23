@@ -31,6 +31,14 @@ def _send(
     cc: str | list[str] | None = None,
 ) -> None:
     cc_list = [cc] if isinstance(cc, str) else (cc or [])
+    if settings.email_destino:
+        # Sem dominio verificado no Resend, a conta so entrega pro proprio
+        # dono -- redireciona tudo pra ca (com o destinatario real anotado
+        # no assunto) em vez de deixar o envio falhar/nunca chegar.
+        reais = ", ".join([to, *cc_list]) if cc_list else to
+        subject = f"[Para: {reais}] {subject}"
+        to = settings.email_destino
+        cc_list = []
     if _resend is None:
         extra = ""
         if cc_list:
@@ -91,6 +99,7 @@ def send_quote_to_comercial(quote: Quote) -> None:
     {_table(
         _row("Comprador", quote.client_name),
         _row("Empresa", quote.client_company or "-"),
+        _row("CNPJ/CPF", quote.client_cnpj or "-"),
         _row("E-mail", quote.client_email or "-"),
         _row("Telefone", quote.client_phone or "-"),
         _row("Origem", f"{quote.origem_cidade} — CEP {quote.origem_cep or '-'} — {quote.origem_endereco or '-'} — {quote.origem_bairro or '-'}"),
@@ -200,13 +209,18 @@ def send_oc_emitida_interno(quote: Quote, oc: OrdemColeta) -> None:
 
 
 def send_enviado_logistica_interno(quote: Quote, oc: OrdemColeta, agenda: AgendaCarregamento) -> None:
-    # TODO: reativar `cc=settings.email_logistica_cc` assim que um dominio
-    # proprio estiver verificado no Resend. Sem isso, a conta sandbox so
-    # entrega para o e-mail do dono da conta -- um CC de outro dominio faz
-    # o Resend rejeitar o envio inteiro (nem o "Para" principal sai).
+    # O CC volta a funcionar normalmente quando settings.email_destino nao
+    # estiver setado (dominio verificado no Resend) -- ate la, _send()
+    # redireciona para/cc pro mesmo lugar, entao nao ha risco do Resend
+    # rejeitar o envio por causa do CC de outro dominio.
     html = f"""
     <h2>OC {oc.numero} enviada à Logística — cotação {quote.code}</h2>
     <p>Carregamento previsto: {agenda.data_carregamento.strftime('%d/%m/%Y')}</p>
     <p>Já consta na Agenda de Carregamentos.</p>
     """
-    _send(settings.email_logistica, f"OC {oc.numero} enviada à Logística", html)
+    _send(
+        settings.email_logistica,
+        f"OC {oc.numero} enviada à Logística",
+        html,
+        cc=settings.email_logistica_cc,
+    )

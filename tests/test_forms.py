@@ -9,6 +9,7 @@ def _valid_payload(**over):
     payload = {
         "client_name": "Joao Alves",
         "client_company": "Construtora Alfa",
+        "client_cnpj": "12.345.678/0001-90",
         "client_email": "compras@alfa.com.br",
         "origem_cidade": "Curitiba - PR",
         "destino_cidade": "Londrina - PR",
@@ -37,6 +38,7 @@ def test_quote_form_ok_without_optionals_completa():
     assert form.values["peso_total"] == "5.000 kg"
     assert form.values["carroceria"] == "Sider"
     assert form.values["client_company"] == "Construtora Alfa"
+    assert form.values["client_cnpj"] == "12.345.678/0001-90"
     assert form.values["tipo_cotacao"] == TIPO_COTACAO_COMPLETA
     assert form.values["servico_diaria"] is True
     assert "servico_carga" not in form.values  # removido das opcoes
