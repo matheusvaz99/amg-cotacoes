@@ -53,7 +53,7 @@
   document.querySelectorAll('input[name="pagador_documento"]').forEach(maskDocumento);
   var CURRENCY_FIELDS = [
     "valor_nf", "custos_adicionais",
-    "custo_motorista", "custo_pedagio", "custo_impostos", "custo_seguro", "custo_outros_internos",
+    "custo_motorista", "custo_pedagio", "custo_impostos", "custo_outros_internos",
     "valor_diaria", "valor_ajudante", "valor_empilhadeira", "valor_guincho",
     // "fe_manual" (o campo FE abaixo da barra de margem) fica de fora
     // desta mascara "digitada por centavos" -- ela conflita com o proprio

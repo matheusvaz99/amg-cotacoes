@@ -160,7 +160,7 @@ def test_quote_form_data_entrega_antes_da_coleta():
 def _valid_proposal_payload(**over):
     payload = {
         "custo_motorista": "8.000,00", "custo_pedagio": "900,00",
-        "custo_impostos": "700,00", "custo_seguro": "200,00", "custo_outros_internos": "0,00",
+        "custo_impostos": "700,00", "custo_outros_internos": "0,00",
         "margem_pct": "20",
         "prazo_entrega": "1 dia útil",
         "validade": (date.today() + timedelta(days=7)).isoformat(),
@@ -172,9 +172,18 @@ def _valid_proposal_payload(**over):
 def test_proposal_form_calcula_fc_fe_conforme_planilha():
     form = ProposalForm(_valid_proposal_payload())
     assert form.validate(), form.errors
-    assert form.values["fc"] == Decimal("9800.00")
-    assert form.values["fe"] == Decimal("11760.00")
-    assert form.values["valor_final"] == Decimal("11760.00")
+    assert form.values["fc"] == Decimal("9600.00")
+    assert form.values["fe"] == Decimal("11520.00")
+    assert form.values["valor_final"] == Decimal("11520.00")
+
+
+def test_proposal_form_seguro_saiu_da_formacao_de_preco():
+    # "Seguro" foi retirado da formacao de preco -- mesmo que um form antigo
+    # em cache ainda envie o campo, o valor e ignorado (sempre grava 0).
+    form = ProposalForm(_valid_proposal_payload(custo_seguro="9999,00"))
+    assert form.validate(), form.errors
+    assert form.values["custo_seguro"] == Decimal("0.00")
+    assert form.values["fc"] == Decimal("9600.00")  # custo_seguro nao entra na soma
 
 
 def test_proposal_form_soma_adicionais_no_valor_final():
@@ -182,8 +191,8 @@ def test_proposal_form_soma_adicionais_no_valor_final():
         valor_diaria="450,00", valor_guincho="350,00", custos_adicionais="0,00",
     ))
     assert form.validate(), form.errors
-    assert form.values["fe"] == Decimal("11760.00")
-    assert form.values["valor_final"] == Decimal("12560.00")  # 11760 + 450 + 350
+    assert form.values["fe"] == Decimal("11520.00")
+    assert form.values["valor_final"] == Decimal("12320.00")  # 11520 + 450 + 350
 
 
 def test_proposal_form_outros_exige_descricao():
@@ -204,22 +213,22 @@ def test_proposal_form_sem_custos_e_margem_zero():
 
 
 def test_proposal_form_fe_manual_grava_exato_sem_arredondamento_da_margem():
-    # Bug relatado: FC=9800, digitar FE=22700 direto no campo abaixo da barra
-    # de margem gerava FE=22696,80 (9800 * (1 + 131,6/100), com margem
-    # arredondada em 1 casa pelo slider) em vez do valor exato digitado.
+    # Bug relatado: digitar FE=22700 direto no campo abaixo da barra de
+    # margem gerava um valor levemente diferente (9600 * (1 + margem/100),
+    # com margem arredondada em 1 casa pelo slider) em vez do exato digitado.
     form = ProposalForm(_valid_proposal_payload(margem_pct="20", fe_manual="22.700,00"))
     assert form.validate(), form.errors
-    assert form.values["fc"] == Decimal("9800.00")
+    assert form.values["fc"] == Decimal("9600.00")
     assert form.values["fe"] == Decimal("22700.00")  # exatamente o digitado
     assert form.values["valor_final"] == Decimal("22700.00")
     # margem_pct recalculada (2 casas) so para exibicao/historico
-    assert form.values["margem_pct"] == Decimal("131.63")
+    assert form.values["margem_pct"] == Decimal("136.46")
 
 
 def test_proposal_form_sem_fe_manual_calcula_normalmente_pela_margem():
     form = ProposalForm(_valid_proposal_payload(margem_pct="20"))
     assert form.validate(), form.errors
-    assert form.values["fe"] == Decimal("11760.00")
+    assert form.values["fe"] == Decimal("11520.00")
 
 
 def test_proposal_form_requires_prazo_e_validade():

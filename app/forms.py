@@ -200,11 +200,13 @@ class ProposalForm:
     errors: dict[str, str] = field(default_factory=dict)
     values: dict[str, Any] = field(default_factory=dict)
 
+    # "Seguro" saiu da formacao de preco (a coluna Proposal.custo_seguro
+    # continua existindo no banco, sem DROP, mas nao e mais lida do
+    # formulario -- sempre gravada como 0 daqui pra frente).
     CUSTO_FIELDS = [
         "custo_motorista",
         "custo_pedagio",
         "custo_impostos",
-        "custo_seguro",
         "custo_outros_internos",
     ]
     ADICIONAL_FIELDS = [
@@ -223,6 +225,7 @@ class ProposalForm:
             if valor < 0:
                 self.errors[campo] = "Valor inválido."
             v[campo] = valor
+        v["custo_seguro"] = Decimal("0.00")
         v["fc"] = sum((v[c] for c in self.CUSTO_FIELDS), Decimal("0.00"))
 
         margem = parse_brl(d.get("margem_pct"))

@@ -40,7 +40,7 @@ from app.security import (
     validate_csrf,
 )
 from app.templating import render
-from app.utils import alerta_agenda, build_mensagem_logistica, calc_seguro, format_valor, utcnow
+from app.utils import alerta_agenda, build_mensagem_logistica, format_valor, utcnow
 
 router = APIRouter(prefix="/admin")
 
@@ -118,13 +118,11 @@ def dashboard(
 def _proposal_values(quote) -> dict:
     p = quote.proposal
     if not p:
-        sugestao_seguro = format_valor(calc_seguro(quote.valor_nf)) if quote.valor_nf else ""
-        return {"custo_seguro": sugestao_seguro}
+        return {}
     return {
         "custo_motorista": format_valor(p.custo_motorista),
         "custo_pedagio": format_valor(p.custo_pedagio),
         "custo_impostos": format_valor(p.custo_impostos),
-        "custo_seguro": format_valor(p.custo_seguro),
         "custo_outros_internos": format_valor(p.custo_outros_internos),
         "margem_pct": format_valor(p.margem_pct),
         "valor_diaria": format_valor(p.valor_diaria),

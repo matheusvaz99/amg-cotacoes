@@ -1,4 +1,4 @@
-"""Utilidades: codigo de cotacao, moeda pt-BR, CEP, calculo de seguro."""
+"""Utilidades: codigo de cotacao, moeda pt-BR, CEP."""
 
 import re
 from datetime import datetime, timezone
@@ -8,7 +8,6 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 TWO_PLACES = Decimal("0.01")
-SEGURO_ALIQUOTA = Decimal("0.002")  # 0,2% do valor da NF
 
 
 def utcnow() -> datetime:
@@ -145,14 +144,6 @@ def build_mensagem_logistica(quote) -> str:
         f"{quote.origem_cidade} X {quote.destino_cidade}\n"
         f"{fc}\n"
         f"*Carregamento dia {carregamento}*"
-    )
-
-
-def calc_seguro(valor_nf: Decimal | None) -> Decimal:
-    if not valor_nf:
-        return Decimal("0.00")
-    return (Decimal(valor_nf) * SEGURO_ALIQUOTA).quantize(
-        TWO_PLACES, rounding=ROUND_HALF_UP
     )
 
 

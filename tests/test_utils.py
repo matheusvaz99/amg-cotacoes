@@ -6,7 +6,6 @@ from app.database import SessionLocal
 from app.utils import (
     alerta_agenda,
     build_mensagem_logistica,
-    calc_seguro,
     format_brl,
     format_cnpj_cpf,
     gen_oc_numero,
@@ -43,12 +42,6 @@ def test_format_brl():
     assert format_brl(Decimal("1234.5")) == "R$ 1.234,50"
     assert format_brl(0) == "R$ 0,00"
     assert format_brl(None) == "-"
-
-
-def test_calc_seguro():
-    assert calc_seguro(Decimal("25000.00")) == Decimal("50.00")
-    assert calc_seguro(Decimal("14000.00")) == Decimal("28.00")
-    assert calc_seguro(None) == Decimal("0.00")
 
 
 def test_normalize_cep():

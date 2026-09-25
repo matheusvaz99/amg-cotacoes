@@ -37,11 +37,11 @@ VALID = {
 
 PROPOSTA = {
     "custo_motorista": "8.000,00", "custo_pedagio": "900,00", "custo_impostos": "700,00",
-    "custo_seguro": "200,00", "custo_outros_internos": "0,00", "margem_pct": "20",
+    "custo_outros_internos": "0,00", "margem_pct": "20",
     "custos_adicionais": "0,00", "custos_adicionais_desc": "",
     "prazo_entrega": "1 dia útil", "observacoes": "",
 }
-# FC = 9800 ; FE = 9800 * 1.20 = 11760,00
+# FC = 9600 ; FE = 9600 * 1.20 = 11520,00
 
 
 def _fluxo_ate_oc(client):
@@ -131,8 +131,8 @@ def test_build_ordem_coleta_docx_preenche_campos_da_cotacao(client):
     assert "Construtora Alfa" in texto  # nome da empresa na coleta
     assert "Obra Y" in texto  # destinatario, vindo da solicitacao
     assert "Rua das Flores, 100" in texto
-    assert "R$ 11.760,00" in texto  # FE total, sem FC/margem
-    assert "9.800,00" not in texto  # FC nunca aparece no documento
+    assert "R$ 11.520,00" in texto  # FE total, sem FC/margem
+    assert "9.600,00" not in texto  # FC nunca aparece no documento
     assert "5.000 kg" in texto  # peso: texto livre, repassado verbatim
     assert quote.data_coleta.strftime("%d/%m/%Y") in texto
     assert "Josemar Teixeira Costa" in texto  # comercial responsavel, sempre fixo

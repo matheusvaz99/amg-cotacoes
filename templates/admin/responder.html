@@ -100,7 +100,6 @@
         {{ field('custo_motorista', 'Frete motorista (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
         {{ field('custo_pedagio', 'Pedágio (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
         {{ field('custo_impostos', 'Impostos (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
-        {{ field('custo_seguro', 'Seguro (R$)', values, errors, inputmode='decimal', hint='Sugestão: 0,2% do valor da NF (' ~ (quote.valor_nf | brl) ~ ').') }}
         {{ field('custo_outros_internos', 'Outros custos internos (R$)', values, errors, inputmode='decimal', placeholder='0,00') }}
         <div class="pricing-total">FC (custo total) <strong data-fc>-</strong></div>
       </div>

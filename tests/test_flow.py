@@ -28,11 +28,11 @@ VALID = {
 
 PROPOSTA = {
     "custo_motorista": "8.000,00", "custo_pedagio": "900,00", "custo_impostos": "700,00",
-    "custo_seguro": "200,00", "custo_outros_internos": "0,00", "margem_pct": "20",
+    "custo_outros_internos": "0,00", "margem_pct": "20",
     "custos_adicionais": "0,00", "custos_adicionais_desc": "",
     "prazo_entrega": "1 dia útil", "observacoes": "",
 }
-# FC = 9800 ; FE = 9800 * 1.20 = 11760,00
+# FC = 9600 ; FE = 9600 * 1.20 = 11520,00
 
 
 def _submit_quote(client, **overrides):
@@ -171,13 +171,13 @@ def test_admin_precifica_fc_fe_e_cliente_nao_ve_fc(client):
 
     with SessionLocal() as db:
         p = db.query(Quote).filter_by(code=code).one().proposal
-        assert p.fc == Decimal("9800.00")
-        assert p.fe == Decimal("11760.00")
-        assert p.valor_final == Decimal("11760.00")
+        assert p.fc == Decimal("9600.00")
+        assert p.fe == Decimal("11520.00")
+        assert p.valor_final == Decimal("11520.00")
 
     detail = client.get(f"/cotacao/{code}").text
-    assert "R$ 11.760,00" in detail  # FE / valor total
-    assert "9.800,00" not in detail  # FC nunca aparece ao cliente
+    assert "R$ 11.520,00" in detail  # FE / valor total
+    assert "9.600,00" not in detail  # FC nunca aparece ao cliente
     assert "Valor do frete" in detail
 
 
@@ -197,7 +197,7 @@ def test_custos_adicionais_somam_no_valor_final(client):
     detail = client.get(f"/cotacao/{code}").text
     assert "Diária" in detail
     assert "Guincho / Munck" in detail
-    assert "R$ 12.560,00" in detail  # 11760 + 450 + 350
+    assert "R$ 12.320,00" in detail  # 11520 + 450 + 350
 
 
 def test_admin_aprova_e_cliente_ve_link_para_solicitacao(client):
@@ -231,7 +231,7 @@ def test_admin_reprecifica_gera_historico_de_versoes(client):
         assert len(historico) == 1
         assert historico[0].versao == 1
         assert q.proposal.versao == 2
-        assert q.proposal.fe == Decimal("10780.00")  # 9800 * 1.10
+        assert q.proposal.fe == Decimal("10560.00")  # 9600 * 1.10
 
 
 def test_cliente_nao_pode_mais_aprovar_ou_negociar_via_app(client):
@@ -397,12 +397,12 @@ def test_fluxo_completo_solicitacao_oc_logistica_agenda(client, capsys):
 def test_mensagem_logistica_usa_fc_sem_margem(client):
     code = _submit_quote(client)
     _admin_login(client)
-    _respond(client, code)  # FC = 9800, FE = 11760 (ver PROPOSTA no topo do arquivo)
+    _respond(client, code)  # FC = 9600, FE = 11520 (ver PROPOSTA no topo do arquivo)
 
     resp = client.get(f"/admin/cotacao/{code}/mensagem-logistica")
     assert resp.status_code == 200
-    assert "R$ 9.800,00" in resp.text  # FC
-    assert "R$ 11.760,00" not in resp.text  # nunca o FE/valor cobrado
+    assert "R$ 9.600,00" in resp.text  # FC
+    assert "R$ 11.520,00" not in resp.text  # nunca o FE/valor cobrado
     assert "Sider" in resp.text
     assert "Andaime" in resp.text
 
