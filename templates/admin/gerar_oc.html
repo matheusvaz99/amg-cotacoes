@@ -6,50 +6,62 @@
 <p class="hint"><a href="/admin/cotacao/{{ quote.code }}">&larr; Voltar para a cotação</a></p>
 
 <h1>Gerar Ordem de Coleta</h1>
-<p class="lead">Cotação <strong>{{ quote.code }}</strong> aprovada — preencha os dados abaixo
-   direto pelo painel (sem esperar o cliente enviar a Solicitação de Frete).</p>
+<p class="lead">Cotação <strong>{{ quote.code }}</strong> aprovada — confirme os dados abaixo
+   (já vêm pré-preenchidos da cotação) direto pelo painel, sem esperar o cliente enviar a
+   Solicitação de Frete.</p>
 
 {% if errors.get('__all__') %}<p class="notice notice--error">{{ errors.get('__all__') }}</p>{% endif %}
 
 <form method="post" action="/admin/cotacao/{{ quote.code }}/gerar-oc" class="form-shell" novalidate>
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
+  <h2 class="section-title">Cabeçalho</h2>
   <div class="field {% if errors.get('empresa_cnpj') %}field--error{% endif %}">
-    <label>Empresa / CNPJ da filial</label>
+    <label for="f_empresa_cnpj">Empresa / CNPJ da filial <span class="req">*</span></label>
+    <select id="f_empresa_cnpj" name="empresa_cnpj" required autocomplete="off">
+      <option value="">Selecione...</option>
+      {% for value, label in empresa_opcoes %}
+        <option value="{{ value }}" {% if value == (values.get('empresa_cnpj') or empresa_sugerida) %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
     {% if empresa_sugerida %}
-      <input type="hidden" name="empresa_cnpj" value="{{ empresa_sugerida }}">
-      <p class="field-static">{{ empresa_sugerida_label }}</p>
-      <p class="hint">Definido automaticamente pela filial em {{ uf_destino }} (rodízio quando mais de uma
-         empresa atende essa UF).</p>
+      <p class="hint">Sugestão por rodízio (filial em {{ uf_destino }}): {{ empresa_sugerida_label }}. Confirme ou troque antes de gerar.</p>
     {% else %}
-      <select id="f_empresa_cnpj" name="empresa_cnpj" required autocomplete="off">
-        <option value="">Selecione...</option>
-        {% for value, label in empresa_opcoes %}
-          <option value="{{ value }}" {% if value == values.get('empresa_cnpj') %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
       <p class="hint">Nenhuma filial encontrada para {{ uf_destino or 'essa UF' }} — escolha manualmente.</p>
     {% endif %}
     {% if errors.get('empresa_cnpj') %}<p class="error-msg">{{ errors.get('empresa_cnpj') }}</p>{% endif %}
   </div>
 
+  <h2 class="section-title">Endereço — local da coleta</h2>
+  <div class="grid-2">
+    {{ field('origem_cidade', 'Cidade', values, errors, required=True) }}
+    {{ field('origem_cep', 'CEP', values, errors, hint='Opcional') }}
+  </div>
+  <div class="grid-2">
+    {{ field('origem_endereco', 'Endereço', values, errors, hint='Opcional') }}
+    {{ field('origem_numero', 'Número', values, errors, hint='Opcional') }}
+  </div>
+  {{ field('origem_bairro', 'Bairro', values, errors, hint='Opcional') }}
+
+  <h2 class="section-title">Endereço — local da entrega</h2>
+  <div class="grid-2">
+    {{ field('destino_cidade', 'Cidade', values, errors, required=True) }}
+    {{ field('destino_cep', 'CEP', values, errors, hint='Opcional') }}
+  </div>
+  <div class="grid-2">
+    {{ field('destino_endereco', 'Endereço', values, errors, hint='Opcional') }}
+    {{ field('destino_numero', 'Número', values, errors, hint='Opcional') }}
+  </div>
+  {{ field('destino_bairro', 'Bairro', values, errors, hint='Opcional') }}
+  <div class="grid-2">
+    {{ field('destinatario_nome', 'Destinatário (nome)', values, errors, required=True) }}
+    {{ field('destinatario_contato', 'Contato do destinatário', values, errors, hint='Opcional') }}
+  </div>
+
+  <h2 class="section-title">Dados para faturamento</h2>
   {{ select('pagador', 'Pagador do frete', pagador_opcoes, values, errors, required=True) }}
   {{ field('pagador_documento', 'CNPJ/CPF do pagador', values, errors, required=True, placeholder='00.000.000/0000-00') }}
-
-  <h2 class="section-title">Fornecedor / remetente</h2>
-  <div class="grid-2">
-    {{ field('fornecedor_nome', 'Nome', values, errors, required=True) }}
-    {{ field('fornecedor_contato', 'Contato', values, errors, hint='Opcional') }}
-  </div>
-
-  <h2 class="section-title">Destinatário</h2>
-  <div class="grid-2">
-    {{ field('destinatario_nome', 'Nome', values, errors, required=True) }}
-    {{ field('destinatario_contato', 'Contato', values, errors, hint='Opcional') }}
-  </div>
-
   {{ field('valor_nf', 'Valor da NF / valor segurado (R$)', values, errors, inputmode='decimal', hint='Opcional se já informado na cotação.') }}
-  {{ textarea('observacoes_operacionais', 'Observações operacionais', values, errors, hint='Opcional.') }}
 
   <button type="submit" class="btn btn--primary btn--block">Gerar Ordem de Coleta</button>
 </form>

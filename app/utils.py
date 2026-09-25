@@ -125,6 +125,29 @@ def alerta_agenda(data_carregamento, *, status_agenda: str | None = None) -> str
     return None
 
 
+def build_mensagem_logistica(quote) -> str:
+    """Texto pronto pra enviar a Logistica reservar o caminhao (WhatsApp/
+    e-mail). Usa sempre o FC (custo interno, sem margem) -- nunca o FE/valor
+    cobrado do cliente."""
+    proposal = quote.proposal
+    veiculo = quote.tipo_veiculo or "-"
+    if quote.carroceria:
+        veiculo += f" - {quote.carroceria}"
+    material = quote.tipo_material or "-"
+    if quote.descricao_material:
+        material += f" - {quote.descricao_material}"
+    fc = format_brl(proposal.fc) if proposal else "-"
+    carregamento = quote.data_coleta.strftime("%d/%m/%Y") if quote.data_coleta else "-"
+    return (
+        f"1 x {veiculo}\n"
+        f"{material}\n"
+        f"{quote.peso_total or '-'}\n"
+        f"{quote.origem_cidade} X {quote.destino_cidade}\n"
+        f"{fc}\n"
+        f"*Carregamento dia {carregamento}*"
+    )
+
+
 def calc_seguro(valor_nf: Decimal | None) -> Decimal:
     if not valor_nf:
         return Decimal("0.00")
@@ -146,6 +169,21 @@ def normalize_cep(value: str | None) -> str | None:
     if len(digits) == 8:
         return f"{digits[:5]}-{digits[5:]}"
     return digits
+
+
+def format_cnpj_cpf(value: str | None) -> str | None:
+    """Formata CPF (000.000.000-00) ou CNPJ (00.000.000/0000-00) a partir de
+    qualquer digitacao (com ou sem pontuacao). Se nao tiver 11 nem 14
+    digitos, devolve o texto original limpo (sem inventar formatacao)."""
+    if not value:
+        return None
+    raw = str(value).strip()
+    digits = _CEP_RE.sub("", raw)
+    if len(digits) == 11:
+        return f"{digits[:3]}.{digits[3:6]}.{digits[6:9]}-{digits[9:]}"
+    if len(digits) == 14:
+        return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:12]}-{digits[12:]}"
+    return raw
 
 
 def parse_int(value: str | None) -> int | None:

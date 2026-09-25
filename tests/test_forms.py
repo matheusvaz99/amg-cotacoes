@@ -94,6 +94,13 @@ def test_quote_form_completa_exige_campos_extras():
     assert form.values["qtd_volumes"] is None
 
 
+def test_quote_form_numero_endereco_opcional():
+    form = QuoteForm(_valid_payload(origem_numero="123", destino_numero=""))
+    assert form.validate(), form.errors
+    assert form.values["origem_numero"] == "123"
+    assert form.values["destino_numero"] is None
+
+
 def test_quote_form_email_e_opcional():
     payload = _valid_payload(client_email="")
     form = QuoteForm(payload, tipo_cotacao=TIPO_COTACAO_COMPLETA)
@@ -194,6 +201,25 @@ def test_proposal_form_sem_custos_e_margem_zero():
     assert form.values["fc"] == Decimal("0.00")
     assert form.values["fe"] == Decimal("0.00")
     assert form.values["valor_final"] == Decimal("0.00")
+
+
+def test_proposal_form_fe_manual_grava_exato_sem_arredondamento_da_margem():
+    # Bug relatado: FC=9800, digitar FE=22700 direto no campo abaixo da barra
+    # de margem gerava FE=22696,80 (9800 * (1 + 131,6/100), com margem
+    # arredondada em 1 casa pelo slider) em vez do valor exato digitado.
+    form = ProposalForm(_valid_proposal_payload(margem_pct="20", fe_manual="22.700,00"))
+    assert form.validate(), form.errors
+    assert form.values["fc"] == Decimal("9800.00")
+    assert form.values["fe"] == Decimal("22700.00")  # exatamente o digitado
+    assert form.values["valor_final"] == Decimal("22700.00")
+    # margem_pct recalculada (2 casas) so para exibicao/historico
+    assert form.values["margem_pct"] == Decimal("131.63")
+
+
+def test_proposal_form_sem_fe_manual_calcula_normalmente_pela_margem():
+    form = ProposalForm(_valid_proposal_payload(margem_pct="20"))
+    assert form.validate(), form.errors
+    assert form.values["fe"] == Decimal("11760.00")
 
 
 def test_proposal_form_requires_prazo_e_validade():

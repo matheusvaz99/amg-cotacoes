@@ -24,11 +24,10 @@ from app.constants import (
     STATUS_OC_EMITIDA,
     STATUS_REPROVADA,
     STATUS_RESPONDIDA,
-    TIPOS_COTACAO_LABELS,
 )
 from app.database import get_db
 from app.filiais import extrair_uf, label_empresa_cnpj, opcoes_empresa_cnpj
-from app.forms import AgendaForm, ProposalForm, SolicitacaoFreteForm
+from app.forms import AgendaForm, OrdemColetaQuickForm, ProposalForm
 from app.ordem_coleta_docx import build_ordem_coleta_docx
 from app.pdf import build_quote_pdf
 from app.security import (
@@ -41,7 +40,7 @@ from app.security import (
     validate_csrf,
 )
 from app.templating import render
-from app.utils import alerta_agenda, calc_seguro, format_valor, utcnow
+from app.utils import alerta_agenda, build_mensagem_logistica, calc_seguro, format_valor, utcnow
 
 router = APIRouter(prefix="/admin")
 
@@ -94,13 +93,12 @@ def dashboard(
     tab: str = "todas",
     q: str = "",
     empresa: str = "",
-    tipo: str = "",
     admin: str = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     if tab not in ADMIN_TABS:
         tab = "todas"
-    quotes = crud.list_quotes(db, tab=tab, search=q, empresa=empresa, tipo=tipo)
+    quotes = crud.list_quotes(db, tab=tab, search=q, empresa=empresa)
     counts = {name: len(crud.list_quotes(db, tab=name)) for name in ADMIN_TABS}
     return render(
         request,
@@ -110,9 +108,7 @@ def dashboard(
         tab=tab,
         search=q,
         empresa=empresa,
-        tipo=tipo,
         counts=counts,
-        tipos_cotacao=TIPOS_COTACAO_LABELS,
         proxima_acao=PROXIMA_ACAO,
     )
 
@@ -260,6 +256,22 @@ def quote_pdf(
     )
 
 
+@router.get("/cotacao/{code}/mensagem-logistica")
+def mensagem_logistica(
+    request: Request,
+    code: str,
+    admin: str = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    quote = crud.get_quote_by_code(db, code)
+    if not quote or not quote.proposal:
+        return RedirectResponse(f"/admin/cotacao/{code}", status_code=303)
+    return render(
+        request, "admin/mensagem_logistica.html", admin=admin, quote=quote,
+        mensagem=build_mensagem_logistica(quote),
+    )
+
+
 # ----- Solicitacao de Frete -> Ordem de Coleta -> Logistica ---------------
 
 @router.get("/cotacao/{code}/solicitacao")
@@ -330,10 +342,22 @@ def gerar_oc_form(
         return RedirectResponse(f"/admin/cotacao/{code}", status_code=303)
     s = quote.solicitacao
     values = {
-        "pagador": s.pagador if s else "", "pagador_documento": s.pagador_documento if s else "",
-        "fornecedor_nome": s.fornecedor_nome if s else "", "fornecedor_contato": s.fornecedor_contato if s else "",
-        "destinatario_nome": s.destinatario_nome if s else "", "destinatario_contato": s.destinatario_contato if s else "",
-        "valor_nf": s.valor_nf if s else quote.valor_nf, "observacoes_operacionais": s.observacoes_operacionais if s else "",
+        # Dados para faturamento: sem solicitacao ainda enviada pelo cliente,
+        # prefila com o lado da entrega (destinatario), que e o caso mais
+        # comum -- o admin confirma ou troca antes de gerar a OC.
+        "pagador": s.pagador if s else "Destinatário",
+        "pagador_documento": s.pagador_documento if s else "",
+        "destinatario_nome": s.destinatario_nome if s else "",
+        "destinatario_contato": s.destinatario_contato if s else "",
+        "valor_nf": s.valor_nf if s else quote.valor_nf,
+        # Endereco - local da coleta / entrega: sempre pre-preenchidos da
+        # propria cotacao, mas confirmaveis/editaveis aqui.
+        "origem_cidade": quote.origem_cidade, "origem_cep": quote.origem_cep,
+        "origem_endereco": quote.origem_endereco, "origem_numero": quote.origem_numero,
+        "origem_bairro": quote.origem_bairro,
+        "destino_cidade": quote.destino_cidade, "destino_cep": quote.destino_cep,
+        "destino_endereco": quote.destino_endereco, "destino_numero": quote.destino_numero,
+        "destino_bairro": quote.destino_bairro,
     }
     uf = extrair_uf(quote.destino_cidade)
     sugestao = crud.sugestao_empresa_cnpj_fila(db, uf)
@@ -359,14 +383,16 @@ async def gerar_oc_submit(
     if not validate_csrf(request, form.get("csrf_token")):
         return RedirectResponse(f"/admin/cotacao/{code}/gerar-oc", status_code=303)
 
-    uf = extrair_uf(quote.destino_cidade)
+    qf = OrdemColetaQuickForm(form)
+    valida = qf.validate()
+    # UF pro rodizio de filial vem do endereco de entrega ja confirmado/
+    # editado neste mesmo form, nao do valor antigo salvo na cotacao.
+    uf = extrair_uf(qf.values.get("destino_cidade") or quote.destino_cidade)
     escolha = crud.resolver_empresa_cnpj_oc(db, uf, form.get("empresa_cnpj"))
-    sf = SolicitacaoFreteForm(form)
-    valida = sf.validate()
     if not escolha:
         valida = False
     if not valida:
-        errors = dict(sf.errors)
+        errors = dict(qf.errors)
         if not escolha:
             errors["empresa_cnpj"] = "Selecione a empresa/CNPJ da filial."
         sugestao = crud.sugestao_empresa_cnpj_fila(db, uf)
@@ -378,7 +404,20 @@ async def gerar_oc_submit(
             uf_destino=uf, csrf_token=get_csrf_token(request),
         )
 
-    crud.create_or_update_solicitacao(db, quote, sf.values)
+    crud.update_quote_enderecos(db, quote, qf.values)
+    crud.create_or_update_solicitacao(db, quote, {
+        "pagador": qf.values["pagador"],
+        "pagador_documento": qf.values["pagador_documento"],
+        # Fornecedor/remetente e sempre a propria empresa do cliente na
+        # ponta da coleta -- ja e o que o docx usa nesse papel, sem precisar
+        # perguntar de novo.
+        "fornecedor_nome": quote.client_company,
+        "fornecedor_contato": None,
+        "destinatario_nome": qf.values["destinatario_nome"],
+        "destinatario_contato": qf.values["destinatario_contato"],
+        "valor_nf": qf.values["valor_nf"],
+        "observacoes_operacionais": None,
+    })
     empresa, cnpj = escolha
     oc = crud.gerar_ordem_coleta(
         db, quote, empresa=empresa, cnpj_filial=cnpj,

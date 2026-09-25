@@ -95,7 +95,6 @@ def send_quote_to_comercial(quote: Quote) -> None:
     sn = {True: "Sim", False: "Não"}
     html = f"""
     <h2>Nova solicitação de cotação — {quote.code}</h2>
-    <p>Tipo: <strong>{'Cotação Rápida' if quote.is_rapida else 'Cotação Completa'}</strong></p>
     {_table(
         _row("Comprador", quote.client_name),
         _row("Empresa", quote.client_company or "-"),

@@ -83,12 +83,16 @@ ADMIN_TAB_LABELS = {
     "logistica": "Logística",
 }
 
-# Tipo de cotacao: define quais campos sao obrigatorios no formulario.
+# Tipo de cotacao: a opcao "rapida" foi descontinuada (o cliente so oferece
+# mais a cotacao completa, renomeada como so "Cotação") -- as constantes e a
+# coluna continuam existindo para nao quebrar cotacoes antigas ja gravadas
+# com tipo_cotacao="rapida" no banco, mas nada no app oferece mais escolher
+# entre os dois; toda cotacao nova e criada como completa.
 TIPO_COTACAO_RAPIDA = "rapida"
 TIPO_COTACAO_COMPLETA = "completa"
 TIPOS_COTACAO_LABELS = {
-    TIPO_COTACAO_RAPIDA: "Cotação Rápida",
-    TIPO_COTACAO_COMPLETA: "Cotação Completa",
+    TIPO_COTACAO_RAPIDA: "Cotação",
+    TIPO_COTACAO_COMPLETA: "Cotação",
 }
 
 # Status da Solicitacao de Frete (app.models.SolicitacaoFrete.status)
@@ -173,6 +177,10 @@ OPCOES_PADRAO = {
 }
 
 OBSERVACAO_PADRAO_PROPOSTA = "Valores sujeitos a confirmação na contratação."
+
+# Nome fixo exibido no campo "COMERCIAL RESPONSÁVEL" da Ordem de Coleta
+# (sempre o mesmo, independente da cotação/filial).
+COMERCIAL_RESPONSAVEL = "Josemar Teixeira Costa"
 
 DISCLAIMERS = [
     "As cotações são estimativas e não geram reserva de veículo.",

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Mensagem para a Logística — {{ quote.code }}{% endblock %}
+
+{% block content %}
+<p class="hint"><a href="/admin/cotacao/{{ quote.code }}">&larr; Voltar para a cotação</a></p>
+
+<h1>Mensagem para a Logística</h1>
+<p class="lead">Texto pronto para enviar por WhatsApp/e-mail e reservar o caminhão — usa o
+   <strong>FC (custo interno, sem margem)</strong>, nunca o valor cobrado do cliente.</p>
+
+<div class="card">
+  <textarea id="mensagem-logistica" class="mensagem-box" rows="8" readonly>{{ mensagem }}</textarea>
+  <button type="button" class="btn btn--primary" id="copiar-mensagem">Copiar mensagem</button>
+  <p class="hint" id="copiado-hint" hidden>Copiado!</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  "use strict";
+  var btn = document.getElementById("copiar-mensagem");
+  var area = document.getElementById("mensagem-logistica");
+  var hint = document.getElementById("copiado-hint");
+  if (!btn || !area) return;
+  btn.addEventListener("click", function () {
+    area.focus();
+    area.select();
+    function marcarCopiado() {
+      if (!hint) return;
+      hint.hidden = false;
+      setTimeout(function () { hint.hidden = true; }, 2000);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(area.value).then(marcarCopiado, function () {
+        document.execCommand("copy");
+        marcarCopiado();
+      });
+    } else {
+      document.execCommand("copy");
+      marcarCopiado();
+    }
+  });
+})();
+</script>
+{% endblock %}

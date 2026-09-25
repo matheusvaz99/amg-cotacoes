@@ -13,7 +13,7 @@
 <div class="tabs">
   {% set _tab_labels = {'todas':'Todas','em_analise':'Em análise','negociacao':'Negociação','respondidas':'Respondidas','finalizadas':'Finalizadas','solicitacao':'Solicitação de frete','logistica':'Logística'} %}
   {% for name in ['todas', 'em_analise', 'negociacao', 'respondidas', 'finalizadas', 'solicitacao', 'logistica'] %}
-    <a class="tab {% if tab == name %}is-active{% endif %}" href="/admin?tab={{ name }}{% if search %}&q={{ search }}{% endif %}{% if empresa %}&empresa={{ empresa }}{% endif %}{% if tipo %}&tipo={{ tipo }}{% endif %}">
+    <a class="tab {% if tab == name %}is-active{% endif %}" href="/admin?tab={{ name }}{% if search %}&q={{ search }}{% endif %}{% if empresa %}&empresa={{ empresa }}{% endif %}">
       {{ _tab_labels[name] }} <span class="tab__count">{{ counts[name] }}</span>
     </a>
   {% endfor %}
@@ -23,12 +23,6 @@
   <input type="hidden" name="tab" value="{{ tab }}">
   <input type="search" name="q" value="{{ search }}" placeholder="Buscar por código, cidade ou cliente">
   <input type="text" name="empresa" value="{{ empresa }}" placeholder="Filtrar por empresa">
-  <select name="tipo">
-    <option value="">Todos os tipos</option>
-    {% for val, label in tipos_cotacao.items() %}
-      <option value="{{ val }}" {% if tipo == val %}selected{% endif %}>{{ label }}</option>
-    {% endfor %}
-  </select>
   <button type="submit" class="btn btn--ghost">Buscar</button>
 </form>
 
@@ -38,7 +32,7 @@
 <div class="table-wrap">
   <table class="admin-table">
     <thead>
-      <tr><th>Código</th><th>Data</th><th>Empresa</th><th>Comprador</th><th>Tipo</th><th>Rota</th><th>Material</th><th>Valor total</th><th>Status</th><th>Próxima ação</th><th></th></tr>
+      <tr><th>Código</th><th>Data</th><th>Empresa</th><th>Comprador</th><th>Rota</th><th>Material</th><th>Valor total</th><th>Status</th><th>Próxima ação</th><th></th></tr>
     </thead>
     <tbody>
       {% for q in quotes %}
@@ -47,7 +41,6 @@
         <td data-label="Data">{{ q.created_at | date_br }}</td>
         <td data-label="Empresa">{{ q.client_company or '-' }}</td>
         <td data-label="Comprador">{{ q.client_name }}</td>
-        <td data-label="Tipo">{{ tipos_cotacao.get(q.tipo_cotacao, q.tipo_cotacao) }}</td>
         <td data-label="Rota">{{ q.origem_cidade }} &rarr; {{ q.destino_cidade }}</td>
         <td data-label="Material">{{ q.tipo_material }}</td>
         <td data-label="Valor total">{{ q.proposal.valor_final | brl if q.proposal else '-' }}</td>

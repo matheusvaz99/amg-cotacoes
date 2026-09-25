@@ -22,7 +22,6 @@ from app.constants import (
     STATUS_REPROVADA,
     STATUS_RESPONDIDA,
     TIPO_COTACAO_COMPLETA,
-    TIPO_COTACAO_RAPIDA,
     TIPOS_MATERIAL,
 )
 from app.database import get_db
@@ -82,9 +81,12 @@ def home(request: Request):
 
 @router.get("/cotacao")
 def choose_quote_type(request: Request, base: str | None = None, db: Session = Depends(get_db)):
+    # "Cotação Rápida" foi descontinuada -- so existe mais um tipo de
+    # cotacao, entao a tela de escolha vira redirect direto pro formulario.
+    destino = "/cotacao/nova?tipo=completa"
     if base:
-        return RedirectResponse(f"/cotacao/nova?tipo=completa&base={base}", status_code=303)
-    return render(request, "cotacao_escolha.html")
+        destino += f"&base={base}"
+    return RedirectResponse(destino, status_code=303)
 
 
 @router.get("/cotacao/nova")
@@ -94,7 +96,7 @@ def new_quote(
     base: str | None = None,
     db: Session = Depends(get_db),
 ):
-    tipo_cotacao = TIPO_COTACAO_RAPIDA if tipo == TIPO_COTACAO_RAPIDA else TIPO_COTACAO_COMPLETA
+    tipo_cotacao = TIPO_COTACAO_COMPLETA  # unico tipo oferecido
     values: dict = {}
     base_code = None
     if base:
@@ -118,7 +120,7 @@ def new_quote(
 @router.post("/cotacao/nova")
 async def submit_quote(request: Request, db: Session = Depends(get_db)):
     form = dict((await request.form()))
-    tipo_cotacao = TIPO_COTACAO_RAPIDA if form.get("tipo_cotacao") == TIPO_COTACAO_RAPIDA else TIPO_COTACAO_COMPLETA
+    tipo_cotacao = TIPO_COTACAO_COMPLETA  # unico tipo oferecido
     carrocerias = crud.opcao_names(db, OPCAO_CARROCERIA)
     tipos_veiculo = crud.opcao_names(db, OPCAO_TIPO_VEICULO)
 

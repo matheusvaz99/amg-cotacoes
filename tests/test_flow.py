@@ -80,10 +80,12 @@ def test_health(client):
     assert client.get("/health").json() == {"status": "ok"}
 
 
-def test_cotacao_escolha_tem_dois_links(client):
-    page = client.get("/cotacao").text
-    assert "/cotacao/nova?tipo=rapida" in page
-    assert "/cotacao/nova?tipo=completa" in page
+def test_cotacao_redireciona_direto_pro_formulario(client):
+    # "Cotação Rápida" foi descontinuada -- so existe cotação completa, entao
+    # /cotacao nem mostra mais tela de escolha, vai direto pro formulario.
+    resp = client.get("/cotacao", follow_redirects=False)
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/cotacao/nova?tipo=completa"
 
 
 def test_submit_quote_completa_creates_record(client):
@@ -94,7 +96,10 @@ def test_submit_quote_completa_creates_record(client):
     assert "Proposta em análise" in detail.text
 
 
-def test_submit_quote_rapida_com_campos_minimos(client):
+def test_submit_quote_ignora_tipo_rapida_e_exige_campos_da_completa(client):
+    # "Cotação Rápida" foi descontinuada -- mesmo que "rapida" seja enviado
+    # (ex.: link antigo/salvo), o servidor trata como completa e exige os
+    # campos correspondentes (valor_nf, tipo_veiculo, carroceria, etc.).
     page = client.get("/cotacao/nova?tipo=rapida")
     token = csrf_from(page.text)
     payload = {
@@ -106,7 +111,8 @@ def test_submit_quote_rapida_com_campos_minimos(client):
         "peso_total": "3 toneladas", "data_coleta": (date.today() + timedelta(days=4)).isoformat(),
     }
     resp = client.post("/cotacao/nova", data=payload, follow_redirects=False)
-    assert resp.status_code == 303, resp.text
+    assert resp.status_code == 200  # rerenderiza com erros, nao redireciona
+    assert "obrigatório" in resp.text
 
 
 def test_submit_quote_sem_email_e_aceito(client, capsys):
@@ -317,9 +323,9 @@ def test_fluxo_completo_solicitacao_oc_logistica_agenda(client, capsys):
     from app.filiais import extrair_uf, sugestao_empresa_cnpj
 
     empresa_cnpj = sugestao_empresa_cnpj(extrair_uf(VALID["destino_cidade"]))
-    assert empresa_cnpj  # destino PR tem filial cadastrada -- resolvido sozinho, sem dropdown
+    assert empresa_cnpj  # destino PR tem filial cadastrada -- vem pre-selecionada
     assert f'value="{empresa_cnpj}"' in admin_sol.text
-    assert "<select" not in admin_sol.text  # nao pede escolha manual quando ha filial
+    assert "<select" in admin_sol.text  # dropdown sempre visivel, mesmo com sugestao
 
     resp = client.post(
         f"/admin/cotacao/{code}/solicitacao/validar",
@@ -388,6 +394,30 @@ def test_fluxo_completo_solicitacao_oc_logistica_agenda(client, capsys):
     assert resp.status_code == 303
 
 
+def test_mensagem_logistica_usa_fc_sem_margem(client):
+    code = _submit_quote(client)
+    _admin_login(client)
+    _respond(client, code)  # FC = 9800, FE = 11760 (ver PROPOSTA no topo do arquivo)
+
+    resp = client.get(f"/admin/cotacao/{code}/mensagem-logistica")
+    assert resp.status_code == 200
+    assert "R$ 9.800,00" in resp.text  # FC
+    assert "R$ 11.760,00" not in resp.text  # nunca o FE/valor cobrado
+    assert "Sider" in resp.text
+    assert "Andaime" in resp.text
+
+    # botao aparece na tela da cotacao assim que ha proposta
+    detalhe = client.get(f"/admin/cotacao/{code}")
+    assert f"/admin/cotacao/{code}/mensagem-logistica" in detalhe.text
+
+
+def test_mensagem_logistica_sem_proposta_redireciona(client):
+    code = _submit_quote(client)
+    _admin_login(client)
+    resp = client.get(f"/admin/cotacao/{code}/mensagem-logistica", follow_redirects=False)
+    assert resp.status_code == 303
+
+
 def test_solicitacao_devolvida_volta_para_aprovada(client):
     code = _fluxo_ate_aprovada(client)
     sol_page = client.get(f"/cotacao/{code}/solicitacao")
@@ -432,13 +462,14 @@ def test_gerar_oc_atalho_direto_da_cotacao_aprovada(client):
         f"/admin/cotacao/{code}/gerar-oc",
         data={
             "csrf_token": token, "empresa_cnpj": empresa_cnpj,
+            "origem_cidade": VALID["origem_cidade"], "destino_cidade": VALID["destino_cidade"],
             "pagador": "Remetente", "pagador_documento": "12.345.678/0001-90",
-            "fornecedor_nome": "Fornecedor X", "destinatario_nome": "Obra Y",
-            "valor_nf": "25.000,00", "observacoes_operacionais": "",
+            "destinatario_nome": "Obra Y",
+            "valor_nf": "25.000,00",
         },
         follow_redirects=False,
     )
-    assert resp.status_code == 303
+    assert resp.status_code == 303, resp.text
 
     from app.database import SessionLocal
     from app.models import Quote
@@ -447,6 +478,7 @@ def test_gerar_oc_atalho_direto_da_cotacao_aprovada(client):
         q = db.query(Quote).filter_by(code=code).one()
         assert q.status == "oc_emitida"
         assert q.solicitacao is not None  # criada junto pelo atalho
+        assert q.solicitacao.fornecedor_nome == "Construtora Alfa"  # sempre client_company, sem perguntar
         assert q.ordem_coleta is not None
         assert q.ordem_coleta.empresa == empresa_cnpj.split("|")[0]
 
@@ -462,8 +494,9 @@ def test_gerar_oc_sem_filial_na_uf_exige_escolha_manual_e_rejeita_vazio(client):
         f"/admin/cotacao/{code}/gerar-oc",
         data={
             "csrf_token": token, "empresa_cnpj": "",
+            "origem_cidade": VALID["origem_cidade"], "destino_cidade": "Manaus - AM",
             "pagador": "Remetente", "pagador_documento": "12.345.678/0001-90",
-            "fornecedor_nome": "Fornecedor X", "destinatario_nome": "Obra Y",
+            "destinatario_nome": "Obra Y",
         },
     )
     assert resp.status_code == 200
@@ -483,7 +516,7 @@ def test_gerar_oc_sem_filial_na_uf_aceita_escolha_manual(client):
     dropdown deve funcionar normalmente."""
     code = _fluxo_ate_aprovada_em(client, "Manaus - AM")
     manual = "AMG Expresso Ltda|50.786.286/0003-12"  # MS, so pra ilustrar escolha livre
-    _gerar_oc(client, code, manual)
+    _gerar_oc(client, code, manual, destino_cidade="Manaus - AM")
 
     from app.database import SessionLocal
     from app.models import Quote
@@ -496,22 +529,27 @@ def test_gerar_oc_sem_filial_na_uf_aceita_escolha_manual(client):
 
 
 def test_resolver_empresa_cnpj_oc(client):
-    """Unidade direta de crud.resolver_empresa_cnpj_oc: automatico quando ha
-    filial elegivel (ignora qualquer escolha manual enviada), manual so
-    quando nao ha nenhuma."""
+    """Unidade direta de crud.resolver_empresa_cnpj_oc: a escolha manual do
+    dropdown sempre manda quando valida (mesmo havendo sugestao por rodizio
+    disponivel); cai pra sugestao so quando a escolha manual e None/invalida."""
     from app import crud
     from app.database import SessionLocal
 
     with SessionLocal() as db:
-        # PR tem filiais elegiveis -- sempre automatico, mesmo com lixo/None enviado
-        auto = crud.resolver_empresa_cnpj_oc(db, "PR", None)
-        assert auto is not None
-        assert auto == crud.resolver_empresa_cnpj_oc(db, "PR", "isso nao deveria importar")
+        # PR tem filiais elegiveis -- sem escolha (valida), usa a sugestao
+        sugestao_pr = crud.resolver_empresa_cnpj_oc(db, "PR", None)
+        assert sugestao_pr is not None
+        assert crud.resolver_empresa_cnpj_oc(db, "PR", "lixo invalido, sem pipe") == sugestao_pr
 
-        # AM nao tem nenhuma filial -- so a escolha manual decide
+        # escolha manual valida sempre vence, mesmo com sugestao disponivel
+        manual = "JVA Logistica e Transportes Ltda|22.729.681/0001-66"
+        assert crud.resolver_empresa_cnpj_oc(db, "PR", manual) == (
+            "JVA Logistica e Transportes Ltda", "22.729.681/0001-66",
+        )
+
+        # AM nao tem nenhuma filial/sugestao -- so a escolha manual decide
         assert crud.resolver_empresa_cnpj_oc(db, "AM", None) is None
         assert crud.resolver_empresa_cnpj_oc(db, "AM", "valor invalido") is None
-        manual = "JVA Logistica e Transportes Ltda|22.729.681/0001-66"
         assert crud.resolver_empresa_cnpj_oc(db, "AM", manual) == (
             "JVA Logistica e Transportes Ltda", "22.729.681/0001-66",
         )
@@ -549,19 +587,23 @@ def _fluxo_ate_aprovada_em(client, destino_cidade: str):
     return code
 
 
-def _gerar_oc(client, code: str, empresa_cnpj: str):
+def _gerar_oc(
+    client, code: str, empresa_cnpj: str,
+    origem_cidade: str = VALID["origem_cidade"], destino_cidade: str = VALID["destino_cidade"],
+):
     form_page = client.get(f"/admin/cotacao/{code}/gerar-oc")
     token = csrf_from(form_page.text)
     resp = client.post(
         f"/admin/cotacao/{code}/gerar-oc",
         data={
             "csrf_token": token, "empresa_cnpj": empresa_cnpj,
+            "origem_cidade": origem_cidade, "destino_cidade": destino_cidade,
             "pagador": "Remetente", "pagador_documento": "12.345.678/0001-90",
-            "fornecedor_nome": "Fornecedor X", "destinatario_nome": "Obra Y",
+            "destinatario_nome": "Obra Y",
         },
         follow_redirects=False,
     )
-    assert resp.status_code == 303
+    assert resp.status_code == 303, resp.text
     return form_page
 
 
@@ -584,11 +626,11 @@ def test_sugestao_empresa_uf_com_uma_so_filial_nao_alterna(client):
     jva = "JVA Logistica e Transportes Ltda|22.729.681/0002-47"
 
     code1 = _fluxo_ate_aprovada_em(client, "Salvador - BA")
-    form1 = _gerar_oc(client, code1, jva)
+    form1 = _gerar_oc(client, code1, jva, destino_cidade="Salvador - BA")
     assert _empresa_sugerida_no_form(form1.text) == jva
 
     code2 = _fluxo_ate_aprovada_em(client, "Salvador - BA")
-    form2 = _gerar_oc(client, code2, jva)
+    form2 = _gerar_oc(client, code2, jva, destino_cidade="Salvador - BA")
     assert _empresa_sugerida_no_form(form2.text) == jva  # continua a mesma (unica elegivel)
 
 

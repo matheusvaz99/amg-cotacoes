@@ -29,7 +29,28 @@
     });
   }
 
+  function maskDocumento(el) {
+    // CPF (000.000.000-00) enquanto tiver ate 11 digitos; CNPJ
+    // (00.000.000/0000-00) a partir do 12o digito digitado.
+    el.addEventListener("input", function () {
+      var d = el.value.replace(/\D/g, "").slice(0, 14);
+      if (d.length <= 11) {
+        el.value = d
+          .replace(/(\d{3})(\d)/, "$1.$2")
+          .replace(/(\d{3})(\d)/, "$1.$2")
+          .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+      } else {
+        el.value = d
+          .replace(/(\d{2})(\d)/, "$1.$2")
+          .replace(/(\d{3})(\d)/, "$1.$2")
+          .replace(/(\d{3})(\d)/, "$1/$2")
+          .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+      }
+    });
+  }
+
   document.querySelectorAll('input[name$="_cep"]').forEach(maskCEP);
+  document.querySelectorAll('input[name="pagador_documento"]').forEach(maskDocumento);
   var CURRENCY_FIELDS = [
     "valor_nf", "custos_adicionais",
     "custo_motorista", "custo_pedagio", "custo_impostos", "custo_seguro", "custo_outros_internos",

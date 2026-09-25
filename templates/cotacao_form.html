@@ -1,18 +1,13 @@
 {% extends "base.html" %}
 {% from "partials/fields.html" import field, select, textarea, yesno %}
 {% set completa = tipo_cotacao != 'rapida' %}
-{% block title %}{{ 'Cotação Completa' if completa else 'Cotação Rápida' }} — AMG Logística{% endblock %}
+{% block title %}Cotação — AMG Logística{% endblock %}
 
 {% block content %}
 <div class="form-shell">
-  <h1>{{ 'Cotação Completa' if completa else 'Cotação Rápida' }}</h1>
+  <h1>Cotação</h1>
   <p class="lead">
-    {% if completa %}
-      Campos marcados com <span class="req">*</span> são obrigatórios. Os demais são opcionais e servem para agilizar a análise.
-    {% else %}
-      Preencha o mínimo para uma estimativa rápida. Campos marcados com <span class="req">*</span> são obrigatórios.
-    {% endif %}
-    <a href="/cotacao">Trocar tipo de cotação</a>.
+    Campos marcados com <span class="req">*</span> são obrigatórios. Os demais são opcionais e servem para agilizar a análise.
   </p>
 
   {% if base_code %}
@@ -28,7 +23,7 @@
     <button type="button" class="linkbtn" data-draft="discard">começar novo</button>.
   </div>
 
-  <ol class="stepper" aria-hidden="true">
+  <ol class="stepper">
     <li data-step="1" class="is-active">Origem e destino</li>
     <li data-step="2">Dados da carga</li>
     <li data-step="3">Transporte</li>
@@ -59,8 +54,9 @@
       {% if completa %}
       <div class="grid-2">
         {{ field('origem_endereco', 'Endereço', values, errors, hint='Opcional') }}
-        {{ field('origem_bairro', 'Bairro', values, errors, hint='Opcional') }}
+        {{ field('origem_numero', 'Número', values, errors, hint='Opcional') }}
       </div>
+      {{ field('origem_bairro', 'Bairro', values, errors, hint='Opcional') }}
       {% endif %}
 
       <h2 class="section-title">Destino (entrega)</h2>
@@ -71,8 +67,9 @@
       {% if completa %}
       <div class="grid-2">
         {{ field('destino_endereco', 'Endereço', values, errors, hint='Opcional') }}
-        {{ field('destino_bairro', 'Bairro', values, errors, hint='Opcional') }}
+        {{ field('destino_numero', 'Número', values, errors, hint='Opcional') }}
       </div>
+      {{ field('destino_bairro', 'Bairro', values, errors, hint='Opcional') }}
       {% endif %}
 
       <div class="step-actions">

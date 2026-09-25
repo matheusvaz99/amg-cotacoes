@@ -16,11 +16,13 @@ VALID = {
     "client_phone": "(41) 99999-0000",
     "origem_cidade": "Curitiba - PR",
     "origem_cep": "80000-000",
-    "origem_endereco": "Rua das Flores, 100",
+    "origem_endereco": "Rua das Flores",
+    "origem_numero": "100",
     "origem_bairro": "Centro",
     "destino_cidade": "Londrina - PR",
     "destino_cep": "86000-000",
-    "destino_endereco": "Av. Brasil, 200",
+    "destino_endereco": "Av. Brasil",
+    "destino_numero": "200",
     "destino_bairro": "Jardim",
     "tipo_material": "Andaime",
     "qtd_volumes": "10",
@@ -75,16 +77,26 @@ def _fluxo_ate_oc(client):
     from app.filiais import extrair_uf, sugestao_empresa_cnpj
 
     empresa_cnpj = sugestao_empresa_cnpj(extrair_uf(VALID["destino_cidade"]))
-    client.post(
+    resp = client.post(
         f"/admin/cotacao/{code}/gerar-oc",
         data={
             "csrf_token": token, "empresa_cnpj": empresa_cnpj,
+            # o form real vem pre-preenchido com o endereco da propria
+            # cotacao (confirmavel/editavel); o navegador reenvia tudo --
+            # simula isso aqui em vez de so mandar as cidades.
+            "origem_cidade": VALID["origem_cidade"], "origem_cep": VALID["origem_cep"],
+            "origem_endereco": VALID["origem_endereco"], "origem_numero": VALID["origem_numero"],
+            "origem_bairro": VALID["origem_bairro"],
+            "destino_cidade": VALID["destino_cidade"], "destino_cep": VALID["destino_cep"],
+            "destino_endereco": VALID["destino_endereco"], "destino_numero": VALID["destino_numero"],
+            "destino_bairro": VALID["destino_bairro"],
             "pagador": "Remetente", "pagador_documento": "12.345.678/0001-90",
-            "fornecedor_nome": "Fornecedor X", "destinatario_nome": "Obra Y",
-            "valor_nf": "25.000,00", "observacoes_operacionais": "",
+            "destinatario_nome": "Obra Y",
+            "valor_nf": "25.000,00",
         },
         follow_redirects=False,
     )
+    assert resp.status_code == 303, resp.text
     return code
 
 
@@ -123,6 +135,7 @@ def test_build_ordem_coleta_docx_preenche_campos_da_cotacao(client):
     assert "9.800,00" not in texto  # FC nunca aparece no documento
     assert "5.000 kg" in texto  # peso: texto livre, repassado verbatim
     assert quote.data_coleta.strftime("%d/%m/%Y") in texto
+    assert "Josemar Teixeira Costa" in texto  # comercial responsavel, sempre fixo
 
 
 def test_build_ordem_coleta_docx_usa_modelo_da_empresa_escolhida(client):

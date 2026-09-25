@@ -222,14 +222,34 @@ def sugestao_empresa_cnpj_fila(db: Session, uf: str | None) -> str | None:
 def resolver_empresa_cnpj_oc(
     db: Session, uf: str | None, escolha_manual: str | None
 ) -> tuple[str, str] | None:
-    """Decide quem emite a OC: quando ha filial elegivel na UF, a escolha e
-    sempre automatica (rodizio), ignorando qualquer valor enviado pelo
-    formulario -- so exige escolha manual (`escolha_manual`, o dropdown) nos
-    casos em que nenhuma empresa tem filial cadastrada ali."""
+    """Decide quem emite a OC: a escolha do dropdown (`escolha_manual`)
+    sempre manda -- o rodizio por UF so serve pra pre-selecionar uma
+    sugestao no formulario, o admin confirma ou troca livremente antes de
+    emitir. Sem escolha valida, cai de volta na sugestao (ex.: reenvio do
+    form sem alterar o campo oculto)."""
+    escolhida = parse_empresa_cnpj(escolha_manual)
+    if escolhida:
+        return escolhida
     sugestao = sugestao_empresa_cnpj_fila(db, uf)
-    if sugestao:
-        return parse_empresa_cnpj(sugestao)
-    return parse_empresa_cnpj(escolha_manual)
+    return parse_empresa_cnpj(sugestao)
+
+
+_ENDERECO_FIELDS = (
+    "origem_cidade", "origem_cep", "origem_endereco", "origem_numero", "origem_bairro",
+    "destino_cidade", "destino_cep", "destino_endereco", "destino_numero", "destino_bairro",
+)
+
+
+def update_quote_enderecos(db: Session, quote: Quote, values: dict[str, Any]) -> Quote:
+    """Aplica a confirmacao/edicao dos enderecos de coleta e entrega feita na
+    tela de geracao da Ordem de Coleta de volta na propria cotacao -- ela e a
+    fonte unica usada pelo docx/PDF, entao nao ha copia separada pra manter."""
+    for campo in _ENDERECO_FIELDS:
+        if campo in values:
+            setattr(quote, campo, values[campo])
+    db.commit()
+    db.refresh(quote)
+    return quote
 
 
 def gerar_ordem_coleta(

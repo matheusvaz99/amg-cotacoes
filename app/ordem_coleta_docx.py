@@ -14,6 +14,7 @@ from pathlib import Path
 from docx import Document
 from docx.table import _Cell, _Row
 
+from app.constants import COMERCIAL_RESPONSAVEL
 from app.filiais import EMPRESA_TEMPLATE
 from app.models import Quote
 from app.utils import format_brl
@@ -21,8 +22,9 @@ from app.utils import format_brl
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "assets" / "ordem_coleta"
 
 
-def _endereco(cidade: str | None, cep, endereco, bairro) -> str:
-    partes = [p for p in [endereco, bairro, cidade, f"CEP {cep}" if cep else None] if p]
+def _endereco(cidade: str | None, cep, endereco, numero, bairro) -> str:
+    endereco_completo = f"{endereco}, {numero}" if endereco and numero else endereco
+    partes = [p for p in [endereco_completo, bairro, cidade, f"CEP {cep}" if cep else None] if p]
     return ", ".join(partes) if partes else "-"
 
 
@@ -101,11 +103,13 @@ def build_ordem_coleta_docx(quote: Quote) -> bytes:
                 _set_first(row, solicitacao.destinatario_nome if solicitacao else "-")
             elif secao == "coleta" and "ENDEREÇO COMPLETO" in label:
                 _set_first(row, _endereco(
-                    quote.origem_cidade, quote.origem_cep, quote.origem_endereco, quote.origem_bairro
+                    quote.origem_cidade, quote.origem_cep, quote.origem_endereco,
+                    quote.origem_numero, quote.origem_bairro,
                 ))
             elif secao == "entrega" and "ENDEREÇO COMPLETO" in label:
                 _set_first(row, _endereco(
-                    quote.destino_cidade, quote.destino_cep, quote.destino_endereco, quote.destino_bairro
+                    quote.destino_cidade, quote.destino_cep, quote.destino_endereco,
+                    quote.destino_numero, quote.destino_bairro,
                 ))
             elif secao == "coleta" and label == "CNPJ COLETA":
                 # CNPJ/CPF do CLIENTE (quem esta na ponta da coleta) -- nao
@@ -115,6 +119,9 @@ def build_ordem_coleta_docx(quote: Quote) -> bytes:
             elif label == "COMERCIAL RESPONSÁVEL":
                 # a mesma linha carrega o rotulo "N. DA COTACAO/COLETA" mais
                 # a frente, com seu proprio valor no ultimo slot da linha.
+                # Comercial responsavel e sempre o mesmo, fixo (nao varia
+                # por cotacao/filial).
+                _set_first(row, COMERCIAL_RESPONSAVEL)
                 _set_last(row, numero_cotacao)
             elif label == "PESO":
                 _set_first(row, quote.peso_total)

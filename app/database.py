@@ -46,6 +46,8 @@ _ADDED_COLUMNS = {
         "ajudante_qtd": "INTEGER",
         "peso_total": "VARCHAR(60)",
         "client_cnpj": "VARCHAR(20)",
+        "origem_numero": "VARCHAR(20)",
+        "destino_numero": "VARCHAR(20)",
     },
     "proposals": {
         "custos_adicionais": "NUMERIC(14,2)",

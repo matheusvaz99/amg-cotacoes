@@ -53,12 +53,16 @@ class Quote(Base):
     origem_cidade: Mapped[str] = mapped_column(String(120))
     origem_cep: Mapped[str | None] = mapped_column(String(12), nullable=True)
     origem_endereco: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Numero do endereco -- o ViaCEP (usado no autopreenchimento do CEP) nao
+    # devolve numero, entao e sempre digitado manualmente pelo cliente.
+    origem_numero: Mapped[str | None] = mapped_column(String(20), nullable=True)
     origem_bairro: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     # Destino (entrega)
     destino_cidade: Mapped[str] = mapped_column(String(120))
     destino_cep: Mapped[str | None] = mapped_column(String(12), nullable=True)
     destino_endereco: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    destino_numero: Mapped[str | None] = mapped_column(String(20), nullable=True)
     destino_bairro: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     # Carga

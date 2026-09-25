@@ -38,12 +38,12 @@ def _s(text) -> str:
     return text.encode("latin-1", "replace").decode("latin-1")
 
 
-def _local(cidade: str, cep, endereco, bairro) -> str:
+def _local(cidade: str, cep, endereco, numero, bairro) -> str:
     partes = [cidade]
     if cep:
         partes.append(f"CEP {cep}")
     if endereco:
-        partes.append(endereco)
+        partes.append(f"{endereco}, {numero}" if numero else endereco)
     if bairro:
         partes.append(bairro)
     return " - ".join(partes)
@@ -176,9 +176,9 @@ def build_quote_pdf(quote: Quote) -> bytes:
 
     pdf.section("Rota")
     pdf.row("Origem (coleta)", _local(
-        quote.origem_cidade, quote.origem_cep, quote.origem_endereco, quote.origem_bairro))
+        quote.origem_cidade, quote.origem_cep, quote.origem_endereco, quote.origem_numero, quote.origem_bairro))
     pdf.row("Destino (entrega)", _local(
-        quote.destino_cidade, quote.destino_cep, quote.destino_endereco, quote.destino_bairro))
+        quote.destino_cidade, quote.destino_cep, quote.destino_endereco, quote.destino_numero, quote.destino_bairro))
 
     pdf.section("Carga")
     pdf.row("Tipo de material", quote.tipo_material)

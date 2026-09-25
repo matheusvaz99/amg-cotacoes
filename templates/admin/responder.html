@@ -14,7 +14,7 @@
 
 <div class="detail__head">
   <div>
-    <p class="eyebrow">Cotação {{ 'Rápida' if quote.is_rapida else 'Completa' }}</p>
+    <p class="eyebrow">Cotação</p>
     <h1>{{ quote.code }}</h1>
   </div>
   {{ status_badge(quote.status) }}
@@ -39,6 +39,9 @@
 <div class="doc-actions">
   <a class="btn btn--sm btn--ghost" href="/admin/cotacao/{{ quote.code }}/pdf">Baixar PDF</a>
   <a class="btn btn--sm btn--ghost" href="/admin/cotacao/{{ quote.code }}/pdf?inline=1" target="_blank" rel="noopener">Visualizar PDF</a>
+  {% if quote.proposal %}
+  <a class="btn btn--sm btn--ghost" href="/admin/cotacao/{{ quote.code }}/mensagem-logistica">Mensagem Logística</a>
+  {% endif %}
   {% if quote.solicitacao %}
   <a class="btn btn--sm" href="/admin/cotacao/{{ quote.code }}/solicitacao">Ver Solicitação de Frete</a>
   {% elif quote.status == 'aprovada' %}
@@ -59,10 +62,10 @@
     </dl>
     <h3>Origem</h3>
     <p>{{ quote.origem_cidade }}<br>
-       CEP {{ quote.origem_cep or '-' }} &middot; {{ quote.origem_endereco or '-' }} &middot; {{ quote.origem_bairro or '-' }}</p>
+       CEP {{ quote.origem_cep or '-' }} &middot; {{ quote.origem_endereco or '-' }}{% if quote.origem_numero %}, {{ quote.origem_numero }}{% endif %} &middot; {{ quote.origem_bairro or '-' }}</p>
     <h3>Destino</h3>
     <p>{{ quote.destino_cidade }}<br>
-       CEP {{ quote.destino_cep or '-' }} &middot; {{ quote.destino_endereco or '-' }} &middot; {{ quote.destino_bairro or '-' }}</p>
+       CEP {{ quote.destino_cep or '-' }} &middot; {{ quote.destino_endereco or '-' }}{% if quote.destino_numero %}, {{ quote.destino_numero }}{% endif %} &middot; {{ quote.destino_bairro or '-' }}</p>
     <h3>Carga</h3>
     <dl class="kv">
       <div><dt>Tipo de material</dt><dd>{{ quote.tipo_material }}</dd></div>
@@ -110,7 +113,7 @@
         <div class="field">
           <label for="f_valor_frete">FE — valor do frete (R$)</label>
           <input id="f_valor_frete" name="fe_manual" type="text" inputmode="decimal" placeholder="0,00">
-          <p class="hint">Editar aqui ajusta a margem (%) automaticamente, com base no FC atual.</p>
+          <p class="hint">Este valor é gravado exatamente como digitado; a margem (%) é recalculada só para referência/histórico.</p>
         </div>
       </div>
 

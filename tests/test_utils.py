@@ -5,8 +5,10 @@ from app.constants import AGENDA_CANCELADO, AGENDA_CARREGADO
 from app.database import SessionLocal
 from app.utils import (
     alerta_agenda,
+    build_mensagem_logistica,
     calc_seguro,
     format_brl,
+    format_cnpj_cpf,
     gen_oc_numero,
     gen_quote_code,
     normalize_cep,
@@ -71,6 +73,40 @@ def test_gen_oc_numero_increments():
         assert gen_oc_numero(db) == "AMG-J-1"
     finally:
         db.close()
+
+
+def test_format_cnpj_cpf():
+    assert format_cnpj_cpf("12345678900") == "123.456.789-00"
+    assert format_cnpj_cpf("12345678000190") == "12.345.678/0001-90"
+    # ja formatado -- reformata igual (idempotente)
+    assert format_cnpj_cpf("123.456.789-00") == "123.456.789-00"
+    assert format_cnpj_cpf("12.345.678/0001-90") == "12.345.678/0001-90"
+    # nem 11 nem 14 digitos -- devolve original limpo, sem inventar formato
+    assert format_cnpj_cpf("123") == "123"
+    assert format_cnpj_cpf(None) is None
+    assert format_cnpj_cpf("") is None
+
+
+def test_build_mensagem_logistica():
+    from datetime import date
+    from decimal import Decimal
+    from types import SimpleNamespace
+
+    proposal = SimpleNamespace(fc=Decimal("9800.00"))
+    quote = SimpleNamespace(
+        tipo_veiculo="Carreta Sider", carroceria="Grade baixa",
+        tipo_material="Andaime", descricao_material=None,
+        peso_total="5.000 kg", origem_cidade="Curitiba - PR",
+        destino_cidade="Londrina - PR", data_coleta=date(2026, 10, 10),
+        proposal=proposal,
+    )
+    msg = build_mensagem_logistica(quote)
+    assert "1 x Carreta Sider - Grade baixa" in msg
+    assert "Andaime" in msg
+    assert "5.000 kg" in msg
+    assert "Curitiba - PR X Londrina - PR" in msg
+    assert "R$ 9.800,00" in msg  # FC, sem margem
+    assert "*Carregamento dia 10/10/2026*" in msg
 
 
 def test_alerta_agenda():

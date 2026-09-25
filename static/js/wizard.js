@@ -34,15 +34,42 @@
     return true;
   }
 
+  // Navegacao livre entre etapas: "Continuar"/"Voltar" e os marcadores do
+  // stepper vao direto pra qualquer aba, sem exigir que a etapa atual esteja
+  // preenchida -- os campos-chave so sao checados no envio final (salvar),
+  // nao a cada troca de aba.
   form.addEventListener("click", function (e) {
     var btn = e.target.closest("[data-nav]");
     if (!btn) return;
     e.preventDefault();
-    if (btn.dataset.nav === "next") {
-      if (validateStep(current)) show(current + 1);
-    } else {
-      show(current - 1);
+    show(current + (btn.dataset.nav === "next" ? 1 : -1));
+  });
+
+  markers.forEach(function (marker, index) {
+    marker.classList.add("is-clickable");
+    marker.setAttribute("tabindex", "0");
+    marker.setAttribute("role", "button");
+    marker.addEventListener("click", function () { show(index); });
+    marker.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        show(index);
+      }
+    });
+  });
+
+  // Envio final: ai sim verifica os campos-chave de TODAS as etapas (nao so
+  // a atual) antes de deixar salvar -- se alguma faltar, mostra a etapa com
+  // o problema em vez de deixar o servidor rejeitar as cegas.
+  form.addEventListener("submit", function (e) {
+    for (var i = 0; i < steps.length; i++) {
+      if (!validateStep(i)) {
+        e.preventDefault();
+        show(i);
+        return;
+      }
     }
+    clearDraft();
   });
 
   // ----- rascunho -----
@@ -93,7 +120,6 @@
     clearTimeout(t);
     t = setTimeout(saveDraft, 400);
   });
-  form.addEventListener("submit", clearDraft);
 
   // se veio com erros do servidor, comeca na primeira etapa que tem erro
   if (hasServerErrors) {

@@ -18,6 +18,7 @@ from app.constants import (
     TIPOS_MATERIAL,
 )
 from app.utils import (
+    format_cnpj_cpf,
     normalize_cep,
     parse_brl,
     parse_int,
@@ -176,9 +177,11 @@ class QuoteForm:
         # Opcionais
         v["origem_cep"] = normalize_cep(d.get("origem_cep"))
         v["origem_endereco"] = _clean(d.get("origem_endereco")) or None
+        v["origem_numero"] = _clean(d.get("origem_numero")) or None
         v["origem_bairro"] = _clean(d.get("origem_bairro")) or None
         v["destino_cep"] = normalize_cep(d.get("destino_cep"))
         v["destino_endereco"] = _clean(d.get("destino_endereco")) or None
+        v["destino_numero"] = _clean(d.get("destino_numero")) or None
         v["destino_bairro"] = _clean(d.get("destino_bairro")) or None
         v["descricao_material"] = _clean(d.get("descricao_material")) or None
         v["dimensoes"] = _clean(d.get("dimensoes")) or None
@@ -226,9 +229,27 @@ class ProposalForm:
         v["margem_pct"] = margem if margem is not None else Decimal("0.00")
         if v["margem_pct"] < 0:
             self.errors["margem_pct"] = "Valor inválido."
-        v["fe"] = (v["fc"] * (Decimal("1") + v["margem_pct"] / Decimal("100"))).quantize(
-            Decimal("0.01")
-        )
+
+        # "FE — valor do frete" (campo abaixo da barra de margem) manda o FE
+        # digitado direto (fe_manual) alem da margem_pct ja sincronizada pelo
+        # JS. Quando presente, o FE gravado e EXATAMENTE o valor digitado --
+        # nunca recomposto a partir da margem, que so tem 1 casa decimal no
+        # slider e pode nao bater com o valor exato digitado (ex.: FC 9800,
+        # digitar FE 22700 dá margem 131,6%; 9800*2,316 = 22696,80 != 22700).
+        # A margem_pct e recalculada aqui so para exibicao/historico, com
+        # precisao de 2 casas.
+        fe_manual = parse_brl(d.get("fe_manual"))
+        if fe_manual is not None:
+            v["fe"] = fe_manual
+            if v["fc"] > 0:
+                margem_exata = ((fe_manual / v["fc"] - 1) * Decimal("100")).quantize(
+                    Decimal("0.01")
+                )
+                v["margem_pct"] = margem_exata if margem_exata > 0 else Decimal("0.00")
+        else:
+            v["fe"] = (v["fc"] * (Decimal("1") + v["margem_pct"] / Decimal("100"))).quantize(
+                Decimal("0.01")
+            )
 
         for campo in self.ADICIONAL_FIELDS:
             valor = parse_brl(d.get(campo)) or Decimal("0.00")
@@ -291,6 +312,11 @@ class SolicitacaoFreteForm:
             if not v[key]:
                 self.errors[key] = f"{self.REQUIRED_LABELS[key]} é obrigatório."
 
+        # Formata com pontuacao (CPF 000.000.000-00 / CNPJ 00.000.000/0000-00)
+        # independente de como foi digitado.
+        if v.get("pagador_documento"):
+            v["pagador_documento"] = format_cnpj_cpf(v["pagador_documento"])
+
         if v.get("pagador") and v["pagador"] not in PAGADOR_OPCOES:
             self.errors["pagador"] = "Opção inválida."
 
@@ -302,6 +328,59 @@ class SolicitacaoFreteForm:
             self.errors["valor_nf"] = "Valor inválido."
 
         v["observacoes_operacionais"] = _clean(d.get("observacoes_operacionais")) or None
+
+        return not self.errors
+
+
+@dataclass
+class OrdemColetaQuickForm:
+    """Confirma/edita os dados minimos pra emitir a Ordem de Coleta direto do
+    painel (atalho a partir de uma cotacao aprovada, sem esperar o cliente
+    preencher a Solicitacao de Frete): endereco de coleta e de entrega
+    (pre-preenchidos da propria cotacao, mas sempre editaveis/confirmaveis
+    aqui) e os dados de faturamento (pagador + documento). Fornecedor/
+    remetente nao e mais perguntado -- e sempre a propria empresa do
+    cliente (quote.client_company), que ja aparece nesse papel no docx."""
+
+    data: dict[str, Any]
+    errors: dict[str, str] = field(default_factory=dict)
+    values: dict[str, Any] = field(default_factory=dict)
+
+    REQUIRED_LABELS = {
+        "origem_cidade": "Cidade de coleta",
+        "destino_cidade": "Cidade de entrega",
+        "destinatario_nome": "Destinatário (entrega)",
+        "pagador": "Pagador do frete",
+        "pagador_documento": "CNPJ/CPF do pagador",
+    }
+
+    def validate(self) -> bool:
+        d = self.data
+        v = self.values
+        for key in self.REQUIRED_LABELS:
+            v[key] = _clean(d.get(key))
+            if not v[key]:
+                self.errors[key] = f"{self.REQUIRED_LABELS[key]} é obrigatório."
+
+        if v.get("pagador") and v["pagador"] not in PAGADOR_OPCOES:
+            self.errors["pagador"] = "Opção inválida."
+        if v.get("pagador_documento"):
+            v["pagador_documento"] = format_cnpj_cpf(v["pagador_documento"])
+
+        v["destinatario_contato"] = _clean(d.get("destinatario_contato")) or None
+
+        v["origem_cep"] = normalize_cep(d.get("origem_cep"))
+        v["origem_endereco"] = _clean(d.get("origem_endereco")) or None
+        v["origem_numero"] = _clean(d.get("origem_numero")) or None
+        v["origem_bairro"] = _clean(d.get("origem_bairro")) or None
+        v["destino_cep"] = normalize_cep(d.get("destino_cep"))
+        v["destino_endereco"] = _clean(d.get("destino_endereco")) or None
+        v["destino_numero"] = _clean(d.get("destino_numero")) or None
+        v["destino_bairro"] = _clean(d.get("destino_bairro")) or None
+
+        v["valor_nf"] = parse_brl(d.get("valor_nf"))
+        if v["valor_nf"] is not None and v["valor_nf"] < 0:
+            self.errors["valor_nf"] = "Valor inválido."
 
         return not self.errors
 
@@ -348,10 +427,12 @@ def prefill_from_quote(quote) -> dict[str, Any]:
         "origem_cidade": quote.origem_cidade,
         "origem_cep": quote.origem_cep,
         "origem_endereco": quote.origem_endereco,
+        "origem_numero": quote.origem_numero,
         "origem_bairro": quote.origem_bairro,
         "destino_cidade": quote.destino_cidade,
         "destino_cep": quote.destino_cep,
         "destino_endereco": quote.destino_endereco,
+        "destino_numero": quote.destino_numero,
         "destino_bairro": quote.destino_bairro,
         "tipo_material": quote.tipo_material,
         "descricao_material": quote.descricao_material,

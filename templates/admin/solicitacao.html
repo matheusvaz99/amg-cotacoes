@@ -45,26 +45,20 @@
       <h2>Validar solicitação</h2>
       <form method="post" action="/admin/cotacao/{{ quote.code }}/solicitacao/validar">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        {% if empresa_sugerida %}
-          <div class="field">
-            <label>Empresa / CNPJ da filial</label>
-            <input type="hidden" name="empresa_cnpj" value="{{ empresa_sugerida }}">
-            <p class="field-static">{{ empresa_sugerida_label }}</p>
-            <p class="hint">Definido automaticamente pela filial em {{ uf_destino }} (rodízio quando mais
-               de uma empresa atende essa UF).</p>
-          </div>
-        {% else %}
-          <div class="field">
-            <label for="f_empresa_cnpj">Empresa / CNPJ da filial <span class="req">*</span></label>
-            <select id="f_empresa_cnpj" name="empresa_cnpj" required autocomplete="off">
-              <option value="">Selecione...</option>
-              {% for value, label in empresa_opcoes %}
-                <option value="{{ value }}">{{ label }}</option>
-              {% endfor %}
-            </select>
+        <div class="field">
+          <label for="f_empresa_cnpj">Empresa / CNPJ da filial <span class="req">*</span></label>
+          <select id="f_empresa_cnpj" name="empresa_cnpj" required autocomplete="off">
+            <option value="">Selecione...</option>
+            {% for value, label in empresa_opcoes %}
+              <option value="{{ value }}" {% if value == empresa_sugerida %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          {% if empresa_sugerida %}
+            <p class="hint">Sugestão por rodízio (filial em {{ uf_destino }}): {{ empresa_sugerida_label }}. Confirme ou troque antes de validar.</p>
+          {% else %}
             <p class="hint">Nenhuma filial encontrada para {{ uf_destino or 'essa UF' }} — escolha manualmente.</p>
-          </div>
-        {% endif %}
+          {% endif %}
+        </div>
         <button type="submit" class="btn btn--primary btn--block">Validar e gerar Ordem de Coleta</button>
       </form>
 

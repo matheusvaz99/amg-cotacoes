@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="AMG Logística — Cotação Rápida de Frete", lifespan=lifespan)
+app = FastAPI(title="AMG Logística — Cotação de Frete", lifespan=lifespan)
 
 app.add_middleware(
     SessionMiddleware,

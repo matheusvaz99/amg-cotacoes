@@ -21,7 +21,7 @@
   --radius: 12px;
   --radius-sm: 8px;
   --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 8px 24px rgba(16, 24, 40, .06);
-  --maxw: 1100px;
+  --maxw: 1360px;
   --formw: 620px;
 }
 
@@ -178,6 +178,8 @@ a { color: var(--orange-600); }
 .stepper li::before { content: counter(st) ". "; }
 .stepper li.is-active { background: var(--orange); color: #fff; }
 .stepper li.is-done { background: var(--ok-bg); color: var(--ok); }
+.stepper li.is-clickable { cursor: pointer; }
+.stepper li.is-clickable:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
 .step { border: 0; padding: 0; margin: 0; }
 .step legend { font-weight: 700; font-size: 1.05rem; color: var(--orange-700); margin-bottom: 12px; padding: 0; }
@@ -307,6 +309,11 @@ a { color: var(--orange-600); }
 
 .doc-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 4px 0 18px; }
 .doc-actions form { margin: 0; }
+.mensagem-box {
+  width: 100%; font: inherit; padding: 12px; border: 1px solid var(--line);
+  border-radius: var(--radius-sm); margin-bottom: 12px; white-space: pre-wrap;
+  resize: vertical;
+}
 
 .inline-form { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
 .inline-form .field { flex: 1 1 240px; margin-bottom: 0; }
