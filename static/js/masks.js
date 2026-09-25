@@ -55,7 +55,14 @@
     "valor_nf", "custos_adicionais",
     "custo_motorista", "custo_pedagio", "custo_impostos", "custo_seguro", "custo_outros_internos",
     "valor_diaria", "valor_ajudante", "valor_empilhadeira", "valor_guincho",
-    "fe_manual",
+    // "fe_manual" (o campo FE abaixo da barra de margem) fica de fora
+    // desta mascara "digitada por centavos" -- ela conflita com o proprio
+    // listener de static/js/admin.js nesse campo (que ja escreve nele um
+    // valor formatado quando FC/margem/barra mudam, e le o valor pra
+    // recalcular a margem a cada tecla). Ter as duas mascaras mexendo no
+    // mesmo campo causava o valor digitado (ex.: 22700) chegar corrompido
+    // ao servidor. O servidor ja aceita varios formatos (parse_brl), entao
+    // digitar livremente aqui (com ou sem pontuacao) funciona sem mascara.
   ];
   document
     .querySelectorAll(CURRENCY_FIELDS.map(function (n) { return 'input[name="' + n + '"]'; }).join(", "))
