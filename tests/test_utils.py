@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 from app.constants import AGENDA_CANCELADO, AGENDA_CARREGADO
@@ -11,6 +11,7 @@ from app.utils import (
     gen_oc_numero,
     gen_quote_code,
     normalize_cep,
+    para_brasilia,
     parse_brl,
 )
 
@@ -100,6 +101,41 @@ def test_build_mensagem_logistica():
     assert "Curitiba - PR X Londrina - PR" in msg
     assert "R$ 9.800,00" in msg  # FC, sem margem
     assert "*Carregamento dia 10/10/2026*" in msg
+
+
+def test_para_brasilia_desloca_3h_para_tras():
+    aware_utc = datetime(2026, 10, 18, 14, 52, tzinfo=timezone.utc)
+    bsb = para_brasilia(aware_utc)
+    assert (bsb.hour, bsb.minute) == (11, 52)
+    assert bsb.utcoffset() == -timedelta(hours=3)
+
+
+def test_para_brasilia_trata_naive_como_utc():
+    # o banco sempre devolve naive (mesmo gravado com utcnow(), que e
+    # aware) -- precisa presumir UTC, nao hora local do processo.
+    naive = datetime(2026, 10, 18, 14, 52)
+    bsb = para_brasilia(naive)
+    assert (bsb.hour, bsb.minute) == (11, 52)
+
+
+def test_para_brasilia_vira_o_dia_perto_da_meia_noite_utc():
+    # 02:30 UTC de dia 19 = 23:30 de Brasilia do dia 18 -- o calendario
+    # muda, nao so a hora.
+    quase_meia_noite = datetime(2026, 10, 19, 2, 30, tzinfo=timezone.utc)
+    bsb = para_brasilia(quase_meia_noite)
+    assert bsb.date() == date(2026, 10, 18)
+    assert (bsb.hour, bsb.minute) == (23, 30)
+
+
+def test_para_brasilia_nao_mexe_em_date_puro():
+    # data_coleta/validade/data_carregamento sao Date, sem hora -- nao faz
+    # sentido "converter fuso" (e seria ate perigoso: podia pular um dia).
+    d = date(2026, 10, 18)
+    assert para_brasilia(d) is d
+
+
+def test_para_brasilia_none_passa_direto():
+    assert para_brasilia(None) is None
 
 
 def test_alerta_agenda():

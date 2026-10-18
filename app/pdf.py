@@ -6,7 +6,6 @@ PDF sao latin-1, entao todo texto dinamico passa por `_s()`.
 
 from __future__ import annotations
 
-from datetime import datetime
 from pathlib import Path
 
 from fpdf import FPDF
@@ -14,7 +13,7 @@ from fpdf.enums import XPos, YPos
 
 from app.constants import DISCLAIMERS, SLOGAN, STATUS_LABELS, TERMOS_COTACAO
 from app.models import Quote
-from app.utils import format_brl
+from app.utils import format_brl, para_brasilia, utcnow
 
 ORANGE = (242, 106, 33)
 ORANGE_DARK = (184, 70, 15)
@@ -95,7 +94,7 @@ class QuotePDF(FPDF):
         self.cell(0, 4, _s(SLOGAN), align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.set_font("Helvetica", "", 6.5)
         self.set_text_color(*MUTED)
-        gerado = datetime.now().strftime("%d/%m/%Y %H:%M")
+        gerado = para_brasilia(utcnow()).strftime("%d/%m/%Y %H:%M")
         self.cell(
             0, 3.6,
             _s(f"AMG Logística  -  documento gerado em {gerado}  -  página {self.page_no()}"),
@@ -162,7 +161,7 @@ def build_quote_pdf(quote: Quote) -> bytes:
     status = STATUS_LABELS.get(quote.status, quote.status)
     pdf.cell(
         0, 5,
-        _s(f"Status: {status}    |    Solicitada em {quote.created_at.strftime('%d/%m/%Y')}"),
+        _s(f"Status: {status}    |    Solicitada em {para_brasilia(quote.created_at).strftime('%d/%m/%Y')}"),
         new_x=XPos.LMARGIN, new_y=YPos.NEXT,
     )
 

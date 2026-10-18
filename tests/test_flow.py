@@ -384,6 +384,25 @@ def test_admin_aprova_e_reprova_manual(client):
     assert "Cliente desistiu" in detail
 
 
+def test_horarios_do_painel_sao_exibidos_em_horario_de_brasilia(client):
+    from app.database import SessionLocal
+    from app.models import Quote
+    from app.utils import para_brasilia
+
+    code = _submit_quote(client)
+    _admin_login(client)
+
+    with SessionLocal() as db:
+        quote = db.query(Quote).filter_by(code=code).one()
+        esperado = para_brasilia(quote.updated_at).strftime("%d/%m/%Y %H:%M")
+
+    lista = client.get("/admin?tab=todas").text
+    assert esperado in lista  # coluna "Última alteração"
+
+    detalhe = client.get(f"/admin/cotacao/{code}").text
+    assert esperado in detalhe
+
+
 def test_ultima_alteracao_aparece_na_fila_e_no_detalhe_com_hora(client):
     import re
 

@@ -5,16 +5,27 @@ from pathlib import Path
 from fastapi.templating import Jinja2Templates
 
 from app.constants import DISCLAIMERS, MAX_LOCAIS_POR_TIPO, SLOGAN, STATUS_LABELS, TERMOS_COTACAO
-from app.utils import format_brl
+from app.utils import format_brl, para_brasilia
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = BASE_DIR / "templates"
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
+
+def _date_br(d):
+    d = para_brasilia(d)
+    return d.strftime("%d/%m/%Y") if d else "-"
+
+
+def _datetime_br(d):
+    d = para_brasilia(d)
+    return d.strftime("%d/%m/%Y %H:%M") if d else "-"
+
+
 templates.env.filters["brl"] = format_brl
-templates.env.filters["date_br"] = lambda d: d.strftime("%d/%m/%Y") if d else "-"
-templates.env.filters["datetime_br"] = lambda d: d.strftime("%d/%m/%Y %H:%M") if d else "-"
+templates.env.filters["date_br"] = _date_br
+templates.env.filters["datetime_br"] = _datetime_br
 templates.env.globals["STATUS_LABELS"] = STATUS_LABELS
 templates.env.globals["DISCLAIMERS"] = DISCLAIMERS
 templates.env.globals["SLOGAN"] = SLOGAN

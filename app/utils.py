@@ -3,15 +3,32 @@
 import re
 from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 TWO_PLACES = Decimal("0.01")
+TZ_BRASILIA = ZoneInfo("America/Sao_Paulo")
 
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def para_brasilia(valor):
+    """Converte um datetime (gravado em UTC -- naive ou aware, o banco
+    sempre devolve naive) para o horario de Brasilia, so para exibicao. O
+    banco continua guardando tudo em UTC (criado_em, updated_at, etc.) --
+    evita ambiguidade/bug em calculos e comparacoes; so a tela mostra
+    ajustado. Datas puras (sem hora -- data_coleta, validade, etc.) passam
+    direto, sem conversao: nao tem hora pra ajustar, e um Date "01/11" deve
+    continuar "01/11" em qualquer fuso."""
+    if not isinstance(valor, datetime):
+        return valor
+    if valor.tzinfo is None:
+        valor = valor.replace(tzinfo=timezone.utc)
+    return valor.astimezone(TZ_BRASILIA)
 
 
 def _gen_sequential_code(db: Session, model, code_attr: str, prefix_base: str, *, year: int | None = None) -> str:
