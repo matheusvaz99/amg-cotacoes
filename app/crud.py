@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session, selectinload
 from app.constants import (
     ADMIN_TABS,
     AGENDA_AGUARDANDO,
+    LOCAL_TIPO_DESTINO,
+    LOCAL_TIPO_ORIGEM,
     SOLICITACAO_ENVIADA,
     SOLICITACAO_PENDENTE,
     SOLICITACAO_VALIDADA,
@@ -34,6 +36,7 @@ from app.models import (
     Proposal,
     ProposalVersionLog,
     Quote,
+    QuoteLocal,
     SolicitacaoFrete,
 )
 from app.utils import gen_oc_numero, gen_quote_code, utcnow
@@ -42,12 +45,24 @@ _QUOTE_RELATIONS = (
     selectinload(Quote.proposal),
     selectinload(Quote.solicitacao),
     selectinload(Quote.ordem_coleta).selectinload(OrdemColeta.agenda),
+    selectinload(Quote.locais),
 )
 
 
 def create_quote(db: Session, values: dict[str, Any]) -> Quote:
+    """`values["coletas_extras"]`/`values["destinos_extras"]` (listas de
+    dicts com ordem/cidade/cep/endereco/numero/bairro, da QuoteForm) viram
+    QuoteLocal -- a 1a coleta/1o destino continuam gravados direto nas
+    colunas origem_*/destino_* de Quote, como sempre foi."""
+    coletas_extras = values.pop("coletas_extras", None) or []
+    destinos_extras = values.pop("destinos_extras", None) or []
     quote = Quote(code=gen_quote_code(db), **values)
     db.add(quote)
+    db.flush()  # garante quote.id pros QuoteLocal abaixo
+    for loc in coletas_extras:
+        db.add(QuoteLocal(quote_id=quote.id, tipo=LOCAL_TIPO_ORIGEM, **loc))
+    for loc in destinos_extras:
+        db.add(QuoteLocal(quote_id=quote.id, tipo=LOCAL_TIPO_DESTINO, **loc))
     db.commit()
     db.refresh(quote)
     return quote

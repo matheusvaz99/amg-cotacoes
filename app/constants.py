@@ -206,3 +206,8 @@ TERMOS_COTACAO = [
 ]
 
 SLOGAN = "RÁPIDO PARA SOLICITAR. FÁCIL PARA COTAR. EFICIENTE PARA TODOS."
+
+# Multiplas coletas/destinos por cotacao (app.models.QuoteLocal).
+LOCAL_TIPO_ORIGEM = "origem"
+LOCAL_TIPO_DESTINO = "destino"
+MAX_LOCAIS_POR_TIPO = 5  # limite de coletas e de destinos, cada um

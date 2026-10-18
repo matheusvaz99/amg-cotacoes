@@ -15,8 +15,8 @@
   <div class="card">
     <h2>Resumo</h2>
     <dl class="kv">
-      <div><dt>Origem</dt><dd>{{ quote.origem_cidade }}</dd></div>
-      <div><dt>Destino</dt><dd>{{ quote.destino_cidade }}</dd></div>
+      <div><dt>Origem</dt><dd>{{ quote.origem_cidade }}{% if quote.coletas_extras %} <span class="hint">+ {{ quote.coletas_extras | map(attribute='cidade') | join(', ') }}</span>{% endif %}</dd></div>
+      <div><dt>Destino</dt><dd>{{ quote.destino_cidade }}{% if quote.destinos_extras %} <span class="hint">+ {{ quote.destinos_extras | map(attribute='cidade') | join(', ') }}</span>{% endif %}</dd></div>
       <div><dt>Material</dt><dd>{{ quote.tipo_material }}</dd></div>
       <div><dt>Peso total</dt><dd>{{ quote.peso_total }}</dd></div>
       {% if quote.tipo_veiculo %}<div><dt>Veículo</dt><dd>{{ quote.tipo_veiculo }}</dd></div>{% endif %}

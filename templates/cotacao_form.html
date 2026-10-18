@@ -1,6 +1,28 @@
 {% extends "base.html" %}
 {% from "partials/fields.html" import field, select, textarea, yesno %}
 {% set completa = tipo_cotacao != 'rapida' %}
+
+{% macro local_extra(prefixo, i, titulo) %}
+  {% set cidade_campo = prefixo ~ '_cidade_' ~ i %}
+  {% set preenchida = values.get(cidade_campo) or errors.get(cidade_campo) %}
+  <div class="local-extra" data-local-extra="{{ prefixo }}-{{ i }}" {% if not preenchida %}hidden{% endif %}>
+    <div class="local-extra__head">
+      <h3 class="section-title">{{ titulo }}</h3>
+      <button type="button" class="linkbtn" data-remove-local>Remover</button>
+    </div>
+    <div class="grid-2">
+      {{ field(cidade_campo, 'Cidade', values, errors, placeholder='Ex.: Curitiba - PR') }}
+      {{ field(prefixo ~ '_cep_' ~ i, 'CEP', values, errors, hint='Opcional', inputmode='numeric', placeholder='00000-000') }}
+    </div>
+    {% if completa %}
+    <div class="grid-2">
+      {{ field(prefixo ~ '_endereco_' ~ i, 'Endereço', values, errors, hint='Opcional') }}
+      {{ field(prefixo ~ '_numero_' ~ i, 'Número', values, errors, hint='Opcional') }}
+    </div>
+    {{ field(prefixo ~ '_bairro_' ~ i, 'Bairro', values, errors, hint='Opcional') }}
+    {% endif %}
+  </div>
+{% endmacro %}
 {% block title %}Cotação — AMG Logística{% endblock %}
 
 {% block content %}
@@ -58,6 +80,10 @@
       </div>
       {{ field('origem_bairro', 'Bairro', values, errors, hint='Opcional') }}
       {% endif %}
+      {% for i in range(2, MAX_LOCAIS_POR_TIPO + 1) %}
+        {{ local_extra('origem', i, 'Coleta adicional ' ~ (i - 1)) }}
+      {% endfor %}
+      <button type="button" class="btn btn--ghost btn--sm" data-add-local="origem">+ Adicionar outra coleta</button>
 
       <h2 class="section-title">Destino (entrega)</h2>
       <div class="grid-2">
@@ -71,6 +97,10 @@
       </div>
       {{ field('destino_bairro', 'Bairro', values, errors, hint='Opcional') }}
       {% endif %}
+      {% for i in range(2, MAX_LOCAIS_POR_TIPO + 1) %}
+        {{ local_extra('destino', i, 'Destino adicional ' ~ (i - 1)) }}
+      {% endfor %}
+      <button type="button" class="btn btn--ghost btn--sm" data-add-local="destino">+ Adicionar outro destino</button>
 
       <div class="step-actions">
         <span></span>
@@ -131,5 +161,6 @@
 {% block scripts %}
 <script src="{{ url_for('static', path='js/masks.js') }}" defer></script>
 <script src="{{ url_for('static', path='js/cep-lookup.js') }}" defer></script>
+<script src="{{ url_for('static', path='js/locais-extras.js') }}" defer></script>
 <script src="{{ url_for('static', path='js/wizard.js') }}" defer></script>
 {% endblock %}

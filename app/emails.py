@@ -101,8 +101,10 @@ def send_quote_to_comercial(quote: Quote) -> None:
         _row("CNPJ/CPF", quote.client_cnpj or "-"),
         _row("E-mail", quote.client_email or "-"),
         _row("Telefone", quote.client_phone or "-"),
-        _row("Origem", f"{quote.origem_cidade} — CEP {quote.origem_cep or '-'} — {quote.origem_endereco or '-'} — {quote.origem_bairro or '-'}"),
-        _row("Destino", f"{quote.destino_cidade} — CEP {quote.destino_cep or '-'} — {quote.destino_endereco or '-'} — {quote.destino_bairro or '-'}"),
+        _row("Origem", f"{quote.origem_cidade} — CEP {quote.origem_cep or '-'} — {quote.origem_endereco or '-'} — {quote.origem_bairro or '-'}"
+             + (f" (+{len(quote.coletas_extras)} coleta(s) adicional(is), ver painel)" if quote.coletas_extras else "")),
+        _row("Destino", f"{quote.destino_cidade} — CEP {quote.destino_cep or '-'} — {quote.destino_endereco or '-'} — {quote.destino_bairro or '-'}"
+             + (f" (+{len(quote.destinos_extras)} destino(s) adicional(is), ver painel)" if quote.destinos_extras else "")),
         _row("Tipo de material", quote.tipo_material),
         _row("Descrição", quote.descricao_material or "-"),
         _row("Volumes", str(quote.qtd_volumes) if quote.qtd_volumes else "-"),

@@ -157,6 +157,9 @@ a { color: var(--orange-600); }
 .hint { color: var(--muted); font-size: .8rem; margin: 4px 0 0; }
 .error-msg { color: var(--err); font-size: .82rem; margin: 4px 0 0; font-weight: 500; }
 .section-title { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); }
+.local-extra__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.local-extra__head .section-title { flex: 1; }
+[data-add-local] { margin: 10px 0 18px; }
 
 .grid-2 { display: grid; grid-template-columns: 1fr; gap: 0 16px; }
 

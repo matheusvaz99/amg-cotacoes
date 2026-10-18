@@ -96,6 +96,106 @@ def test_submit_quote_completa_creates_record(client):
     assert "Proposta em análise" in detail.text
 
 
+def test_submit_quote_com_multiplas_coletas_e_destinos(client):
+    """Ate 5 coletas e 5 destinos por cotacao -- a 1a coleta/1o destino
+    continuam gravados nos campos de sempre (origem_cidade/destino_cidade),
+    entao nada que ja existia (painel, PDF, OC, busca) precisa saber que
+    cotacoes multi-ponto existem pra continuar funcionando."""
+    code = _submit_quote(
+        client,
+        origem_cidade_2="Joinville - SC", origem_cep_2="89200-000",
+        destino_cidade_2="Maringá - PR",
+        destino_cidade_3="Cascavel - PR",
+    )
+
+    from app.database import SessionLocal
+    from app.models import Quote
+
+    with SessionLocal() as db:
+        q = db.query(Quote).filter_by(code=code).one()
+        assert q.origem_cidade == VALID["origem_cidade"]  # principal continua intacto
+        assert q.destino_cidade == VALID["destino_cidade"]
+        assert len(q.coletas_extras) == 1
+        assert q.coletas_extras[0].cidade == "Joinville - SC"
+        assert q.coletas_extras[0].cep == "89200-000"
+        assert len(q.destinos_extras) == 2
+        assert [d.cidade for d in q.destinos_extras] == ["Maringá - PR", "Cascavel - PR"]
+
+    # aparece pro cliente (resumo compacto)
+    detail = client.get(f"/cotacao/{code}").text
+    assert "Joinville - SC" in detail
+    assert "Maringá - PR" in detail and "Cascavel - PR" in detail
+
+    # aparece pro comercial (endereco completo de cada extra)
+    _admin_login(client)
+    admin_detail = client.get(f"/admin/cotacao/{code}").text
+    assert "Coleta adicional 1" in admin_detail
+    assert "Joinville - SC" in admin_detail
+    assert "Destino adicional 1" in admin_detail and "Destino adicional 2" in admin_detail
+
+    # PDF nao quebra e lista as linhas extras
+    from app.crud import get_quote_by_code
+    from app.pdf import build_quote_pdf
+
+    with SessionLocal() as db:
+        quote = get_quote_by_code(db, code)
+        pdf_bytes = build_quote_pdf(quote)
+    assert pdf_bytes[:5] == b"%PDF-"
+
+    # pipeline inteiro ate a Ordem de Coleta continua funcionando sem erro
+    # (usa so a coleta/destino principal, como sempre -- nao foi quebrado)
+    _respond(client, code)
+    page = client.get(f"/admin/cotacao/{code}")
+    token = csrf_from(page.text)
+    client.post(f"/admin/cotacao/{code}/aprovar", data={"csrf_token": token})
+    form_page = client.get(f"/admin/cotacao/{code}/gerar-oc")
+    assert form_page.status_code == 200
+    from app.filiais import extrair_uf, sugestao_empresa_cnpj
+
+    empresa_cnpj = sugestao_empresa_cnpj(extrair_uf(VALID["destino_cidade"]))
+    token = csrf_from(form_page.text)
+    resp = client.post(
+        f"/admin/cotacao/{code}/gerar-oc",
+        data={
+            "csrf_token": token, "empresa_cnpj": empresa_cnpj,
+            "origem_cidade": VALID["origem_cidade"], "destino_cidade": VALID["destino_cidade"],
+            "pagador": "Remetente", "pagador_documento": "12.345.678/0001-90",
+            "destinatario_nome": "Obra Y",
+        },
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303, resp.text
+
+    with SessionLocal() as db:
+        q = db.query(Quote).filter_by(code=code).one()
+        assert q.status == "oc_emitida"
+        assert q.ordem_coleta is not None
+
+
+def test_submit_quote_linha_extra_sem_cidade_rejeita_com_erro(client):
+    page = client.get("/cotacao/nova?tipo=completa")
+    token = csrf_from(page.text)
+    payload = dict(VALID)
+    payload["csrf_token"] = token
+    payload["data_coleta"] = (date.today() + timedelta(days=5)).isoformat()
+    payload["destino_numero_2"] = "100"  # preencheu algo na linha 2, mas sem cidade
+    resp = client.post("/cotacao/nova", data=payload, follow_redirects=False)
+    assert resp.status_code == 200
+    assert "Informe a cidade ou remova esta linha" in resp.text
+
+
+def test_basear_nova_cotacao_carrega_coletas_e_destinos_extras(client):
+    code = _submit_quote(
+        client,
+        origem_cidade_2="Joinville - SC",
+        destino_cidade_2="Maringá - PR",
+    )
+    page = client.get(f"/cotacao/nova?tipo=completa&base={code}")
+    assert page.status_code == 200
+    assert 'value="Joinville - SC"' in page.text
+    assert 'value="Maringá - PR"' in page.text
+
+
 def test_submit_quote_ignora_tipo_rapida_e_exige_campos_da_completa(client):
     # "Cotação Rápida" foi descontinuada -- mesmo que "rapida" seja enviado
     # (ex.: link antigo/salvo), o servidor trata como completa e exige os

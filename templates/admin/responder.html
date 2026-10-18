@@ -63,9 +63,17 @@
     <h3>Origem</h3>
     <p>{{ quote.origem_cidade }}<br>
        CEP {{ quote.origem_cep or '-' }} &middot; {{ quote.origem_endereco or '-' }}{% if quote.origem_numero %}, {{ quote.origem_numero }}{% endif %} &middot; {{ quote.origem_bairro or '-' }}</p>
+    {% for loc in quote.coletas_extras %}
+    <p><strong>Coleta adicional {{ loop.index }}:</strong> {{ loc.cidade }}<br>
+       CEP {{ loc.cep or '-' }} &middot; {{ loc.endereco or '-' }}{% if loc.numero %}, {{ loc.numero }}{% endif %} &middot; {{ loc.bairro or '-' }}</p>
+    {% endfor %}
     <h3>Destino</h3>
     <p>{{ quote.destino_cidade }}<br>
        CEP {{ quote.destino_cep or '-' }} &middot; {{ quote.destino_endereco or '-' }}{% if quote.destino_numero %}, {{ quote.destino_numero }}{% endif %} &middot; {{ quote.destino_bairro or '-' }}</p>
+    {% for loc in quote.destinos_extras %}
+    <p><strong>Destino adicional {{ loop.index }}:</strong> {{ loc.cidade }}<br>
+       CEP {{ loc.cep or '-' }} &middot; {{ loc.endereco or '-' }}{% if loc.numero %}, {{ loc.numero }}{% endif %} &middot; {{ loc.bairro or '-' }}</p>
+    {% endfor %}
     <h3>Carga</h3>
     <dl class="kv">
       <div><dt>Tipo de material</dt><dd>{{ quote.tipo_material }}</dd></div>

@@ -9,13 +9,18 @@
     return (v || "").replace(/\D/g, "");
   }
 
-  function ligarCep(prefixo) {
-    var cepInput = document.querySelector('input[name="' + prefixo + '_cep"]');
+  function campoNome(prefixo, campo, indice) {
+    // linha principal: "origem_cep"; linhas extras (2..5): "origem_cep_2"
+    return indice ? prefixo + "_" + campo + "_" + indice : prefixo + "_" + campo;
+  }
+
+  function ligarCep(prefixo, indice) {
+    var cepInput = document.querySelector('input[name="' + campoNome(prefixo, "cep", indice) + '"]');
     if (!cepInput) return;
 
-    var enderecoInput = document.querySelector('input[name="' + prefixo + '_endereco"]');
-    var bairroInput = document.querySelector('input[name="' + prefixo + '_bairro"]');
-    var cidadeInput = document.querySelector('input[name="' + prefixo + '_cidade"]');
+    var enderecoInput = document.querySelector('input[name="' + campoNome(prefixo, "endereco", indice) + '"]');
+    var bairroInput = document.querySelector('input[name="' + campoNome(prefixo, "bairro", indice) + '"]');
+    var cidadeInput = document.querySelector('input[name="' + campoNome(prefixo, "cidade", indice) + '"]');
 
     var ultimoConsultado = "";
 
@@ -51,6 +56,9 @@
     });
   }
 
-  ligarCep("origem");
-  ligarCep("destino");
+  // 5 = app.constants.MAX_LOCAIS_POR_TIPO (JS estatico nao le a constante Python).
+  for (var i = 1; i <= 5; i++) {
+    ligarCep("origem", i === 1 ? null : i);
+    ligarCep("destino", i === 1 ? null : i);
+  }
 })();

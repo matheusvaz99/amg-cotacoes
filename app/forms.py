@@ -11,6 +11,7 @@ from typing import Any
 from app.constants import (
     AGENDA_AGUARDANDO,
     AGENDA_STATUS_LABELS,
+    MAX_LOCAIS_POR_TIPO,
     OBSERVACAO_PADRAO_PROPOSTA,
     PAGADOR_OPCOES,
     TIPO_COTACAO_COMPLETA,
@@ -183,11 +184,41 @@ class QuoteForm:
         v["destino_endereco"] = _clean(d.get("destino_endereco")) or None
         v["destino_numero"] = _clean(d.get("destino_numero")) or None
         v["destino_bairro"] = _clean(d.get("destino_bairro")) or None
+
+        # Coletas/destinos extras (alem do 1o de cada, acima) -- ate
+        # MAX_LOCAIS_POR_TIPO no total. Linha nao preenchida e ignorada em
+        # silencio (o cliente so clicou "adicionar" e nao chegou a usar).
+        v["coletas_extras"] = self._parse_locais_extras(d, "origem")
+        v["destinos_extras"] = self._parse_locais_extras(d, "destino")
+
         v["descricao_material"] = _clean(d.get("descricao_material")) or None
         v["dimensoes"] = _clean(d.get("dimensoes")) or None
         v["observacoes"] = _clean(d.get("observacoes")) or None
 
         return not self.errors
+
+    def _parse_locais_extras(self, d: dict[str, Any], prefixo: str) -> list[dict]:
+        """Le as coletas/destinos extras (campos 'origem_cidade_2'..'_5' ou
+        'destino_cidade_2'..'_5', mesmo padrao dos demais campos desse
+        local). Linha totalmente vazia e ignorada; linha com algo
+        preenchido mas sem cidade vira erro nesse campo especifico."""
+        extras: list[dict] = []
+        for i in range(2, MAX_LOCAIS_POR_TIPO + 1):
+            cidade = _clean(d.get(f"{prefixo}_cidade_{i}"))
+            cep = normalize_cep(d.get(f"{prefixo}_cep_{i}"))
+            endereco = _clean(d.get(f"{prefixo}_endereco_{i}")) or None
+            numero = _clean(d.get(f"{prefixo}_numero_{i}")) or None
+            bairro = _clean(d.get(f"{prefixo}_bairro_{i}")) or None
+            if not cidade and not (cep or endereco or numero or bairro):
+                continue
+            if not cidade:
+                self.errors[f"{prefixo}_cidade_{i}"] = "Informe a cidade ou remova esta linha."
+                continue
+            extras.append({
+                "ordem": i, "cidade": cidade, "cep": cep,
+                "endereco": endereco, "numero": numero, "bairro": bairro,
+            })
+        return extras
 
 
 @dataclass
@@ -426,8 +457,10 @@ class AgendaForm:
 
 
 def prefill_from_quote(quote) -> dict[str, Any]:
-    """Valores para reaproveitar uma cotacao anterior (rota + carga + transporte)."""
-    return {
+    """Valores para reaproveitar uma cotacao anterior (rota + carga +
+    transporte), incluindo coletas/destinos extras (alem do principal), se
+    a cotacao original tinha."""
+    valores: dict[str, Any] = {
         "origem_cidade": quote.origem_cidade,
         "origem_cep": quote.origem_cep,
         "origem_endereco": quote.origem_endereco,
@@ -455,6 +488,13 @@ def prefill_from_quote(quote) -> dict[str, Any]:
         "data_entrega": quote.data_entrega.isoformat() if quote.data_entrega else None,
         "observacoes": quote.observacoes,
     }
+    for loc in quote.coletas_extras:
+        for campo in ("cidade", "cep", "endereco", "numero", "bairro"):
+            valores[f"origem_{campo}_{loc.ordem}"] = getattr(loc, campo)
+    for loc in quote.destinos_extras:
+        for campo in ("cidade", "cep", "endereco", "numero", "bairro"):
+            valores[f"destino_{campo}_{loc.ordem}"] = getattr(loc, campo)
+    return valores
 
 
 def prefill_from_quote_for_solicitacao(quote) -> dict[str, Any]:

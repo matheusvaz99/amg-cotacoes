@@ -176,8 +176,12 @@ def build_quote_pdf(quote: Quote) -> bytes:
     pdf.section("Rota")
     pdf.row("Origem (coleta)", _local(
         quote.origem_cidade, quote.origem_cep, quote.origem_endereco, quote.origem_numero, quote.origem_bairro))
+    for i, loc in enumerate(quote.coletas_extras, start=1):
+        pdf.row(f"Coleta adicional {i}", _local(loc.cidade, loc.cep, loc.endereco, loc.numero, loc.bairro))
     pdf.row("Destino (entrega)", _local(
         quote.destino_cidade, quote.destino_cep, quote.destino_endereco, quote.destino_numero, quote.destino_bairro))
+    for i, loc in enumerate(quote.destinos_extras, start=1):
+        pdf.row(f"Destino adicional {i}", _local(loc.cidade, loc.cep, loc.endereco, loc.numero, loc.bairro))
 
     pdf.section("Carga")
     pdf.row("Tipo de material", quote.tipo_material)

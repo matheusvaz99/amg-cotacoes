@@ -94,6 +94,67 @@ def test_quote_form_completa_exige_campos_extras():
     assert form.values["qtd_volumes"] is None
 
 
+# ----- Multiplas coletas/destinos (ate 5 de cada) -------------------------
+
+def test_quote_form_sem_extras_listas_vazias():
+    form = QuoteForm(_valid_payload())
+    assert form.validate(), form.errors
+    assert form.values["coletas_extras"] == []
+    assert form.values["destinos_extras"] == []
+    # a 1a coleta/1o destino continuam nos campos de sempre, sem mudanca
+    assert form.values["origem_cidade"] == "Curitiba - PR"
+    assert form.values["destino_cidade"] == "Londrina - PR"
+
+
+def test_quote_form_com_coleta_e_destino_extras():
+    form = QuoteForm(_valid_payload(
+        origem_cidade_2="Joinville - SC", origem_cep_2="89200-000",
+        destino_cidade_2="Maringá - PR", destino_numero_2="500",
+    ))
+    assert form.validate(), form.errors
+    assert form.values["coletas_extras"] == [
+        {"ordem": 2, "cidade": "Joinville - SC", "cep": "89200-000",
+         "endereco": None, "numero": None, "bairro": None},
+    ]
+    assert form.values["destinos_extras"] == [
+        {"ordem": 2, "cidade": "Maringá - PR", "cep": None,
+         "endereco": None, "numero": "500", "bairro": None},
+    ]
+
+
+def test_quote_form_linha_extra_vazia_e_ignorada():
+    # cliente clicou "+ adicionar" mas nao chegou a preencher -- nao vira erro
+    form = QuoteForm(_valid_payload(origem_cidade_2="", origem_cep_2=""))
+    assert form.validate(), form.errors
+    assert form.values["coletas_extras"] == []
+
+
+def test_quote_form_linha_extra_sem_cidade_mas_com_outro_campo_e_erro():
+    form = QuoteForm(_valid_payload(origem_numero_3="100"))
+    assert not form.validate()
+    assert "origem_cidade_3" in form.errors
+
+
+def test_quote_form_ate_5_coletas_e_5_destinos():
+    payload = _valid_payload()
+    for i in range(2, 6):
+        payload[f"origem_cidade_{i}"] = f"Cidade Origem {i}"
+        payload[f"destino_cidade_{i}"] = f"Cidade Destino {i}"
+    form = QuoteForm(payload)
+    assert form.validate(), form.errors
+    assert len(form.values["coletas_extras"]) == 4  # 2,3,4,5 -- 5 no total com a principal
+    assert len(form.values["destinos_extras"]) == 4
+    assert [c["ordem"] for c in form.values["coletas_extras"]] == [2, 3, 4, 5]
+
+
+def test_quote_form_campo_alem_do_limite_e_ignorado():
+    # "origem_cidade_6" nao existe no protocolo (limite e 5) -- e so
+    # ignorado, sem erro e sem entrar na lista.
+    form = QuoteForm(_valid_payload(origem_cidade_6="Nao deveria contar"))
+    assert form.validate(), form.errors
+    assert form.values["coletas_extras"] == []
+
+
 def test_quote_form_numero_endereco_opcional():
     form = QuoteForm(_valid_payload(origem_numero="123", destino_numero=""))
     assert form.validate(), form.errors

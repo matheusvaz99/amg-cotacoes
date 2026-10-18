@@ -18,7 +18,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.constants import STATUS_EM_ANALISE, TIPO_COTACAO_COMPLETA
+from app.constants import LOCAL_TIPO_DESTINO, LOCAL_TIPO_ORIGEM, STATUS_EM_ANALISE, TIPO_COTACAO_COMPLETA
 from app.database import Base
 from app.utils import utcnow
 
@@ -49,7 +49,16 @@ class Quote(Base):
     client_email: Mapped[str | None] = mapped_column(String(180), index=True, nullable=True)
     client_phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
-    # Origem (coleta)
+    # Origem (coleta) e Destino (entrega) principais -- sempre a 1a coleta e
+    # o 1o destino informados (ver QuoteLocal para coletas/destinos extras,
+    # ate 5 de cada). Mantidos como colunas diretas (em vez de so derivar da
+    # lista) de proposito: TODO o resto do sistema que ja existia antes de
+    # multiplas coletas/destinos -- PDF, e-mails, Ordem de Coleta (.docx,
+    # que tem um unico endereco de coleta/entrega no modelo fisico),
+    # resolucao de filial por UF, busca no painel -- continua lendo so
+    # esses dois campos, sem precisar saber que cotacoes multi-ponto
+    # existem. Sincronizados automaticamente com locais_ordenados()[0] de
+    # cada tipo sempre que a cotacao e criada.
     origem_cidade: Mapped[str] = mapped_column(String(120))
     origem_cep: Mapped[str | None] = mapped_column(String(12), nullable=True)
     origem_endereco: Mapped[str | None] = mapped_column(String(200), nullable=True)
@@ -58,7 +67,6 @@ class Quote(Base):
     origem_numero: Mapped[str | None] = mapped_column(String(20), nullable=True)
     origem_bairro: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
-    # Destino (entrega)
     destino_cidade: Mapped[str] = mapped_column(String(120))
     destino_cep: Mapped[str | None] = mapped_column(String(12), nullable=True)
     destino_endereco: Mapped[str | None] = mapped_column(String(200), nullable=True)
@@ -107,6 +115,12 @@ class Quote(Base):
     ordem_coleta: Mapped[OrdemColeta | None] = relationship(
         back_populates="quote", uselist=False, cascade="all, delete-orphan"
     )
+    # Coletas/destinos ALEM do principal (origem_*/destino_* acima) -- ate 4
+    # de cada (o principal conta como o 1o, limite total 5). Ver QuoteLocal.
+    locais: Mapped[list[QuoteLocal]] = relationship(
+        back_populates="quote", cascade="all, delete-orphan",
+        order_by="QuoteLocal.ordem",
+    )
 
     @property
     def rota(self) -> str:
@@ -117,6 +131,43 @@ class Quote(Base):
         from app.constants import TIPO_COTACAO_RAPIDA
 
         return self.tipo_cotacao == TIPO_COTACAO_RAPIDA
+
+    @property
+    def coletas_extras(self) -> list[QuoteLocal]:
+        """Coletas alem da principal (origem_*), na ordem em que foram
+        preenchidas -- vazio na imensa maioria das cotacoes (1 coleta so)."""
+        return [loc for loc in self.locais if loc.tipo == LOCAL_TIPO_ORIGEM]
+
+    @property
+    def destinos_extras(self) -> list[QuoteLocal]:
+        """Destinos alem do principal (destino_*), na ordem em que foram
+        preenchidos -- vazio na imensa maioria das cotacoes (1 destino so)."""
+        return [loc for loc in self.locais if loc.tipo == LOCAL_TIPO_DESTINO]
+
+
+class QuoteLocal(Base):
+    """Coleta ou destino ALEM do principal de uma cotacao (que fica em
+    Quote.origem_*/destino_*) -- ate 4 de cada tipo (MAX_LOCAIS_POR_TIPO - 1
+    o principal), pra cobrir operacoes com mais de uma origem ou mais de uma
+    entrega. Deliberadamente NAO usado por nenhum processo que ja existia
+    antes de multiplas coletas/destinos (precificacao, Ordem de Coleta,
+    e-mails, PDF) -- esses continuam lendo so o principal; os extras
+    aparecem como informacao complementar nas telas que os exibem."""
+
+    __tablename__ = "quote_locais"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    quote_id: Mapped[int] = mapped_column(ForeignKey("quotes.id"), index=True)
+    tipo: Mapped[str] = mapped_column(String(10))  # "origem" | "destino"
+    ordem: Mapped[int] = mapped_column()  # 2..5 (1 e sempre o principal, fora desta tabela)
+
+    cidade: Mapped[str] = mapped_column(String(120))
+    cep: Mapped[str | None] = mapped_column(String(12), nullable=True)
+    endereco: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    numero: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    bairro: Mapped[str | None] = mapped_column(String(120), nullable=True)
+
+    quote: Mapped[Quote] = relationship(back_populates="locais")
 
 
 class Proposal(Base):
