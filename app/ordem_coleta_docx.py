@@ -18,7 +18,7 @@ from docx.table import Table, _Cell, _Row
 from app.constants import COMERCIAL_RESPONSAVEL
 from app.filiais import EMPRESA_TEMPLATE
 from app.models import Quote
-from app.utils import format_brl
+from app.utils import format_brl, format_valor
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "assets" / "ordem_coleta"
 
@@ -162,7 +162,9 @@ def build_ordem_coleta_docx(quote: Quote) -> bytes:
         "TELEFONE DO SOLICITANTE": quote.client_phone or "-",
         "SOLICITANTE DO FRETE (NOME)": quote.client_name,
         "CNPJ PAGADOR DO FRETE": solicitacao.pagador_documento if solicitacao else "-",
-        "FE TOTAL EMPRESA R$:": format_brl(proposal.valor_final) if proposal else "-",
+        # FE (preco de venda, sem os adicionais tipo diaria/ajudante -- o
+        # campo se chama "FE", nao "valor final").
+        "FE TOTAL EMPRESA R$:": format_brl(proposal.fe) if proposal else "-",
     }
 
     for table in doc.tables:
@@ -229,6 +231,17 @@ def build_ordem_coleta_docx(quote: Quote) -> bytes:
                 _set_last(row, numero_cotacao)
             elif label == "PESO":
                 _set_first(row, quote.peso_total)
+                # a mesma linha carrega "FC SUGERIDO + PEDÁGIO" mais a
+                # frente, com seu proprio valor no ultimo slot da linha
+                # (mesmo padrao de COMERCIAL RESPONSAVEL acima). FC aqui e
+                # SEM o pedagio (motorista+impostos+outros+AET) pra que os
+                # dois numeros somados batam com o FC total -- o pedagio
+                # nao fica contado duas vezes.
+                if proposal is not None:
+                    fc_sem_pedagio = proposal.fc - proposal.custo_pedagio
+                    _set_last(row, f"R$ {format_valor(fc_sem_pedagio)} + R$ {format_valor(proposal.custo_pedagio)}")
+                else:
+                    _set_last(row, "-")
             elif label in campos_simples:
                 _set_first(row, campos_simples[label])
 

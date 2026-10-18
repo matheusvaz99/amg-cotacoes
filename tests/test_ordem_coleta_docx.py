@@ -44,7 +44,7 @@ PROPOSTA = {
 # FC = 9600 ; FE = 9600 * 1.20 = 11520,00
 
 
-def _fluxo_ate_oc(client):
+def _fluxo_ate_oc(client, **proposta_overrides):
     page = client.get("/cotacao/nova?tipo=completa")
     token = csrf_from(page.text)
     payload = dict(VALID)
@@ -64,6 +64,7 @@ def _fluxo_ate_oc(client):
 
     resp_page = client.get(f"/admin/cotacao/{code}")
     data = dict(PROPOSTA)
+    data.update(proposta_overrides)
     data["csrf_token"] = csrf_from(resp_page.text)
     data["validade"] = (date.today() + timedelta(days=7)).isoformat()
     client.post(f"/admin/cotacao/{code}", data=data, follow_redirects=False)
@@ -152,8 +153,7 @@ def test_build_ordem_coleta_docx_preenche_campos_da_cotacao(client):
     assert "Construtora Alfa" in texto  # nome da empresa na coleta
     assert "Obra Y" in texto  # destinatario, vindo da solicitacao
     assert "Rua das Flores, 100" in texto
-    assert "R$ 11.520,00" in texto  # FE total, sem FC/margem
-    assert "9.600,00" not in texto  # FC nunca aparece no documento
+    assert "R$ 11.520,00" in texto  # FE TOTAL EMPRESA = proposal.fe
     assert "5.000 kg" in texto  # peso: texto livre, repassado verbatim
     assert quote.data_coleta.strftime("%d/%m/%Y") in texto
     assert "Josemar Teixeira Costa" in texto  # comercial responsavel, sempre fixo
@@ -166,6 +166,36 @@ def test_build_ordem_coleta_docx_preenche_campos_da_cotacao(client):
     assert "ENDEREÇOS – LOCAL DA ENTREGA" in linhas
     assert "ENDEREÇOS – LOCAL DA ENTREGA 1" not in linhas
     assert linhas["CNPJ ENTREGA"] == "98.765.432/0001-10"
+    # FC SUGERIDO + PEDÁGIO: FC = 9600 (motorista 8000 + pedagio 900 +
+    # impostos 700), exibido SEM o pedagio no 1o numero (8700) + o pedagio
+    # separado (900) -- somados batem com o FC total, sem contar 2x. Esse
+    # campo divide a linha "PESO" com ela (2o valor da linha, no ultimo
+    # slot -- mesmo padrao de COMERCIAL RESPONSAVEL/N. DA COTACAO).
+    peso_row = next(r for r in doc.tables[0].rows if r.cells[0].text.strip() == "PESO")
+    assert peso_row.cells[-1].text.strip() == "R$ 8.700,00 + R$ 900,00"
+
+
+def test_build_ordem_coleta_docx_fe_total_empresa_nao_inclui_adicionais(client):
+    """FE TOTAL EMPRESA mostra proposal.fe -- nao proposal.valor_final (que
+    soma adicionais tipo diaria/guincho). Os dois so coincidem quando nao ha
+    adicional nenhum (caso do teste principal); este cobre o caso em que
+    diferem de verdade."""
+    from app.crud import get_quote_by_code
+    from app.database import SessionLocal
+    from app.ordem_coleta_docx import build_ordem_coleta_docx
+
+    code = _fluxo_ate_oc(client, valor_diaria="450,00")  # FE=11520, valor_final=11970
+    with SessionLocal() as db:
+        quote = get_quote_by_code(db, code)
+        assert quote.proposal.fe != quote.proposal.valor_final  # garante que o teste testa algo
+        conteudo = build_ordem_coleta_docx(quote)
+
+    from io import BytesIO
+
+    doc = Document(BytesIO(conteudo))
+    texto = _tabelas_texto(doc)
+    assert "R$ 11.520,00" in texto  # FE, sem a diaria
+    assert "R$ 11.970,00" not in texto  # valor_final nao aparece nesse campo
 
 
 def test_build_ordem_coleta_docx_expande_blocos_de_coleta_e_entrega_extras(client):
