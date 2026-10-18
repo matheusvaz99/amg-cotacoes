@@ -91,7 +91,7 @@ def _fluxo_ate_oc(client):
             "destino_endereco": VALID["destino_endereco"], "destino_numero": VALID["destino_numero"],
             "destino_bairro": VALID["destino_bairro"],
             "pagador": "Remetente", "pagador_documento": "12.345.678/0001-90",
-            "destinatario_nome": "Obra Y",
+            "destinatario_nome": "Obra Y", "destinatario_cnpj": "98.765.432/0001-10",
             "valor_nf": "25.000,00",
         },
         follow_redirects=False,
@@ -165,6 +165,7 @@ def test_build_ordem_coleta_docx_preenche_campos_da_cotacao(client):
     assert "ENDEREÇOS – LOCAL DA COLETA 1" not in linhas
     assert "ENDEREÇOS – LOCAL DA ENTREGA" in linhas
     assert "ENDEREÇOS – LOCAL DA ENTREGA 1" not in linhas
+    assert linhas["CNPJ ENTREGA"] == "98.765.432/0001-10"
 
 
 def test_build_ordem_coleta_docx_expande_blocos_de_coleta_e_entrega_extras(client):

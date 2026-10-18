@@ -353,6 +353,7 @@ def gerar_oc_form(
         "pagador_documento": s.pagador_documento if s else "",
         "destinatario_nome": s.destinatario_nome if s else "",
         "destinatario_contato": s.destinatario_contato if s else "",
+        "destinatario_cnpj": s.destinatario_cnpj if s else "",
         "valor_nf": s.valor_nf if s else quote.valor_nf,
         # Endereco - local da coleta / entrega: sempre pre-preenchidos da
         # propria cotacao, mas confirmaveis/editaveis aqui.
@@ -419,6 +420,7 @@ async def gerar_oc_submit(
         "fornecedor_contato": None,
         "destinatario_nome": qf.values["destinatario_nome"],
         "destinatario_contato": qf.values["destinatario_contato"],
+        "destinatario_cnpj": qf.values["destinatario_cnpj"],
         "valor_nf": qf.values["valor_nf"],
         "observacoes_operacionais": None,
     })

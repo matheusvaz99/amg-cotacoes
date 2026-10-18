@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from app.constants import TIPO_COTACAO_COMPLETA, TIPO_COTACAO_RAPIDA
-from app.forms import AgendaForm, ProposalForm, QuoteForm, SolicitacaoFreteForm
+from app.forms import AgendaForm, OrdemColetaQuickForm, ProposalForm, QuoteForm, SolicitacaoFreteForm
 
 
 def _valid_payload(**over):
@@ -367,3 +367,35 @@ def test_agenda_form_rejects_invalid_status():
     })
     assert not form.validate()
     assert "status_agenda" in form.errors
+
+
+# ----- OrdemColetaQuickForm (gerar OC direto do painel) -------------------
+
+def _valid_oc_quick_payload(**over):
+    payload = {
+        "origem_cidade": "Curitiba - PR",
+        "destino_cidade": "Londrina - PR",
+        "destinatario_nome": "Obra Central",
+        "pagador": "Remetente",
+        "pagador_documento": "12345678000190",
+    }
+    payload.update(over)
+    return payload
+
+
+def test_ordem_coleta_quick_form_destinatario_cnpj_opcional():
+    form = OrdemColetaQuickForm(_valid_oc_quick_payload())
+    assert form.validate(), form.errors
+    assert form.values["destinatario_cnpj"] is None
+
+
+def test_ordem_coleta_quick_form_formata_destinatario_cnpj():
+    form = OrdemColetaQuickForm(_valid_oc_quick_payload(destinatario_cnpj="12345678000190"))
+    assert form.validate(), form.errors
+    assert form.values["destinatario_cnpj"] == "12.345.678/0001-90"
+
+
+def test_ordem_coleta_quick_form_formata_destinatario_cpf():
+    form = OrdemColetaQuickForm(_valid_oc_quick_payload(destinatario_cnpj="12345678900"))
+    assert form.validate(), form.errors
+    assert form.values["destinatario_cnpj"] == "123.456.789-00"

@@ -403,6 +403,9 @@ class OrdemColetaQuickForm:
             v["pagador_documento"] = format_cnpj_cpf(v["pagador_documento"])
 
         v["destinatario_contato"] = _clean(d.get("destinatario_contato")) or None
+        v["destinatario_cnpj"] = _clean(d.get("destinatario_cnpj")) or None
+        if v["destinatario_cnpj"]:
+            v["destinatario_cnpj"] = format_cnpj_cpf(v["destinatario_cnpj"])
 
         v["origem_cep"] = normalize_cep(d.get("origem_cep"))
         v["origem_endereco"] = _clean(d.get("origem_endereco")) or None

@@ -290,6 +290,10 @@ class SolicitacaoFrete(Base):
     fornecedor_contato: Mapped[str | None] = mapped_column(String(120), nullable=True)
     destinatario_nome: Mapped[str] = mapped_column(String(160))
     destinatario_contato: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # CNPJ/CPF de quem recebe a carga -- vai pro campo "CNPJ ENTREGA" da
+    # Ordem de Coleta (nao confundir com pagador_documento, que e de quem
+    # paga o frete; podem ser empresas diferentes).
+    destinatario_cnpj: Mapped[str | None] = mapped_column(String(20), nullable=True)
     valor_nf: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
     observacoes_operacionais: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(30), default="enviada")

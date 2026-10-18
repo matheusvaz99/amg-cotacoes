@@ -193,6 +193,8 @@ def build_ordem_coleta_docx(quote: Quote) -> bytes:
                 # idem: o destinatario informado na Solicitacao de Frete e
                 # unico, vale pra qualquer entrega extra.
                 _set_first(row, solicitacao.destinatario_nome if solicitacao else "-")
+            elif secao == "entrega" and label == "CNPJ ENTREGA":
+                _set_first(row, solicitacao.destinatario_cnpj if solicitacao else "-")
             elif secao == "coleta" and "ENDEREÇO COMPLETO" in label:
                 if coleta_idx == 1:
                     _set_first(row, _endereco(

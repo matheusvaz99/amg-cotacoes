@@ -75,6 +75,9 @@ _ADDED_COLUMNS = {
         "cnpj_filial": "VARCHAR(20)",
         "uf_referencia": "VARCHAR(2)",
     },
+    "solicitacoes_frete": {
+        "destinatario_cnpj": "VARCHAR(20)",
+    },
 }
 
 # Colunas que existiam como NOT NULL na primeira versao e agora precisam

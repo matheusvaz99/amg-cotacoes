@@ -57,6 +57,7 @@
     {{ field('destinatario_nome', 'Destinatário (nome)', values, errors, required=True) }}
     {{ field('destinatario_contato', 'Contato do destinatário', values, errors, hint='Opcional') }}
   </div>
+  {{ field('destinatario_cnpj', 'CNPJ/CPF do destinatário', values, errors, hint='Opcional — vai para o campo "CNPJ ENTREGA" da Ordem de Coleta.', placeholder='00.000.000/0000-00') }}
 
   <h2 class="section-title">Dados para faturamento</h2>
   {{ select('pagador', 'Pagador do frete', pagador_opcoes, values, errors, required=True) }}

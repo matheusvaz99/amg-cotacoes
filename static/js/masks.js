@@ -50,7 +50,7 @@
   }
 
   document.querySelectorAll('input[name$="_cep"]').forEach(maskCEP);
-  document.querySelectorAll('input[name="pagador_documento"]').forEach(maskDocumento);
+  document.querySelectorAll('input[name="pagador_documento"], input[name="destinatario_cnpj"]').forEach(maskDocumento);
   var CURRENCY_FIELDS = [
     "valor_nf", "custos_adicionais",
     "custo_motorista", "custo_pedagio", "custo_impostos", "custo_outros_internos", "custo_aet",
