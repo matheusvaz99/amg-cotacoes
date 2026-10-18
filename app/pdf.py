@@ -7,6 +7,7 @@ PDF sao latin-1, entao todo texto dinamico passa por `_s()`.
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
@@ -21,6 +22,10 @@ INK = (31, 42, 55)
 MUTED = (91, 100, 114)
 LINE = (226, 230, 236)
 LIGHT = (241, 244, 248)
+
+# Logo oficial da AMG Logistica (fundo transparente, extraida do mesmo
+# material usado nos modelos .docx reais da Ordem de Coleta).
+LOGO_PATH = Path(__file__).resolve().parent.parent / "static" / "img" / "logo-amg-logistica.png"
 
 _REPL = {
     "→": ">", "←": "<", "—": "-", "–": "-",
@@ -65,14 +70,8 @@ class QuotePDF(FPDF):
         self.set_fill_color(*ORANGE)
         self.rect(0, 26, self.w, 1.2, style="F")
 
-        self.set_xy(16, 6.5)
-        self.set_font("Helvetica", "B", 20)
-        self.set_text_color(*ORANGE)
-        self.cell(24, 8, "AMG")
-        self.set_xy(16, 15)
-        self.set_font("Helvetica", "B", 7)
-        self.set_text_color(255, 255, 255)
-        self.cell(40, 4, _s("L O G Í S T I C A"))
+        logo_h = 18
+        self.image(str(LOGO_PATH), x=16, y=(26 - logo_h) / 2, h=logo_h)
 
         self.set_xy(self.w - 96, 7)
         self.set_font("Helvetica", "B", 12)
