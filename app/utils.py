@@ -154,7 +154,9 @@ def build_mensagem_logistica(quote) -> str:
         material += f" - {quote.descricao_material}"
     fc = format_brl(proposal.fc) if proposal else "-"
     carregamento = quote.data_coleta.strftime("%d/%m/%Y") if quote.data_coleta else "-"
+    identificacao = f"{quote.client_company or '-'} - {quote.client_name}"
     return (
+        f"{identificacao}\n"
         f"1 x {veiculo}\n"
         f"{material}\n"
         f"{quote.peso_total or '-'}\n"

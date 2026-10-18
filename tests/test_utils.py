@@ -88,6 +88,7 @@ def test_build_mensagem_logistica():
 
     proposal = SimpleNamespace(fc=Decimal("9800.00"))
     quote = SimpleNamespace(
+        client_company="Construtora Alfa", client_name="João Alves",
         tipo_veiculo="Carreta Sider", carroceria="Grade baixa",
         tipo_material="Andaime", descricao_material=None,
         peso_total="5.000 kg", origem_cidade="Curitiba - PR",
@@ -95,12 +96,32 @@ def test_build_mensagem_logistica():
         proposal=proposal,
     )
     msg = build_mensagem_logistica(quote)
+    linhas = msg.split("\n")
+    assert linhas[0] == "Construtora Alfa - João Alves"  # 1a linha identifica empresa - comprador
     assert "1 x Carreta Sider - Grade baixa" in msg
     assert "Andaime" in msg
     assert "5.000 kg" in msg
     assert "Curitiba - PR X Londrina - PR" in msg
     assert "R$ 9.800,00" in msg  # FC, sem margem
     assert "*Carregamento dia 10/10/2026*" in msg
+
+
+def test_build_mensagem_logistica_sem_empresa_usa_travessao():
+    from datetime import date
+    from decimal import Decimal
+    from types import SimpleNamespace
+
+    proposal = SimpleNamespace(fc=Decimal("9800.00"))
+    quote = SimpleNamespace(
+        client_company="", client_name="João Alves",
+        tipo_veiculo="Carreta Sider", carroceria=None,
+        tipo_material="Andaime", descricao_material=None,
+        peso_total="5.000 kg", origem_cidade="Curitiba - PR",
+        destino_cidade="Londrina - PR", data_coleta=date(2026, 10, 10),
+        proposal=proposal,
+    )
+    msg = build_mensagem_logistica(quote)
+    assert msg.split("\n")[0] == "- - João Alves"
 
 
 def test_para_brasilia_desloca_3h_para_tras():

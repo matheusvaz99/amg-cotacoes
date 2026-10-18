@@ -607,6 +607,7 @@ def test_mensagem_logistica_usa_fc_sem_margem(client):
     assert "R$ 11.520,00" not in resp.text  # nunca o FE/valor cobrado
     assert "Sider" in resp.text
     assert "Andaime" in resp.text
+    assert f"{VALID['client_company']} - {VALID['client_name']}" in resp.text  # 1a linha: identificacao
 
     # botao aparece na tela da cotacao assim que ha proposta
     detalhe = client.get(f"/admin/cotacao/{code}")
