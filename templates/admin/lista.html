@@ -13,7 +13,8 @@
 <div class="tabs">
   {% set _tab_labels = {'todas':'Todas','em_analise':'Em análise','negociacao':'Negociação','respondidas':'Respondidas','finalizadas':'Finalizadas','solicitacao':'Solicitação de frete','logistica':'Logística'} %}
   {% for name in ['todas', 'em_analise', 'negociacao', 'respondidas', 'finalizadas', 'solicitacao', 'logistica'] %}
-    <a class="tab {% if tab == name %}is-active{% endif %}" href="/admin?tab={{ name }}{% if search %}&q={{ search }}{% endif %}{% if empresa %}&empresa={{ empresa }}{% endif %}">
+    {% set ativa = (name == 'todas' and status) or (not status and tab == name) %}
+    <a class="tab {% if ativa %}is-active{% endif %}" href="/admin?tab={{ name }}{% if search %}&q={{ search }}{% endif %}{% if empresa %}&empresa={{ empresa }}{% endif %}">
       {{ _tab_labels[name] }} <span class="tab__count">{{ counts[name] }}</span>
     </a>
   {% endfor %}
@@ -23,6 +24,12 @@
   <input type="hidden" name="tab" value="{{ tab }}">
   <input type="search" name="q" value="{{ search }}" placeholder="Buscar por código, cidade ou cliente">
   <input type="text" name="empresa" value="{{ empresa }}" placeholder="Filtrar por empresa">
+  <select name="status">
+    <option value="">Todos os status</option>
+    {% for valor, label in STATUS_LABELS.items() %}
+      <option value="{{ valor }}" {% if status == valor %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
   <button type="submit" class="btn btn--ghost">Buscar</button>
 </form>
 

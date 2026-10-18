@@ -84,13 +84,21 @@ def list_quotes_by_email(db: Session, email: str) -> list[Quote]:
 
 
 def list_quotes(
-    db: Session, *, tab: str = "todas", search: str = "", empresa: str = "", tipo: str = ""
+    db: Session, *, tab: str = "todas", search: str = "", empresa: str = "",
+    tipo: str = "", status: str = "",
 ) -> list[Quote]:
     stmt = select(Quote).options(*_QUOTE_RELATIONS)
 
-    statuses = ADMIN_TABS.get(tab)
-    if statuses:
-        stmt = stmt.where(Quote.status.in_(statuses))
+    # Status exato (dropdown "Status" da busca) manda mais que a aba: as
+    # abas agrupam status (ex.: "Finalizadas" = aprovada OU reprovada) --
+    # escolher um status especifico sempre vence esse agrupamento, pra dar
+    # pra isolar, por exemplo, so "Reprovada" sem misturar com "Aprovada".
+    if status:
+        stmt = stmt.where(Quote.status == status)
+    else:
+        statuses = ADMIN_TABS.get(tab)
+        if statuses:
+            stmt = stmt.where(Quote.status.in_(statuses))
 
     search = search.strip()
     if search:

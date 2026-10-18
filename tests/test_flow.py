@@ -384,6 +384,49 @@ def test_admin_aprova_e_reprova_manual(client):
     assert "Cliente desistiu" in detail
 
 
+def test_filtro_status_exato_isola_um_status_mesmo_dentro_de_aba_agrupada(client):
+    """O dropdown "Status" do painel filtra por status exato -- diferente
+    das abas, que agrupam mais de um status (ex.: "Finalizadas" mistura
+    aprovada e reprovada). Selecionar "Aprovada" nao deve trazer
+    "Reprovada" junto, mesmo que as duas estejam na mesma aba."""
+    code_aprovada = _fluxo_ate_aprovada(client)
+
+    code_reprovada = _submit_quote(client)
+    _admin_login(client)
+    _respond(client, code_reprovada)
+    page = client.get(f"/admin/cotacao/{code_reprovada}")
+    token = csrf_from(page.text)
+    client.post(
+        f"/admin/cotacao/{code_reprovada}/reprovar",
+        data={"csrf_token": token, "motivo": "Desistiu"},
+    )
+
+    # as duas estao na mesma aba "finalizadas"
+    finalizadas = client.get("/admin?tab=finalizadas").text
+    assert code_aprovada in finalizadas and code_reprovada in finalizadas
+
+    # mas o filtro de status exato isola so uma de cada vez
+    so_aprovadas = client.get("/admin?status=aprovada").text
+    assert code_aprovada in so_aprovadas
+    assert code_reprovada not in so_aprovadas
+
+    so_reprovadas = client.get("/admin?status=reprovada").text
+    assert code_reprovada in so_reprovadas
+    assert code_aprovada not in so_reprovadas
+
+
+def test_filtro_status_invalido_e_ignorado(client):
+    _admin_login(client)
+    resp = client.get("/admin?status=nao-existe")
+    assert resp.status_code == 200  # nao quebra, so ignora o filtro invalido
+
+
+def test_filtro_status_dropdown_mostra_selecionado(client):
+    _admin_login(client)
+    page = client.get("/admin?status=aprovada").text
+    assert 'value="aprovada" selected' in page
+
+
 def _fluxo_ate_aprovada(client):
     code = _submit_quote(client)
     _admin_login(client)

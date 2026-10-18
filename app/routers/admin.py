@@ -17,6 +17,7 @@ from app.constants import (
     OPCOES_CATEGORIAS,
     PAGADOR_OPCOES,
     PROXIMA_ACAO,
+    STATUS_LABELS,
     STATUS_APROVADA,
     STATUS_EM_VALIDACAO,
     STATUS_FRETE_SOLICITADO,
@@ -93,12 +94,15 @@ def dashboard(
     tab: str = "todas",
     q: str = "",
     empresa: str = "",
+    status: str = "",
     admin: str = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     if tab not in ADMIN_TABS:
         tab = "todas"
-    quotes = crud.list_quotes(db, tab=tab, search=q, empresa=empresa)
+    if status not in STATUS_LABELS:
+        status = ""
+    quotes = crud.list_quotes(db, tab=tab, search=q, empresa=empresa, status=status)
     counts = {name: len(crud.list_quotes(db, tab=name)) for name in ADMIN_TABS}
     return render(
         request,
@@ -108,6 +112,7 @@ def dashboard(
         tab=tab,
         search=q,
         empresa=empresa,
+        status=status,
         counts=counts,
         proxima_acao=PROXIMA_ACAO,
     )
