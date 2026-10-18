@@ -384,6 +384,46 @@ def test_admin_aprova_e_reprova_manual(client):
     assert "Cliente desistiu" in detail
 
 
+def test_ultima_alteracao_aparece_na_fila_e_no_detalhe_com_hora(client):
+    import re
+
+    code = _submit_quote(client)
+    _admin_login(client)
+
+    padrao = re.compile(r"\d{2}/\d{2}/\d{4} \d{2}:\d{2}")  # data + HORA, nao so data
+    lista = client.get("/admin?tab=todas").text
+    assert "Última alteração" in lista
+    assert padrao.search(lista)
+
+    detalhe = client.get(f"/admin/cotacao/{code}").text
+    assert "Última alteração" in detalhe
+    assert padrao.search(detalhe)
+
+
+def test_ultima_alteracao_avanca_a_cada_acao_na_cotacao(client):
+    """updated_at (ja existia no modelo, onupdate automatico do SQLAlchemy)
+    -- confirma que uma acao de verdade (precificar) realmente avanca o
+    valor, nao so que a coluna aparece na tela."""
+    import time
+
+    code = _submit_quote(client)
+    _admin_login(client)
+
+    from app.database import SessionLocal
+    from app.models import Quote
+
+    with SessionLocal() as db:
+        antes = db.query(Quote).filter_by(code=code).one().updated_at
+
+    time.sleep(1.1)
+    _respond(client, code)
+
+    with SessionLocal() as db:
+        depois = db.query(Quote).filter_by(code=code).one().updated_at
+
+    assert depois > antes
+
+
 def test_filtro_status_exato_isola_um_status_mesmo_dentro_de_aba_agrupada(client):
     """O dropdown "Status" do painel filtra por status exato -- diferente
     das abas, que agrupam mais de um status (ex.: "Finalizadas" mistura

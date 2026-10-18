@@ -59,6 +59,7 @@
       <div><dt>E-mail</dt><dd>{{ quote.client_email or '-' }}</dd></div>
       <div><dt>Telefone</dt><dd>{{ quote.client_phone or '-' }}</dd></div>
       <div><dt>Solicitada em</dt><dd>{{ quote.created_at | date_br }}</dd></div>
+      <div><dt>Última alteração</dt><dd>{{ quote.updated_at | datetime_br }}</dd></div>
     </dl>
     <h3>Origem</h3>
     <p>{{ quote.origem_cidade }}<br>

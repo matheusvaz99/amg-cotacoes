@@ -14,6 +14,7 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 templates.env.filters["brl"] = format_brl
 templates.env.filters["date_br"] = lambda d: d.strftime("%d/%m/%Y") if d else "-"
+templates.env.filters["datetime_br"] = lambda d: d.strftime("%d/%m/%Y %H:%M") if d else "-"
 templates.env.globals["STATUS_LABELS"] = STATUS_LABELS
 templates.env.globals["DISCLAIMERS"] = DISCLAIMERS
 templates.env.globals["SLOGAN"] = SLOGAN

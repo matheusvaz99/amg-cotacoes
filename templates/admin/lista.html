@@ -39,7 +39,7 @@
 <div class="table-wrap">
   <table class="admin-table">
     <thead>
-      <tr><th>Código</th><th>Data</th><th>Empresa</th><th>Comprador</th><th>Rota</th><th>Material</th><th>Valor total</th><th>Status</th><th>Próxima ação</th><th></th></tr>
+      <tr><th>Código</th><th>Data</th><th>Empresa</th><th>Comprador</th><th>Rota</th><th>Material</th><th>Valor total</th><th>Status</th><th>Última alteração</th><th>Próxima ação</th><th></th></tr>
     </thead>
     <tbody>
       {% for q in quotes %}
@@ -52,6 +52,7 @@
         <td data-label="Material">{{ q.tipo_material }}</td>
         <td data-label="Valor total">{{ q.proposal.valor_final | brl if q.proposal else '-' }}</td>
         <td data-label="Status">{{ status_badge(q.status) }}</td>
+        <td data-label="Última alteração">{{ q.updated_at | datetime_br }}</td>
         <td data-label="Próxima ação"><span class="proxima-acao">{{ proxima_acao.get(q.status, '-') }}</span></td>
         <td data-label="">
           <div class="row-actions">
