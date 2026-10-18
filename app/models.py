@@ -144,6 +144,9 @@ class Proposal(Base):
     custo_impostos: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
     custo_seguro: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
     custo_outros_internos: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
+    # AET - Autorizacao Especial de Transito, lancada manualmente pelo
+    # comercial quando a operacao exige (carga/veiculo especial).
+    custo_aet: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
     fc: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
 
     # --- Margem / FE: preco de venda (o que o cliente ve) ---

@@ -208,6 +208,7 @@ class ProposalForm:
         "custo_pedagio",
         "custo_impostos",
         "custo_outros_internos",
+        "custo_aet",
     ]
     ADICIONAL_FIELDS = [
         "valor_diaria",

@@ -48,7 +48,7 @@ def _proposal_values(**over):
     values = dict(
         custo_motorista=Decimal("2900.00"), custo_pedagio=Decimal("50.00"),
         custo_impostos=Decimal("0.00"), custo_seguro=Decimal("50.00"),
-        custo_outros_internos=Decimal("0.00"), fc=Decimal("3000.00"),
+        custo_outros_internos=Decimal("0.00"), custo_aet=Decimal("0.00"), fc=Decimal("3000.00"),
         margem_pct=Decimal("0.00"), fe=Decimal("3000.00"),
         valor_diaria=Decimal("0.00"), valor_ajudante=Decimal("0.00"),
         valor_empilhadeira=Decimal("0.00"), valor_guincho=Decimal("350.00"),

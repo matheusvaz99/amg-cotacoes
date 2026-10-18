@@ -186,6 +186,22 @@ def test_proposal_form_seguro_saiu_da_formacao_de_preco():
     assert form.values["fc"] == Decimal("9600.00")  # custo_seguro nao entra na soma
 
 
+def test_proposal_form_aet_entra_no_fc():
+    # AET (Autorizacao Especial de Transito) entra no FC igual aos outros
+    # custos internos -- lancado manualmente pelo comercial, em R$.
+    form = ProposalForm(_valid_proposal_payload(custo_aet="450,00"))
+    assert form.validate(), form.errors
+    assert form.values["custo_aet"] == Decimal("450.00")
+    assert form.values["fc"] == Decimal("10050.00")  # 9600 + 450
+    assert form.values["fe"] == Decimal("12060.00")  # 10050 * 1.20
+
+
+def test_proposal_form_sem_aet_fica_zero():
+    form = ProposalForm(_valid_proposal_payload())
+    assert form.validate(), form.errors
+    assert form.values["custo_aet"] == Decimal("0.00")
+
+
 def test_proposal_form_soma_adicionais_no_valor_final():
     form = ProposalForm(_valid_proposal_payload(
         valor_diaria="450,00", valor_guincho="350,00", custos_adicionais="0,00",

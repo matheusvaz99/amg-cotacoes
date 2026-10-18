@@ -26,16 +26,16 @@ TWO = D("0.01")
 
 def _proposta_values(
     *, motorista, pedagio=D("0"), impostos=D("0"), seguro=D("0"), outros_internos=D("0"),
-    margem_pct=D("20"), diaria=D("0"), ajudante=D("0"),
+    aet=D("0"), margem_pct=D("20"), diaria=D("0"), ajudante=D("0"),
     empilhadeira=D("0"), guincho=D("0"), outros=D("0"), outros_desc=None,
     prazo_entrega="1 dia útil", validade_dias=7, observacoes=None,
 ):
-    fc = (motorista + pedagio + impostos + seguro + outros_internos).quantize(TWO)
+    fc = (motorista + pedagio + impostos + seguro + outros_internos + aet).quantize(TWO)
     fe = (fc * (D("1") + margem_pct / D("100"))).quantize(TWO)
     adicionais = diaria + ajudante + empilhadeira + guincho + outros
     return dict(
         custo_motorista=motorista, custo_pedagio=pedagio, custo_impostos=impostos,
-        custo_seguro=seguro, custo_outros_internos=outros_internos, fc=fc,
+        custo_seguro=seguro, custo_outros_internos=outros_internos, custo_aet=aet, fc=fc,
         margem_pct=margem_pct, fe=fe,
         valor_diaria=diaria,
         valor_ajudante=ajudante, valor_empilhadeira=empilhadeira, valor_guincho=guincho,

@@ -124,6 +124,7 @@ def _proposal_values(quote) -> dict:
         "custo_pedagio": format_valor(p.custo_pedagio),
         "custo_impostos": format_valor(p.custo_impostos),
         "custo_outros_internos": format_valor(p.custo_outros_internos),
+        "custo_aet": format_valor(p.custo_aet),
         "margem_pct": format_valor(p.margem_pct),
         "valor_diaria": format_valor(p.valor_diaria),
         "valor_ajudante": format_valor(p.valor_ajudante),
