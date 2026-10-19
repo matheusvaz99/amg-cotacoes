@@ -443,6 +443,134 @@ def test_ultima_alteracao_avanca_a_cada_acao_na_cotacao(client):
     assert depois > antes
 
 
+def test_excluir_cotacao_remove_tudo_sem_deixar_orfao(client):
+    """Cotacao com proposta reprecificada (gera ProposalVersionLog),
+    Solicitacao de Frete, Ordem de Coleta e Agenda -- excluir precisa
+    limpar tudo, sem deixar linha orfa em nenhuma tabela."""
+    from app.database import SessionLocal
+    from app.models import (
+        AgendaCarregamento, OrdemColeta, Proposal, ProposalVersionLog,
+        Quote, SolicitacaoFrete,
+    )
+
+    code = _fluxo_ate_aprovada(client)
+    _respond(client, code, margem_pct="10")  # reprecifica -> gera ProposalVersionLog (volta p/ "respondida")
+
+    with SessionLocal() as db:
+        quote = db.query(Quote).filter_by(code=code).one()
+        quote_id = quote.id
+        assert db.query(ProposalVersionLog).filter_by(quote_id=quote_id).count() == 1
+
+    # reprecificar derruba o status de volta pra "respondida" -- aprova de novo
+    page = client.get(f"/admin/cotacao/{code}")
+    token = csrf_from(page.text)
+    client.post(f"/admin/cotacao/{code}/aprovar", data={"csrf_token": token})
+
+    # avanca ate a Agenda (solicitacao -> validar/OC -> enviar a logistica)
+    sol_page = client.get(f"/cotacao/{code}/solicitacao")
+    token = csrf_from(sol_page.text)
+    client.post(
+        f"/cotacao/{code}/solicitacao",
+        data={
+            "csrf_token": token, "t": "",
+            "pagador": "Remetente", "pagador_documento": "12.345.678/0001-90",
+            "fornecedor_nome": "Fornecedor X", "destinatario_nome": "Obra Y",
+        },
+    )
+    admin_sol = client.get(f"/admin/cotacao/{code}/solicitacao")
+    token = csrf_from(admin_sol.text)
+    client.post(f"/admin/cotacao/{code}/solicitacao/validar", data={"csrf_token": token})
+    sol_page2 = client.get(f"/admin/cotacao/{code}/solicitacao")
+    token = csrf_from(sol_page2.text)
+    client.post(f"/admin/cotacao/{code}/enviar-logistica", data={"csrf_token": token})
+
+    with SessionLocal() as db:
+        quote = db.query(Quote).filter_by(code=code).one()
+        assert quote.proposal is not None
+        assert quote.solicitacao is not None
+        assert quote.ordem_coleta is not None
+        assert quote.ordem_coleta.agenda is not None
+        proposal_id = quote.proposal.id
+        solicitacao_id = quote.solicitacao.id
+        oc_id = quote.ordem_coleta.id
+        agenda_id = quote.ordem_coleta.agenda.id
+
+    page = client.get(f"/admin/cotacao/{code}")
+    token = csrf_from(page.text)
+    resp = client.post(f"/admin/cotacao/{code}/excluir", data={"csrf_token": token}, follow_redirects=False)
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/admin?ok=excluida"
+
+    with SessionLocal() as db:
+        assert db.query(Quote).filter_by(id=quote_id).first() is None
+        assert db.query(Proposal).filter_by(id=proposal_id).first() is None
+        assert db.query(SolicitacaoFrete).filter_by(id=solicitacao_id).first() is None
+        assert db.query(OrdemColeta).filter_by(id=oc_id).first() is None
+        assert db.query(AgendaCarregamento).filter_by(id=agenda_id).first() is None
+        assert db.query(ProposalVersionLog).filter_by(quote_id=quote_id).count() == 0
+
+    lista = client.get("/admin?tab=todas").text
+    assert code not in lista
+    detalhe = client.get(f"/admin/cotacao/{code}", follow_redirects=False)
+    assert detalhe.status_code == 303  # nao existe mais -> redireciona
+
+
+def test_excluir_cotacao_exige_csrf(client):
+    code = _submit_quote(client)
+    _admin_login(client)
+    resp = client.post(
+        f"/admin/cotacao/{code}/excluir", data={"csrf_token": "token-errado"}, follow_redirects=False
+    )
+    assert resp.status_code == 303
+    assert resp.headers["location"] == f"/admin/cotacao/{code}"
+
+    from app.database import SessionLocal
+    from app.models import Quote
+
+    with SessionLocal() as db:
+        assert db.query(Quote).filter_by(code=code).first() is not None  # nao foi removida
+
+
+def test_excluir_cotacao_inexistente_redireciona(client):
+    _admin_login(client)
+    resp = client.post("/admin/cotacao/COT-INEXISTENTE/excluir", data={"csrf_token": "x"}, follow_redirects=False)
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/admin"
+
+
+def test_botao_remover_aparece_na_lista_e_no_detalhe(client):
+    code = _submit_quote(client)
+    _admin_login(client)
+
+    lista = client.get("/admin?tab=todas").text
+    assert f"/admin/cotacao/{code}/excluir" in lista
+
+    detalhe = client.get(f"/admin/cotacao/{code}").text
+    assert f"/admin/cotacao/{code}/excluir" in detalhe
+    assert "Remover cotação" in detalhe
+
+
+def test_condicao_pagamento_escolhida_aparece_na_cotacao_do_cliente(client):
+    code = _submit_quote(client)
+    _admin_login(client)
+    _respond(client, code, condicao_pagamento="À vista")
+
+    detalhe = client.get(f"/cotacao/{code}").text
+    assert "Condição de pagamento: À vista." in detalhe
+    assert "28 dias no boleto bancário" not in detalhe  # nao e mais fixo
+
+
+def test_condicao_pagamento_padrao_quando_nao_escolhida(client):
+    # PROPOSTA (payload padrao dos testes) nao manda condicao_pagamento --
+    # cai no padrao "A definir", sem quebrar a precificacao.
+    code = _submit_quote(client)
+    _admin_login(client)
+    _respond(client, code)
+
+    detalhe = client.get(f"/cotacao/{code}").text
+    assert "Condição de pagamento: A definir." in detalhe
+
+
 def test_filtro_status_exato_isola_um_status_mesmo_dentro_de_aba_agrupada(client):
     """O dropdown "Status" do painel filtra por status exato -- diferente
     das abas, que agrupam mais de um status (ex.: "Finalizadas" mistura

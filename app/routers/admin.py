@@ -14,6 +14,8 @@ from app import crud, emails
 from app.constants import (
     ADMIN_TABS,
     AGENDA_STATUS_LABELS,
+    CONDICAO_PAGAMENTO_OPCOES,
+    CONDICAO_PAGAMENTO_PADRAO,
     OPCOES_CATEGORIAS,
     PAGADOR_OPCOES,
     PROXIMA_ACAO,
@@ -41,7 +43,7 @@ from app.security import (
     validate_csrf,
 )
 from app.templating import render
-from app.utils import alerta_agenda, build_mensagem_logistica, format_valor, utcnow
+from app.utils import alerta_agenda, build_mensagem_logistica, format_valor, para_brasilia, utcnow
 
 router = APIRouter(prefix="/admin")
 
@@ -115,6 +117,7 @@ def dashboard(
         status=status,
         counts=counts,
         proxima_acao=PROXIMA_ACAO,
+        csrf_token=get_csrf_token(request),
     )
 
 
@@ -123,7 +126,7 @@ def dashboard(
 def _proposal_values(quote) -> dict:
     p = quote.proposal
     if not p:
-        return {}
+        return {"condicao_pagamento": CONDICAO_PAGAMENTO_PADRAO}
     return {
         "custo_motorista": format_valor(p.custo_motorista),
         "custo_pedagio": format_valor(p.custo_pedagio),
@@ -140,6 +143,7 @@ def _proposal_values(quote) -> dict:
         "prazo_entrega": p.prazo_entrega,
         "validade": p.validade.isoformat(),
         "observacoes": p.observacoes,
+        "condicao_pagamento": p.condicao_pagamento,
     }
 
 
@@ -161,7 +165,7 @@ def quote_view(
         historico=crud.list_proposal_history(db, quote.id),
         values=_proposal_values(quote),
         errors={},
-        today=utcnow().date().isoformat(),
+        today=para_brasilia(utcnow()).date().isoformat(),
         csrf_token=get_csrf_token(request),
     )
 
@@ -191,7 +195,7 @@ async def quote_respond(
             historico=crud.list_proposal_history(db, quote.id),
             values={**form},  # devolve o que o admin digitou, sem reformatar
             errors=pf.errors,
-            today=utcnow().date().isoformat(),
+            today=para_brasilia(utcnow()).date().isoformat(),
             csrf_token=get_csrf_token(request),
         )
 
@@ -258,6 +262,26 @@ def quote_pdf(
             "Content-Disposition": f'{disposition}; filename="cotacao-{quote.code}.pdf"'
         },
     )
+
+
+@router.post("/cotacao/{code}/excluir")
+async def quote_delete(
+    request: Request,
+    code: str,
+    admin: str = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Remove a cotacao de vez (sem desfazer) -- pra limpar lixo/teste da
+    base. Qualquer status pode ser removido (sem restricao por etapa do
+    pipeline)."""
+    quote = crud.get_quote_by_code(db, code)
+    if not quote:
+        return RedirectResponse("/admin", status_code=303)
+    form = dict((await request.form()))
+    if not validate_csrf(request, form.get("csrf_token")):
+        return RedirectResponse(f"/admin/cotacao/{code}", status_code=303)
+    crud.delete_quote(db, quote)
+    return RedirectResponse("/admin?ok=excluida", status_code=303)
 
 
 @router.get("/cotacao/{code}/mensagem-logistica")
@@ -494,7 +518,7 @@ async def enviar_logistica(
 # ----- Agenda de Carregamentos --------------------------------------------
 
 def _month_bounds(mes: str | None) -> tuple[date, date, int, int]:
-    hoje = utcnow().date()
+    hoje = para_brasilia(utcnow()).date()
     try:
         ano, mes_num = (int(p) for p in mes.split("-"))
     except (AttributeError, ValueError):
@@ -526,7 +550,7 @@ def agenda_list(
         return render(
             request, "admin/agenda.html", admin=admin, view=view, status=status,
             semanas=semanas, por_dia=por_dia, mes_atual=primeiro,
-            prev_mes=prev_mes, next_mes=next_mes, hoje=utcnow().date(),
+            prev_mes=prev_mes, next_mes=next_mes, hoje=para_brasilia(utcnow()).date(),
             agenda_status_labels=AGENDA_STATUS_LABELS,
         )
 
@@ -538,7 +562,7 @@ def agenda_list(
     return render(
         request, "admin/agenda.html", admin=admin, view=view, status=status,
         itens=itens_com_alerta, agenda_status_labels=AGENDA_STATUS_LABELS,
-        hoje=utcnow().date(),
+        hoje=para_brasilia(utcnow()).date(),
     )
 
 

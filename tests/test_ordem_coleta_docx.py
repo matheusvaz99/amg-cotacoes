@@ -156,7 +156,7 @@ def test_build_ordem_coleta_docx_preenche_campos_da_cotacao(client):
     assert "R$ 11.520,00" in texto  # FE TOTAL EMPRESA = proposal.fe
     assert "5.000 kg" in texto  # peso: texto livre, repassado verbatim
     assert quote.data_coleta.strftime("%d/%m/%Y") in texto
-    assert "Josemar Teixeira Costa" in texto  # comercial responsavel, sempre fixo
+    assert "Josemar Costa" in texto  # comercial responsavel, sempre fixo
 
     linhas = dict(_linhas_ordenadas(doc))
     # cotacao com 1 coleta/1 destino (o caso comum) -- rotulo do modelo

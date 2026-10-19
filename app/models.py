@@ -18,7 +18,13 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.constants import LOCAL_TIPO_DESTINO, LOCAL_TIPO_ORIGEM, STATUS_EM_ANALISE, TIPO_COTACAO_COMPLETA
+from app.constants import (
+    CONDICAO_PAGAMENTO_PADRAO,
+    LOCAL_TIPO_DESTINO,
+    LOCAL_TIPO_ORIGEM,
+    STATUS_EM_ANALISE,
+    TIPO_COTACAO_COMPLETA,
+)
 from app.database import Base
 from app.utils import utcnow
 
@@ -222,6 +228,9 @@ class Proposal(Base):
     prazo_entrega: Mapped[str] = mapped_column(String(80))
     validade: Mapped[date] = mapped_column(Date)
     observacoes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Substitui o texto fixo "28 dias no boleto bancario" -- escolhida por
+    # cotacao (ver app.constants.CONDICAO_PAGAMENTO_OPCOES).
+    condicao_pagamento: Mapped[str] = mapped_column(String(60), default=CONDICAO_PAGAMENTO_PADRAO)
 
     quote: Mapped[Quote] = relationship(back_populates="proposal")
 
@@ -251,9 +260,9 @@ class Proposal(Base):
 
     @property
     def expirada(self) -> bool:
-        from app.utils import utcnow as _now
+        from app.utils import para_brasilia, utcnow
 
-        return self.validade < _now().date()
+        return self.validade < para_brasilia(utcnow()).date()
 
 
 class ProposalVersionLog(Base):

@@ -6,6 +6,8 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import func
+
+from app.constants import CONDICAO_PAGAMENTO_PADRAO, TERMOS_COTACAO
 from sqlalchemy.orm import Session
 
 TWO_PLACES = Decimal("0.01")
@@ -127,7 +129,10 @@ def alerta_agenda(data_carregamento, *, status_agenda: str | None = None) -> str
 
     if data_carregamento is None:
         return None
-    dias = (data_carregamento - utcnow().date()).days
+    # "hoje" e o dia civil de Brasilia, nao o de UTC -- perto da virada
+    # (21h-00h de Brasilia = depois da meia-noite UTC), usar utcnow().date()
+    # direto classifica "HOJE" como "ATRASADO" por engano.
+    dias = (data_carregamento - para_brasilia(utcnow()).date()).days
     if status_agenda in (AGENDA_CARREGADO, AGENDA_CANCELADO):
         return None
     if dias < 0:
@@ -139,6 +144,16 @@ def alerta_agenda(data_carregamento, *, status_agenda: str | None = None) -> str
     if dias <= 7:
         return ALERTA_PROXIMO
     return None
+
+
+def termos_cotacao(proposal=None) -> list[str]:
+    """Condicoes comerciais exibidas na proposta (site do cliente + PDF):
+    os termos fixos + a condicao de pagamento escolhida na formacao de
+    preco (unica parte variavel -- substituiu o texto fixo "28 dias no
+    boleto bancario"). Sem proposta ainda, usa o padrao ("A definir")."""
+    condicao = proposal.condicao_pagamento if proposal and proposal.condicao_pagamento else CONDICAO_PAGAMENTO_PADRAO
+    linha_pagamento = f"Inclusos: impostos, pedágios e seguros. Condição de pagamento: {condicao}."
+    return [TERMOS_COTACAO[0], linha_pagamento, *TERMOS_COTACAO[1:]]
 
 
 def build_mensagem_logistica(quote) -> str:

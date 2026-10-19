@@ -68,6 +68,17 @@ def create_quote(db: Session, values: dict[str, Any]) -> Quote:
     return quote
 
 
+def delete_quote(db: Session, quote: Quote) -> None:
+    """Remove a cotacao e tudo ligado a ela -- usado pra limpar lixo/teste
+    da base (sem desfazer depois). Proposal/SolicitacaoFrete/OrdemColeta/
+    AgendaCarregamento/QuoteLocal ja cascateiam via relationship
+    (cascade="all, delete-orphan"); ProposalVersionLog e so uma FK solta
+    (sem relationship em Quote), entao precisa ser apagado a parte."""
+    db.query(ProposalVersionLog).filter(ProposalVersionLog.quote_id == quote.id).delete()
+    db.delete(quote)
+    db.commit()
+
+
 def get_quote_by_code(db: Session, code: str) -> Quote | None:
     stmt = select(Quote).options(*_QUOTE_RELATIONS).where(Quote.code == code.strip().upper())
     return db.scalars(stmt).first()
@@ -131,7 +142,7 @@ _PROPOSAL_FIELDS = (
     "valor_diaria", "valor_ajudante",
     "valor_empilhadeira", "valor_guincho", "custos_adicionais",
     "custos_adicionais_desc", "valor_final",
-    "prazo_entrega", "validade", "observacoes",
+    "prazo_entrega", "validade", "observacoes", "condicao_pagamento",
 )
 
 

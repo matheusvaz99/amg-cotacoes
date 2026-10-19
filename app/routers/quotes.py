@@ -38,7 +38,7 @@ from app.security import (
     validate_csrf,
 )
 from app.templating import render
-from app.utils import utcnow
+from app.utils import para_brasilia, utcnow
 
 router = APIRouter()
 
@@ -69,7 +69,7 @@ def _form_context(
         "carrocerias": carrocerias or [],
         "values": values,
         "errors": errors or {},
-        "today": utcnow().date().isoformat(),
+        "today": para_brasilia(utcnow()).date().isoformat(),
         "csrf_token": get_csrf_token(request),
     }
 

@@ -11,6 +11,8 @@ from typing import Any
 from app.constants import (
     AGENDA_AGUARDANDO,
     AGENDA_STATUS_LABELS,
+    CONDICAO_PAGAMENTO_OPCOES,
+    CONDICAO_PAGAMENTO_PADRAO,
     MAX_LOCAIS_POR_TIPO,
     OBSERVACAO_PADRAO_PROPOSTA,
     PAGADOR_OPCOES,
@@ -21,6 +23,7 @@ from app.constants import (
 from app.utils import (
     format_cnpj_cpf,
     normalize_cep,
+    para_brasilia,
     parse_brl,
     parse_int,
     utcnow,
@@ -148,7 +151,7 @@ class QuoteForm:
         else:
             try:
                 parsed = datetime.strptime(raw_date, "%Y-%m-%d").date()
-                if parsed < utcnow().date():
+                if parsed < para_brasilia(utcnow()).date():
                     self.errors["data_coleta"] = "A data não pode estar no passado."
                 else:
                     v["data_coleta"] = parsed
@@ -302,6 +305,10 @@ class ProposalForm:
         v["prazo_entrega"] = _clean(d.get("prazo_entrega"))
         if not v["prazo_entrega"]:
             self.errors["prazo_entrega"] = "Informe o prazo de entrega."
+
+        v["condicao_pagamento"] = _clean(d.get("condicao_pagamento")) or CONDICAO_PAGAMENTO_PADRAO
+        if v["condicao_pagamento"] not in CONDICAO_PAGAMENTO_OPCOES:
+            self.errors["condicao_pagamento"] = "Opção inválida."
 
         raw_validade = _clean(d.get("validade"))
         v["validade"] = None

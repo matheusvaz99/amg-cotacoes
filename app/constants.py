@@ -180,7 +180,7 @@ OBSERVACAO_PADRAO_PROPOSTA = "Valores sujeitos a confirmação na contratação.
 
 # Nome fixo exibido no campo "COMERCIAL RESPONSÁVEL" da Ordem de Coleta
 # (sempre o mesmo, independente da cotação/filial).
-COMERCIAL_RESPONSAVEL = "Josemar Teixeira Costa"
+COMERCIAL_RESPONSAVEL = "Josemar Costa"
 
 DISCLAIMERS = [
     "As cotações são estimativas e não geram reserva de veículo.",
@@ -193,10 +193,12 @@ DISCLAIMERS = [
 # proposta (site do cliente + PDF) -- texto conforme modelo de cotacao
 # fornecido pelo cliente, a partir de "Obrigatoria apresentacao da nota
 # fiscal...". Nao entra no rodape geral do site (DISCLAIMERS), so nas
-# telas/documentos da propria cotacao.
+# telas/documentos da propria cotacao. A condicao de pagamento NAO esta
+# aqui -- e escolhida por cotacao na formacao de preco (ver
+# CONDICAO_PAGAMENTO_OPCOES/Proposal.condicao_pagamento) e inserida em
+# tempo de exibicao por app.utils.termos_cotacao().
 TERMOS_COTACAO = [
     "Obrigatória apresentação da nota fiscal no momento do embarque para fins de seguro da carga.",
-    "Inclusos: impostos, pedágios e seguros. Condição de pagamento: 28 dias no boleto bancário.",
     "**Não inclusos serviços de carga e descarga, sendo de inteira responsabilidade do contratante do frete o correto armazenamento do material no veículo.",
     "**Não incluso serviço de conferência.",
     "**Não incluso diária (se necessário, avisar a transportadora).",
@@ -204,6 +206,17 @@ TERMOS_COTACAO = [
     "**Valores sujeitos a alterações devido a aumento do diesel/pedágios, etc.",
     "**Validade da proposta: 10 dias.",
 ]
+
+# Opcoes de condicao de pagamento, escolhidas pelo comercial na formacao de
+# preco (substituiu o texto fixo "28 dias no boleto bancario").
+CONDICAO_PAGAMENTO_OPCOES = [
+    "À vista",
+    "15 dias no boleto bancário",
+    "21 dias no boleto bancário",
+    "28 dias no boleto bancário",
+    "A definir",
+]
+CONDICAO_PAGAMENTO_PADRAO = "A definir"
 
 SLOGAN = "RÁPIDO PARA SOLICITAR. FÁCIL PARA COTAR. EFICIENTE PARA TODOS."
 

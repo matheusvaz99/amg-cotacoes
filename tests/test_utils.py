@@ -159,6 +159,24 @@ def test_para_brasilia_none_passa_direto():
     assert para_brasilia(None) is None
 
 
+def test_termos_cotacao_usa_condicao_de_pagamento_da_proposta():
+    from types import SimpleNamespace
+
+    from app.utils import termos_cotacao
+
+    proposal = SimpleNamespace(condicao_pagamento="À vista")
+    termos = termos_cotacao(proposal)
+    assert "Condição de pagamento: À vista." in termos[1]
+    assert "28 dias" not in " ".join(termos)  # nao e mais fixo
+
+
+def test_termos_cotacao_sem_proposta_usa_padrao():
+    from app.utils import termos_cotacao
+
+    termos = termos_cotacao(None)
+    assert "Condição de pagamento: A definir." in termos[1]
+
+
 def test_alerta_agenda():
     hoje = date.today()
     assert alerta_agenda(hoje) == "HOJE"
@@ -170,3 +188,17 @@ def test_alerta_agenda():
     assert alerta_agenda(hoje - timedelta(days=1), status_agenda=AGENDA_CARREGADO) is None
     assert alerta_agenda(hoje - timedelta(days=1), status_agenda=AGENDA_CANCELADO) is None
     assert alerta_agenda(None) is None
+
+
+def test_alerta_agenda_usa_hoje_de_brasilia_nao_de_utc(monkeypatch):
+    # Bug real: 23:30 de Brasilia (ainda "hoje") cai as 02:30 UTC do dia
+    # SEGUINTE -- usar utcnow().date() direto (sem converter) classificava
+    # um carregamento de hoje como "ATRASADO" por engano, no horario
+    # 21h-00h de Brasilia (depois da meia-noite UTC).
+    import app.utils as utils_module
+
+    utc_apos_meia_noite = datetime(2026, 10, 19, 2, 30, tzinfo=timezone.utc)
+    monkeypatch.setattr(utils_module, "utcnow", lambda: utc_apos_meia_noite)
+
+    hoje_em_brasilia = date(2026, 10, 18)
+    assert alerta_agenda(hoje_em_brasilia) == "HOJE"

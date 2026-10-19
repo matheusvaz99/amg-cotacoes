@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "partials/status_badge.html" import status_badge %}
-{% from "partials/fields.html" import field, textarea %}
+{% from "partials/fields.html" import field, select, textarea %}
 {% set _voltar_tab = {
   'em_analise': 'em_analise', 'respondida': 'respondidas', 'negociacao': 'negociacao',
   'aprovada': 'finalizadas', 'reprovada': 'finalizadas',
@@ -17,7 +17,14 @@
     <p class="eyebrow">Cotação</p>
     <h1>{{ quote.code }}</h1>
   </div>
-  {{ status_badge(quote.status) }}
+  <div class="row-actions">
+    {{ status_badge(quote.status) }}
+    <form method="post" action="/admin/cotacao/{{ quote.code }}/excluir"
+          onsubmit="return confirm('Remover a cotação {{ quote.code }}? Essa ação não pode ser desfeita.');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" class="btn btn--sm btn--danger">Remover cotação</button>
+    </form>
+  </div>
 </div>
 
 {% if request.query_params.get('ok') == '1' %}
@@ -145,6 +152,7 @@
 
       {{ field('prazo_entrega', 'Prazo de entrega', values, errors, required=True, placeholder='Ex.: 1 dia útil') }}
       {{ field('validade', 'Validade da proposta', values, errors, type='date', required=True) }}
+      {{ select('condicao_pagamento', 'Condição de pagamento', CONDICAO_PAGAMENTO_OPCOES, values, errors, required=True) }}
       {{ textarea('observacoes', 'Observações', values, errors, hint='Padrão: valores sujeitos a confirmação na contratação.') }}
       <button type="submit" class="btn btn--primary btn--block">Salvar precificação</button>
     </form>

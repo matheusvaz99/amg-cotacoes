@@ -320,7 +320,7 @@ a { color: var(--orange-600); }
 
 .inline-form { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
 .inline-form .field { flex: 1 1 240px; margin-bottom: 0; }
-.row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.row-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .row-actions form { margin: 0; }
 
 .edit-form { display: flex; gap: 6px; align-items: center; }

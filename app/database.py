@@ -59,6 +59,7 @@ _ADDED_COLUMNS = {
         "custo_seguro": "NUMERIC(14,2)",
         "custo_outros_internos": "NUMERIC(14,2)",
         "custo_aet": "NUMERIC(14,2)",
+        "condicao_pagamento": "VARCHAR(60)",
         "fc": "NUMERIC(14,2)",
         "margem_pct": "NUMERIC(6,2)",
         "fe": "NUMERIC(14,2)",

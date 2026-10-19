@@ -33,6 +33,10 @@
   <button type="submit" class="btn btn--ghost">Buscar</button>
 </form>
 
+{% if request.query_params.get('ok') == 'excluida' %}
+  <p class="notice notice--ok">Cotação removida.</p>
+{% endif %}
+
 {% if not quotes %}
   <p class="notice">Nenhuma cotação nesta visão.</p>
 {% else %}
@@ -63,6 +67,11 @@
                 {% if q.proposal %}Ver / editar{% else %}Responder{% endif %}</a>
             {% endif %}
             <a class="btn btn--sm btn--ghost" href="/admin/cotacao/{{ q.code }}/pdf">PDF</a>
+            <form method="post" action="/admin/cotacao/{{ q.code }}/excluir"
+                  onsubmit="return confirm('Remover a cotação {{ q.code }}? Essa ação não pode ser desfeita.');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button type="submit" class="btn btn--sm btn--danger">Remover</button>
+            </form>
           </div>
         </td>
       </tr>

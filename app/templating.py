@@ -4,8 +4,15 @@ from pathlib import Path
 
 from fastapi.templating import Jinja2Templates
 
-from app.constants import DISCLAIMERS, MAX_LOCAIS_POR_TIPO, SLOGAN, STATUS_LABELS, TERMOS_COTACAO
-from app.utils import format_brl, para_brasilia
+from app.constants import (
+    CONDICAO_PAGAMENTO_OPCOES,
+    DISCLAIMERS,
+    MAX_LOCAIS_POR_TIPO,
+    SLOGAN,
+    STATUS_LABELS,
+    TERMOS_COTACAO,
+)
+from app.utils import format_brl, para_brasilia, termos_cotacao
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = BASE_DIR / "templates"
@@ -31,6 +38,8 @@ templates.env.globals["DISCLAIMERS"] = DISCLAIMERS
 templates.env.globals["SLOGAN"] = SLOGAN
 templates.env.globals["TERMOS_COTACAO"] = TERMOS_COTACAO
 templates.env.globals["MAX_LOCAIS_POR_TIPO"] = MAX_LOCAIS_POR_TIPO
+templates.env.globals["CONDICAO_PAGAMENTO_OPCOES"] = CONDICAO_PAGAMENTO_OPCOES
+templates.env.globals["termos_cotacao"] = termos_cotacao
 
 
 def render(request, name: str, **ctx):

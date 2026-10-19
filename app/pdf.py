@@ -11,9 +11,9 @@ from pathlib import Path
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 
-from app.constants import DISCLAIMERS, SLOGAN, STATUS_LABELS, TERMOS_COTACAO
+from app.constants import DISCLAIMERS, SLOGAN, STATUS_LABELS
 from app.models import Quote
-from app.utils import format_brl, para_brasilia, utcnow
+from app.utils import format_brl, para_brasilia, termos_cotacao, utcnow
 
 ORANGE = (242, 106, 33)
 ORANGE_DARK = (184, 70, 15)
@@ -226,7 +226,7 @@ def build_quote_pdf(quote: Quote) -> bytes:
         pdf.section("Condições comerciais")
         pdf.set_font("Helvetica", "", 8)
         pdf.set_text_color(*INK)
-        for item in TERMOS_COTACAO:
+        for item in termos_cotacao(proposal):
             pdf.multi_cell(0, 4.4, _s(item), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             pdf.ln(0.8)
 

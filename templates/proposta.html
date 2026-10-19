@@ -54,7 +54,7 @@
       {% endif %}
       <h3 class="section-title">Condições comerciais</h3>
       <ul class="disclaimers">
-        {% for item in TERMOS_COTACAO %}<li>{{ item }}</li>{% endfor %}
+        {% for item in termos_cotacao(proposal) %}<li>{{ item }}</li>{% endfor %}
       </ul>
     </div>
 

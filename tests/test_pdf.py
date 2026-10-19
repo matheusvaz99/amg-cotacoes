@@ -56,6 +56,7 @@ def _proposal_values(**over):
         valor_final=Decimal("3350.00"),
         prazo_entrega="1 dia útil", validade=date.today() + timedelta(days=7),
         observacoes="Valores sujeitos à confirmação na contratação.",
+        condicao_pagamento="28 dias no boleto bancário",
     )
     values.update(over)
     return values

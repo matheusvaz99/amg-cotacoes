@@ -29,6 +29,7 @@ def _proposta_values(
     aet=D("0"), margem_pct=D("20"), diaria=D("0"), ajudante=D("0"),
     empilhadeira=D("0"), guincho=D("0"), outros=D("0"), outros_desc=None,
     prazo_entrega="1 dia útil", validade_dias=7, observacoes=None,
+    condicao_pagamento="A definir",
 ):
     fc = (motorista + pedagio + impostos + seguro + outros_internos + aet).quantize(TWO)
     fe = (fc * (D("1") + margem_pct / D("100"))).quantize(TWO)
@@ -44,6 +45,7 @@ def _proposta_values(
         prazo_entrega=prazo_entrega,
         validade=date.today() + timedelta(days=validade_dias),
         observacoes=observacoes,
+        condicao_pagamento=condicao_pagamento,
     )
 
 

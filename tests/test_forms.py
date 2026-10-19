@@ -315,6 +315,24 @@ def test_proposal_form_requires_prazo_e_validade():
     assert "validade" in form.errors
 
 
+def test_proposal_form_condicao_pagamento_padrao_quando_nao_enviada():
+    form = ProposalForm(_valid_proposal_payload())
+    assert form.validate(), form.errors
+    assert form.values["condicao_pagamento"] == "A definir"
+
+
+def test_proposal_form_condicao_pagamento_aceita_opcao_valida():
+    form = ProposalForm(_valid_proposal_payload(condicao_pagamento="15 dias no boleto bancário"))
+    assert form.validate(), form.errors
+    assert form.values["condicao_pagamento"] == "15 dias no boleto bancário"
+
+
+def test_proposal_form_condicao_pagamento_rejeita_opcao_invalida():
+    form = ProposalForm(_valid_proposal_payload(condicao_pagamento="40 dias"))
+    assert not form.validate()
+    assert "condicao_pagamento" in form.errors
+
+
 # ----- SolicitacaoFreteForm -------------------------------------------
 
 def test_solicitacao_form_ok():
