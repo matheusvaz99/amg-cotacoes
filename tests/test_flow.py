@@ -538,7 +538,9 @@ def test_excluir_cotacao_inexistente_redireciona(client):
     assert resp.headers["location"] == "/admin"
 
 
-def test_botao_remover_aparece_na_lista_e_no_detalhe(client):
+def test_botao_remover_aparece_so_na_lista_nao_no_detalhe(client):
+    # Feature fica so na fila (icone de lixeira) -- a tela de uma cotacao
+    # individual nao tem opcao de remove-la.
     code = _submit_quote(client)
     _admin_login(client)
 
@@ -546,8 +548,7 @@ def test_botao_remover_aparece_na_lista_e_no_detalhe(client):
     assert f"/admin/cotacao/{code}/excluir" in lista
 
     detalhe = client.get(f"/admin/cotacao/{code}").text
-    assert f"/admin/cotacao/{code}/excluir" in detalhe
-    assert "Remover cotação" in detalhe
+    assert f"/admin/cotacao/{code}/excluir" not in detalhe
 
 
 def test_condicao_pagamento_escolhida_aparece_na_cotacao_do_cliente(client):

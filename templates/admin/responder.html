@@ -17,14 +17,7 @@
     <p class="eyebrow">Cotação</p>
     <h1>{{ quote.code }}</h1>
   </div>
-  <div class="row-actions">
-    {{ status_badge(quote.status) }}
-    <form method="post" action="/admin/cotacao/{{ quote.code }}/excluir"
-          onsubmit="return confirm('Remover a cotação {{ quote.code }}? Essa ação não pode ser desfeita.');">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      <button type="submit" class="btn btn--sm btn--danger">Remover cotação</button>
-    </form>
-  </div>
+  {{ status_badge(quote.status) }}
 </div>
 
 {% if request.query_params.get('ok') == '1' %}

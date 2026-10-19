@@ -85,6 +85,8 @@ a { color: var(--orange-600); }
 .btn--sm.btn--ghost { background: #fff; color: var(--orange-700); }
 .btn--danger { background: var(--err-bg); color: #a12b2b; border-color: #f2c7c7; }
 .btn--danger:hover { background: #f7d7d7; }
+.btn--icon { width: 38px; padding: 0; flex-shrink: 0; }
+.btn--icon svg { width: 16px; height: 16px; }
 .linkbtn { background: none; border: 0; color: var(--orange-600); font: inherit; cursor: pointer; text-decoration: underline; padding: 0; }
 
 /* ---------- Hero / home ---------- */
