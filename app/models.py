@@ -112,6 +112,11 @@ class Quote(Base):
     # ou ao devolver uma solicitacao de frete para correcao.
     decision_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Soft delete: "Remover" no painel so marca aqui (nao apaga de verdade)
+    # -- some da fila/telas normais, mas continua no banco, recuperavel por
+    # quem tiver acesso direto ao banco. None = nao excluida.
+    excluida_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
     proposal: Mapped[Proposal | None] = relationship(
         back_populates="quote", uselist=False, cascade="all, delete-orphan"
     )

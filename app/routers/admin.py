@@ -271,9 +271,9 @@ async def quote_delete(
     admin: str = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Remove a cotacao de vez (sem desfazer) -- pra limpar lixo/teste da
-    base. Qualquer status pode ser removido (sem restricao por etapa do
-    pipeline)."""
+    """"Remove" a cotacao (soft delete, ver crud.delete_quote) -- some da
+    fila/telas, mas continua no banco. Qualquer status pode ser removido
+    (sem restricao por etapa do pipeline)."""
     quote = crud.get_quote_by_code(db, code)
     if not quote:
         return RedirectResponse("/admin", status_code=303)

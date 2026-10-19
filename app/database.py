@@ -48,6 +48,7 @@ _ADDED_COLUMNS = {
         "client_cnpj": "VARCHAR(20)",
         "origem_numero": "VARCHAR(20)",
         "destino_numero": "VARCHAR(20)",
+        "excluida_em": "TIMESTAMP",
     },
     "proposals": {
         "custos_adicionais": "NUMERIC(14,2)",

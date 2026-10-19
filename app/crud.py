@@ -69,18 +69,20 @@ def create_quote(db: Session, values: dict[str, Any]) -> Quote:
 
 
 def delete_quote(db: Session, quote: Quote) -> None:
-    """Remove a cotacao e tudo ligado a ela -- usado pra limpar lixo/teste
-    da base (sem desfazer depois). Proposal/SolicitacaoFrete/OrdemColeta/
-    AgendaCarregamento/QuoteLocal ja cascateiam via relationship
-    (cascade="all, delete-orphan"); ProposalVersionLog e so uma FK solta
-    (sem relationship em Quote), entao precisa ser apagado a parte."""
-    db.query(ProposalVersionLog).filter(ProposalVersionLog.quote_id == quote.id).delete()
-    db.delete(quote)
+    """"Remove" a cotacao -- soft delete: so marca excluida_em, nao apaga
+    nada de verdade. Some da fila e de qualquer tela normal (get_quote_by_
+    code/list_quotes/list_quotes_by_email ja filtram excluida_em is None),
+    mas continua no banco, recuperavel por quem tiver acesso direto a ele."""
+    quote.excluida_em = utcnow()
     db.commit()
 
 
 def get_quote_by_code(db: Session, code: str) -> Quote | None:
-    stmt = select(Quote).options(*_QUOTE_RELATIONS).where(Quote.code == code.strip().upper())
+    stmt = (
+        select(Quote)
+        .options(*_QUOTE_RELATIONS)
+        .where(Quote.code == code.strip().upper(), Quote.excluida_em.is_(None))
+    )
     return db.scalars(stmt).first()
 
 
@@ -88,7 +90,7 @@ def list_quotes_by_email(db: Session, email: str) -> list[Quote]:
     stmt = (
         select(Quote)
         .options(*_QUOTE_RELATIONS)
-        .where(Quote.client_email == email.strip().lower())
+        .where(Quote.client_email == email.strip().lower(), Quote.excluida_em.is_(None))
         .order_by(Quote.created_at.desc())
     )
     return list(db.scalars(stmt))
@@ -98,7 +100,7 @@ def list_quotes(
     db: Session, *, tab: str = "todas", search: str = "", empresa: str = "",
     tipo: str = "", status: str = "",
 ) -> list[Quote]:
-    stmt = select(Quote).options(*_QUOTE_RELATIONS)
+    stmt = select(Quote).options(*_QUOTE_RELATIONS).where(Quote.excluida_em.is_(None))
 
     # Status exato (dropdown "Status" da busca) manda mais que a aba: as
     # abas agrupam status (ex.: "Finalizadas" = aprovada OU reprovada) --

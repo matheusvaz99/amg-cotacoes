@@ -443,10 +443,11 @@ def test_ultima_alteracao_avanca_a_cada_acao_na_cotacao(client):
     assert depois > antes
 
 
-def test_excluir_cotacao_remove_tudo_sem_deixar_orfao(client):
-    """Cotacao com proposta reprecificada (gera ProposalVersionLog),
-    Solicitacao de Frete, Ordem de Coleta e Agenda -- excluir precisa
-    limpar tudo, sem deixar linha orfa em nenhuma tabela."""
+def test_excluir_cotacao_e_soft_delete_nada_e_apagado_de_verdade(client):
+    """"Remover" e soft delete: a cotacao e tudo ligado a ela (proposta
+    reprecificada com ProposalVersionLog, Solicitacao de Frete, Ordem de
+    Coleta, Agenda) continuam no banco -- so excluida_em e marcado, e ela
+    some das telas/consultas normais."""
     from app.database import SessionLocal
     from app.models import (
         AgendaCarregamento, OrdemColeta, Proposal, ProposalVersionLog,
@@ -502,17 +503,33 @@ def test_excluir_cotacao_remove_tudo_sem_deixar_orfao(client):
     assert resp.headers["location"] == "/admin?ok=excluida"
 
     with SessionLocal() as db:
-        assert db.query(Quote).filter_by(id=quote_id).first() is None
-        assert db.query(Proposal).filter_by(id=proposal_id).first() is None
-        assert db.query(SolicitacaoFrete).filter_by(id=solicitacao_id).first() is None
-        assert db.query(OrdemColeta).filter_by(id=oc_id).first() is None
-        assert db.query(AgendaCarregamento).filter_by(id=agenda_id).first() is None
-        assert db.query(ProposalVersionLog).filter_by(quote_id=quote_id).count() == 0
+        # nada foi apagado de verdade -- tudo continua no banco
+        quote = db.query(Quote).filter_by(id=quote_id).first()
+        assert quote is not None
+        assert quote.excluida_em is not None  # so isso foi marcado
+        assert db.query(Proposal).filter_by(id=proposal_id).first() is not None
+        assert db.query(SolicitacaoFrete).filter_by(id=solicitacao_id).first() is not None
+        assert db.query(OrdemColeta).filter_by(id=oc_id).first() is not None
+        assert db.query(AgendaCarregamento).filter_by(id=agenda_id).first() is not None
+        assert db.query(ProposalVersionLog).filter_by(quote_id=quote_id).count() == 1
 
+    # mas some das telas/consultas normais
     lista = client.get("/admin?tab=todas").text
     assert code not in lista
     detalhe = client.get(f"/admin/cotacao/{code}", follow_redirects=False)
-    assert detalhe.status_code == 303  # nao existe mais -> redireciona
+    assert detalhe.status_code == 303  # get_quote_by_code nao acha -> redireciona
+
+
+def test_excluir_cotacao_some_tambem_da_visao_do_cliente(client):
+    code = _submit_quote(client)
+    _admin_login(client)
+    page = client.get(f"/admin/cotacao/{code}")
+    token = csrf_from(page.text)
+    client.post(f"/admin/cotacao/{code}/excluir", data={"csrf_token": token})
+
+    detalhe_cliente = client.get(f"/cotacao/{code}")
+    assert detalhe_cliente.status_code == 200
+    assert "não encontrada" in detalhe_cliente.text.lower()
 
 
 def test_excluir_cotacao_exige_csrf(client):
